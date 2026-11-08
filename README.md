@@ -18,7 +18,7 @@ The versions are the Week 8 lab's: Kotlin 2.1.0, Spring Boot 3.4.3, Gradle 8.12,
    ./check
    ```
    On macOS and Linux, `make check` does the same. It runs the tests, builds the image, starts two instances of your service against the dev kit (each capped at 512 MB), and checks both are healthy. When it prints `Ready`, push: CI runs too.
-3. **Sign in** on the dev kit's sign-in page with a seeded account. Then open your example page at `http://localhost:8080/app/<service>/` and press "Call hello".
+3. **Sign in** on the dev kit's sign-in page (http://localhost:8080/signin/): as one of your team's seeded students (student ID and PIN 1234; the dev kit README lists them), or as a restaurant or Union account. Then open your example page at `http://localhost:8080/app/<service>/` and press "Call hello".
 4. Read the two examples in `src/main/kotlin/.../example`, then build your first slice in packages of your own.
 
 ## What is where

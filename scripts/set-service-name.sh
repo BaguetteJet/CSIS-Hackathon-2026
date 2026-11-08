@@ -16,6 +16,6 @@ for f in .env service.env local.env; do
   rm -f "$f.bak"
 done
 if [ "$name" = orders ]; then
-  sed -i.bak -e 's#^HOLD_CLIENT=stub#HOLD_CLIENT=http\nLEDGER_URL=http://ledger:8080#' service.env && rm -f service.env.bak
+  sed -i.bak -e 's#^HOLD_CLIENT=stub#HOLD_CLIENT=http\nLEDGER_URL=http://hold-stub:8080#' service.env && rm -f service.env.bak
 fi
 echo "SERVICE_NAME is now $name:"; grep -H "SERVICE_NAME\|DB_\|LEDGER_URL\|HOLD_CLIENT" .env service.env local.env

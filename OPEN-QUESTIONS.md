@@ -25,9 +25,9 @@ The dev kit is not built yet, so the starter chose the names below. They all liv
 | Token claims | `sub` user ID, `role`, `restaurantId` for staff (spec C1), plus optional `name` (shown in the UI kit header) |
 | Token in the browser | `localStorage["groupbuy.token"]`, on the gateway's origin |
 | Sign-in page | `/signin/?return=<path>` on the gateway |
-| Platform clock | `GET http://clock:8080/internal/clock` answers `{"now": "<ISO UTC>"}` (plain ISO text is also accepted) |
+| Platform clock | `GET http://clock:8080/internal/clock` answers `{"now": "<ISO UTC>"}` (plain ISO text is also accepted); from the laptop `http://localhost:8090/internal/clock`, never through the gateway |
 | Mailpit | `mailpit:1025` |
-| The hold call for Orders | `LEDGER_URL=http://ledger:8080`: the fake Ledger, hold stub or real Ledger answers on that name |
+| The hold call for Orders | `LEDGER_URL=http://hold-stub:8080` (the dev kit's hold stub, by default), `http://fakes:8080` (the fake Ledger) or `http://ledger:8080` (a real Ledger) |
 | Gateway | `/api/<service>/` and `/app/<service>/` to `http://<service>:8080`; both instances join the alias `<service>` |
 | Dead-letter topics | `<service>.dlt`, 6 partitions, created by the service at startup. The platform team's replay tool reads them, with the reason in the `kafka_dlt-exception-message` header |
 
