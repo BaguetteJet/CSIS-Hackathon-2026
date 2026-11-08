@@ -11,7 +11,7 @@ Updated Sunday 8 November 2026.
 | An event published twice is processed once; an early event is parked, then applied | Done | `ConsumerPatternsTest`, through real Kafka and MySQL: a repeated `UserRegistered` sent after a rename does not undo the rename; a `RoleChanged` sent before its `UserRegistered` is parked, then applied, and the parking table empties |
 | A malformed message lands on the dead-letter topic and the consumer keeps going | Done | `ConsumerPatternsTest`: an invalid JSON message and a JSON message missing fields both reach `platform.dlt` with the reason header, and the next valid event is still stored |
 | With both instances publishing, one key's events arrive in order | Done | `TwoInstancesTest`: 100 events for one deal, published from both instances by 8 threads, arrive with sequences 1 to 100, in order, none missing or repeated |
-| CI passes on Forgejo and pushes an image | **Done on a local Forgejo 17.0.1** | Rehearsal repository `hackathon-2026/starter`: CI went green on `main` and on the tag `v0.1.0`, and pushed the image tagged `sha-80f139a` and `v0.1.0`. The push went to a plain registry, because the rehearsal server's internal name could not be reached for Docker's login; on the real server both names are the same. Not yet run on cs4297.skynet.ie |
+| CI passes on Forgejo and pushes an image | **Done on cs4297.skynet.ie** (8 November) | On the real runners, commit `be02b3f`: the `build` job passed tests, jar and image push to the Forgejo registry. Rehearsed first on a local Forgejo 17.0.1 |
 | `make check` passes from a clean clone on Windows (Git Bash) and macOS | **Windows done; macOS not checked** | A fresh clone from the rehearsal Forgejo, with `core.autocrlf=true`: `./check --down` printed `Ready`. The execute bits survived |
 
 Test totals:
@@ -48,5 +48,5 @@ Test totals:
 
 1. **The decisions in OPEN-QUESTIONS.md items 1 to 3**, before the starter is copied on Thursday.
 2. **The dev kit must provide the names in OPEN-QUESTIONS.md** ("The dev kit must match these"), or `service.env` and `local.env` change to match it. Then re-run `./check` against the real dev kit.
-3. **Not run yet:** on macOS, on cs4297.skynet.ie's runners, the k6 last-place test (it needs Orders and seeded tokens), and the 2,000-connection script (it needs Student experience). Both scripts compile and are wired into Gradle and Docker.
+3. **Not run yet:** on macOS, the k6 last-place test (it needs Orders and seeded tokens), and the 2,000-connection script (it needs Student experience). Both scripts compile and are wired into Gradle and Docker.
 4. **Copying in on Thursday:** run `scripts/set-service-name.sh <name>` in each team repository, set its `PACKAGES_TOKEN` secret, and push.
