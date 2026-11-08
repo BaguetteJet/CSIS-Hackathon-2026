@@ -1,0 +1,37 @@
+# Two instances of your service on the dev kit's network, as in integration.
+#   ./check                  builds the jar and the image, starts both, checks their health
+#   docker compose up -d     starts both (after ./gradlew bootJar)
+#   docker compose down      stops both
+# Start the dev kit first: it creates the network "hackathon".
+name: ${SERVICE_NAME}
+
+x-instance: &instance
+  build: .
+  image: ${SERVICE_NAME}:local
+  env_file: service.env
+  mem_limit: 512m          # each instance is capped at 512 MB (integration holds sixteen)
+  memswap_limit: 512m
+  restart: unless-stopped
+
+services:
+  instance-1:
+    <<: *instance
+    container_name: ${SERVICE_NAME}-1
+    hostname: ${SERVICE_NAME}-1
+    ports: ["8081:8080"]
+    networks:
+      hackathon:
+        aliases: ["${SERVICE_NAME}-1", "${SERVICE_NAME}"]
+
+  instance-2:
+    <<: *instance
+    container_name: ${SERVICE_NAME}-2
+    hostname: ${SERVICE_NAME}-2
+    ports: ["8082:8080"]
+    networks:
+      hackathon:
+        aliases: ["${SERVICE_NAME}-2", "${SERVICE_NAME}"]
+
+networks:
+  hackathon:
+    external: true

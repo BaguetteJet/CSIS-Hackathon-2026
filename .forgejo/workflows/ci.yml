@@ -1,0 +1,76 @@
+# Your service's CI, on every push and pull request:
+#   1. unit and contract tests (./gradlew test; container tests run on your laptop, not here)
+#   2. the jar
+#   3. on a push (not a pull request): the image, pushed to the Forgejo registry and tagged
+#      sha-<commit> and, for a Git tag, the tag itself. Promotion into integration uses the tag.
+#
+# Only two runners serve all sixteen teams, and a cold build takes about 5.5 minutes: the Gradle
+# cache below matters. Do not add container tests here.
+
+name: service
+
+on:
+  push:
+    branches: [main]
+    tags: ['*']
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # The container registry. A repository variable REGISTRY overrides it (the organisers' rehearsal does).
+      REGISTRY: ${{ vars.REGISTRY || 'cs4297.skynet.ie' }}
+      # Reads the contracts library from the hackathon-2026 package registry and pushes the image.
+      # The organisers set the repository secret PACKAGES_TOKEN (read and write:package): the
+      # workflow's own token cannot read the organisation's packages.
+      # Not FORGEJO_TOKEN: Forgejo sets that name to the job's own token in every job.
+      ORG_GRADLE_PROJECT_forgejoUser: ${{ forgejo.actor }}
+      ORG_GRADLE_PROJECT_forgejoToken: ${{ secrets.PACKAGES_TOKEN }}
+      ORG_GRADLE_PROJECT_forgejoMavenUrl: ${{ forgejo.server_url }}/api/packages/${{ forgejo.repository_owner }}/maven
+    steps:
+      - name: PACKAGES_TOKEN is set
+        run: '[ -n "$ORG_GRADLE_PROJECT_forgejoToken" ] || { echo "The repository secret PACKAGES_TOKEN is missing: ask the organisers"; exit 1; }'
+
+      - uses: https://github.com/actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: https://github.com/actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Unit and contract tests
+        run: ./gradlew test --no-daemon
+
+      - name: Build the jar
+        run: ./gradlew bootJar --no-daemon
+
+      - name: Upload the test report
+        if: always()
+        uses: https://code.forgejo.org/forgejo/upload-artifact@v4
+        with:
+          name: test-report
+          path: build/reports/tests/test/
+          retention-days: 7
+
+      - name: Docker CLI
+        if: forgejo.event_name == 'push'
+        run: |
+          command -v docker >/dev/null || {
+            curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-27.5.1.tgz | tar -xz -C /tmp
+            install /tmp/docker/docker /usr/local/bin/docker
+          }
+          docker version --format 'Docker {{.Server.Version}}'
+
+      - name: Build and push the image
+        if: forgejo.event_name == 'push'
+        run: |
+          image="$REGISTRY/$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+          tags="-t $image:sha-${GITHUB_SHA::7}"
+          if [ "$GITHUB_REF_TYPE" = tag ]; then tags="$tags -t $image:$GITHUB_REF_NAME"; fi
+          echo "$ORG_GRADLE_PROJECT_forgejoToken" | docker login "$REGISTRY" -u "$ORG_GRADLE_PROJECT_forgejoUser" --password-stdin
+          docker build $tags .
+          for t in $tags; do [ "$t" = -t ] || docker push "$t"; done
+          echo "Pushed: $tags" | sed 's/-t //g'

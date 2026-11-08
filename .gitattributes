@@ -1,0 +1,4 @@
+# Generated files must be byte-identical on every machine, so the "no diff" check works on Windows too.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.jar binary

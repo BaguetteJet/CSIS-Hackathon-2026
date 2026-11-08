@@ -1,0 +1,97 @@
+# Every setting comes from an environment variable (spec B, "Names, ports and settings").
+# A required one with no value stops the service at start-up with
+#   Could not resolve placeholder 'DB_URL'
+# which names the variable to set. The README lists them all.
+
+server:
+  port: ${SERVER_PORT:8080}          # 8080 in Docker; 8081 and 8082 for two instances on a laptop
+  shutdown: graceful
+
+spring:
+  application:
+    name: ${SERVICE_NAME:service}     # read very early; groupbuy.service-name below still requires SERVICE_NAME
+  main:
+    banner-mode: off
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      initialization-fail-timeout: 60000   # wait up to a minute for MySQL when the dev kit is still starting
+
+  jpa:
+    hibernate:
+      ddl-auto: validate              # never create-drop: a redeploy would wipe your data
+    open-in-view: false
+    properties:
+      hibernate.jdbc.time_zone: UTC
+
+  flyway:
+    enabled: true                     # migrations in src/main/resources/db/migration, V3__ onwards are yours
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    consumer:
+      group-id: ${SERVICE_NAME}       # your service name; never hard-code a group ID
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # A message that cannot be read goes to the dead-letter topic instead of wedging the consumer.
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: ie.ul.cs4297.groupbuy.service.platform.EnvelopeDeserializer
+    producer:
+      acks: all
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 1
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWT_PUBLIC_KEY_URL}
+
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    mail:
+      enabled: false                  # Mailpit being down must not mark the whole service down
+  metrics:
+    tags:
+      service: ${SERVICE_NAME}
+
+groupbuy:
+  service-name: ${SERVICE_NAME}
+  # Which instance this is (shows in logs, the outbox lease and timer claims). Docker sets HOSTNAME.
+  instance-id: ${INSTANCE_ID:${HOSTNAME:local}}
+  # The platform clock: GET ${CLOCK_URL} answers the time. Empty means the laptop's clock (tests only).
+  clock-url: ${CLOCK_URL:}
+  hold:
+    # stub: answers inside the service (no Ledger needed); http: calls LEDGER_URL. Orders only.
+    client: ${HOLD_CLIENT:stub}
+    ledger-url: ${LEDGER_URL:}
+    stub-mode: ${HOLD_STUB_MODE:placed}   # placed, insufficient, slow or down
+  outbox:
+    poll-millis: 200
+  timers:
+    poll-millis: 500
+
+logging:
+  level:
+    root: INFO
+    org.apache.kafka: WARN
+    org.hibernate.SQL: WARN

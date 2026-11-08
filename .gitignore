@@ -1,0 +1,12 @@
+.gradle/
+.kotlin/
+build/
+out/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+*.log
+# Personal settings never go in Git; the committed .env holds only SERVICE_NAME.
+*.local.env
+.tokens.txt
