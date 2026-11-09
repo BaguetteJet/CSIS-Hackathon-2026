@@ -36,7 +36,7 @@ repositories {
 
 dependencies {
     // The contracts: event classes, topics, Money, state moves, the contract-test kit
-    implementation("ie.ul.cs4297.groupbuy:contracts:1.0.0")
+    implementation("ie.ul.cs4297.groupbuy:contracts:1.1.0")
 
     // Web, validation, health and metrics
     implementation("org.springframework.boot:spring-boot-starter-web")

@@ -9,15 +9,15 @@ data class PlatformSettings(
     val serviceName: String,
     /** Which instance this is: INSTANCE_ID, else the container's HOSTNAME. */
     val instanceId: String,
-    /** CLOCK_URL: the platform clock. Empty uses the laptop's clock. */
+    /** CLOCK_URL: the platform clock. Required: empty stops the service at start-up, except in tests (ClockUrlCheck). */
     val clockUrl: String = "",
     val hold: Hold = Hold(),
     val outbox: Outbox = Outbox(),
     val timers: Timers = Timers(),
 ) {
     data class Hold(
-        /** HOLD_CLIENT: stub or http. */
-        val client: String = "stub",
+        /** HOLD_CLIENT: stub or http. Empty (the default): http when LEDGER_URL is set, stub when not. */
+        val client: String = "",
         /** LEDGER_URL, for http. */
         val ledgerUrl: String = "",
         /** HOLD_STUB_MODE: placed, insufficient, slow or down. */

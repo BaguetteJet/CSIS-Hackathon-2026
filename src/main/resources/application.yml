@@ -78,11 +78,13 @@ groupbuy:
   service-name: ${SERVICE_NAME}
   # Which instance this is (shows in logs, the outbox lease and timer claims). Docker sets HOSTNAME.
   instance-id: ${INSTANCE_ID:${HOSTNAME:local}}
-  # The platform clock: GET ${CLOCK_URL} answers the time. Empty means the laptop's clock (tests only).
+  # The platform clock: GET ${CLOCK_URL} answers the time. Required: empty stops the service at start-up,
+  # except in the tests (profile `test`), which run on TestClock.
   clock-url: ${CLOCK_URL:}
   hold:
-    # stub: answers inside the service (no Ledger needed); http: calls LEDGER_URL. Orders only.
-    client: ${HOLD_CLIENT:stub}
+    # http: calls LEDGER_URL; stub: answers inside the service (no Ledger needed). Orders only.
+    # Unset: http when LEDGER_URL is set, stub when it is not, so Orders needs only LEDGER_URL.
+    client: ${HOLD_CLIENT:}
     ledger-url: ${LEDGER_URL:}
     stub-mode: ${HOLD_STUB_MODE:placed}   # placed, insufficient, slow or down
   outbox:

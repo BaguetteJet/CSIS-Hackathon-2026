@@ -106,6 +106,16 @@ class WebTest : ContainersTest() {
     }
 
     @Test
+    fun `an expired token is ignored on paths that need none, and still 401 elsewhere`() {
+        val expired = TestTokens.token(UUID.randomUUID(), Role.STUDENT, expiresIn = java.time.Duration.ofMinutes(-5))
+        assertEquals(200, call("GET", "/actuator/health", expired).statusCode())
+        assertEquals(200, call("GET", "/app/$SERVICE/", expired).statusCode())
+        val r = call("GET", "/api/$SERVICE/hello", expired)
+        assertEquals(401, r.statusCode())
+        assertTrue(r.headers().firstValue("Location").isEmpty, "401, never a redirect")
+    }
+
+    @Test
     fun `health and metrics need no token`() {
         assertEquals(200, call("GET", "/actuator/health").statusCode())
         val metrics = call("GET", "/actuator/prometheus")
@@ -182,7 +192,17 @@ class WebTest : ContainersTest() {
         assertEquals(200, page.statusCode())
         assertTrue(page.body().contains("ui-kit.css"))
         assertEquals(200, call("GET", "/app/$SERVICE/api.js").statusCode())
-        assertEquals(200, call("GET", "/app/$SERVICE/ui-kit.css").statusCode())
+        val css = call("GET", "/app/$SERVICE/ui-kit.css")
+        assertEquals(200, css.statusCode())
+        assertEquals("no-cache", css.headers().firstValue("Cache-Control").orElse(""), "browsers re-check pages after a deploy")
         assertEquals(302, call("GET", "/app/$SERVICE").statusCode())
+    }
+
+    @Test
+    fun `a single-page app's deep link answers index html, but a missing file is still 404`() {
+        val deep = call("GET", "/app/$SERVICE/deals/${UUID.randomUUID()}")
+        assertEquals(200, deep.statusCode())
+        assertTrue(deep.body().contains("ui-kit.css"), "the deep link is answered with index.html")
+        assertEquals(404, call("GET", "/app/$SERVICE/assets/missing-file.js").statusCode())
     }
 }

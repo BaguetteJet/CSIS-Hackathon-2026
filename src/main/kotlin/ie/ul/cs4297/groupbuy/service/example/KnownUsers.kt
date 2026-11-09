@@ -59,8 +59,9 @@ class KnownUsersConsumer(
     }
 
     // The group is SERVICE_NAME (application.yml), shared by both instances: each event is
-    // processed once per service.
-    @KafkaListener(id = CONSUMER, topics = [Topics.USERS_V1])
+    // processed once per service. idIsGroup = false keeps it so: without it Spring Kafka would use
+    // the id as the group (ConsumerGroupCheck stops the service if that happens).
+    @KafkaListener(id = CONSUMER, idIsGroup = false, topics = [Topics.USERS_V1])
     fun on(record: ConsumerRecord<String, Envelope<ContractEvent>?>) {
         val envelope = record.value() ?: return // a tombstone, or an event type we do not know
         inbox.once(CONSUMER, envelope) { apply(envelope) }

@@ -120,5 +120,31 @@ class PlatformUnitTest {
         assertDoesNotThrow { settings(serviceName = "restaurant-ops") }
     }
 
+    @Test
+    fun `the hold client is http when LEDGER_URL is set, the stub when not, unless HOLD_CLIENT says`() {
+        assertEquals("http", HoldClientConfig.choose("", "http://fakes:8080"))
+        assertEquals("stub", HoldClientConfig.choose("", ""))
+        assertEquals("stub", HoldClientConfig.choose("stub", "http://fakes:8080"))
+        assertEquals("http", HoldClientConfig.choose("http", "http://fakes:8080"))
+        assertThrows<IllegalArgumentException> { HoldClientConfig.choose("htp", "") }
+        val orders = PlatformSettings(serviceName = "orders", instanceId = "test", hold = PlatformSettings.Hold(ledgerUrl = "http://127.0.0.1:1"))
+        assertTrue(HoldClientConfig().holdClient(orders) is HttpHoldClient, "Orders with only LEDGER_URL calls the Ledger")
+        assertTrue(HoldClientConfig().holdClient(settings()) is StubHoldClient)
+    }
+
+    @Test
+    fun `the bearer token is ignored on open paths and read everywhere else`() {
+        val resolver = OpenPathsTokenResolver(SecurityConfig.PLATFORM_OPEN_PATHS + listOf("/api/experience/deals/**"))
+        fun request(path: String) = org.springframework.mock.web.MockHttpServletRequest("GET", path).apply {
+            addHeader("Authorization", "Bearer expired.token.here")
+        }
+        assertEquals(null, resolver.resolve(request("/api/experience/deals/123/live")))
+        assertEquals(null, resolver.resolve(request("/api/experience/deals")))
+        assertEquals(null, resolver.resolve(request("/actuator/health")))
+        assertEquals(null, resolver.resolve(request("/app/experience/index.html")))
+        assertEquals("expired.token.here", resolver.resolve(request("/api/experience/orders")))
+        assertEquals("expired.token.here", resolver.resolve(request("/api/platform/hello")))
+    }
+
     private fun settings(clockUrl: String = "", serviceName: String = "platform") = PlatformSettings(serviceName = serviceName, instanceId = "test", clockUrl = clockUrl)
 }

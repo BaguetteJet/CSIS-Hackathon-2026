@@ -13,6 +13,7 @@ import org.springframework.boot.builder.SpringApplicationBuilder
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.ConfigurableApplicationContext
 import org.springframework.context.annotation.Import
+import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.MySQLContainer
@@ -37,6 +38,7 @@ import java.util.UUID
  */
 @Tag("containers")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test") // the only place a service may start without CLOCK_URL (it runs on TestClock)
 @Import(TestSupportConfig::class)
 abstract class ContainersTest {
 
@@ -82,6 +84,7 @@ abstract class ContainersTest {
          */
         fun startSecondInstance(): ConfigurableApplicationContext =
             SpringApplicationBuilder(ServiceApplication::class.java, TestSupportConfig::class.java)
+                .profiles("test")
                 .properties(*(settings().map { (k, v) -> "$k=$v" } + listOf("INSTANCE_ID=two", "SERVER_PORT=0")).toTypedArray())
                 .run()
 

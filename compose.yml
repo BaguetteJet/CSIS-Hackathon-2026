@@ -2,12 +2,14 @@
 #   ./check                  builds the jar and the image, starts both, checks their health
 #   docker compose up -d     starts both (after ./gradlew bootJar)
 #   docker compose down      stops both
+#   IMAGE=cs4297.skynet.ie/hackathon-2026/line-a-orders:v1.0.0 docker compose up -d --no-build
+#                            runs an image CI pushed, instead of your local build
 # Start the dev kit first: it creates the network "hackathon".
 name: ${SERVICE_NAME}
 
 x-instance: &instance
   build: .
-  image: ${SERVICE_NAME}:local
+  image: ${IMAGE:-${SERVICE_NAME}:local}   # IMAGE=<registry image:tag> with --no-build runs a CI-built image
   env_file: service.env
   mem_limit: 512m          # each instance is capped at 512 MB (integration holds sixteen)
   memswap_limit: 512m

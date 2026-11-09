@@ -24,8 +24,9 @@ import java.util.concurrent.ConcurrentHashMap
  * the same orderId gives the same answer, so retrying is always safe. It waits at most 2 seconds
  * and then throws [HoldUnavailable]: what Orders does then is Orders' design.
  *
- * HOLD_CLIENT=http calls LEDGER_URL (the dev kit's hold stub, the fake Ledger or the real one);
- * HOLD_CLIENT=stub answers inside the service, with HOLD_STUB_MODE placed, insufficient, slow or down.
+ * With LEDGER_URL set, it calls LEDGER_URL (the dev kit's hold stub, the fake Ledger or the real
+ * one). Without it, it answers inside the service, with HOLD_STUB_MODE placed, insufficient, slow
+ * or down. HOLD_CLIENT=http or HOLD_CLIENT=stub forces either.
  */
 interface HoldClient {
     fun placeHold(request: HoldRequest): HoldResponse
@@ -77,13 +78,27 @@ class HoldClientConfig {
     private val log = LoggerFactory.getLogger(javaClass)
 
     @Bean
-    fun holdClient(settings: PlatformSettings): HoldClient = when (settings.hold.client) {
+    fun holdClient(settings: PlatformSettings): HoldClient = when (choose(settings.hold.client, settings.hold.ledgerUrl)) {
         "http" -> {
-            require(settings.hold.ledgerUrl.isNotBlank()) { "HOLD_CLIENT=http needs LEDGER_URL, for example http://ledger-1:8080" }
+            require(settings.hold.ledgerUrl.isNotBlank()) { "HOLD_CLIENT=http needs LEDGER_URL, for example http://ledger:8080" }
             log.info("Hold client: HTTP to {}", settings.hold.ledgerUrl)
             HttpHoldClient(settings.hold.ledgerUrl)
         }
-        "stub" -> StubHoldClient(settings.hold.stubMode).also { log.info("Hold client: stub, mode {}", settings.hold.stubMode) }
-        else -> throw IllegalArgumentException("HOLD_CLIENT is '${settings.hold.client}'; use stub or http")
+        else -> StubHoldClient(settings.hold.stubMode).also {
+            if (settings.serviceName == "orders") {
+                log.warn("Hold client: the in-process STUB (mode {}). No hold call reaches a Ledger. Set LEDGER_URL (service.env) to call one.", settings.hold.stubMode)
+            } else {
+                log.info("Hold client: stub, mode {}", settings.hold.stubMode)
+            }
+        }
+    }
+
+    companion object {
+        /** HOLD_CLIENT if set; otherwise http when LEDGER_URL is set, stub when it is not. */
+        fun choose(client: String, ledgerUrl: String): String = when (client.trim()) {
+            "http", "stub" -> client.trim()
+            "" -> if (ledgerUrl.isNotBlank()) "http" else "stub"
+            else -> throw IllegalArgumentException("HOLD_CLIENT is '$client'; use http, stub, or leave it unset (http when LEDGER_URL is set)")
+        }
     }
 }

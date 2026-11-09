@@ -29,7 +29,7 @@ export function currentUser() {
   const t = token();
   if (!t) return null;
   try {
-    const claims = JSON.parse(atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    const claims = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")), (ch) => ch.charCodeAt(0))));
     if (claims.exp && claims.exp * 1000 < Date.now()) return null;
     return { userId: claims.sub, role: claims.role, restaurantId: claims.restaurantId || null, name: claims.name || null, expiresAt: new Date(claims.exp * 1000) };
   } catch {

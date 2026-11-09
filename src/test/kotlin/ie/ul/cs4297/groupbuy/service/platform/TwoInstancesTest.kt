@@ -121,6 +121,6 @@ object SecondInstance {
             ie.ul.cs4297.groupbuy.service.ServiceApplication::class.java,
             ie.ul.cs4297.groupbuy.service.support.TestSupportConfig::class.java,
             ProofTimerConfig::class.java,
-        ).properties(*(ContainersTest.settings().map { (k, v) -> "$k=$v" } + listOf("INSTANCE_ID=$id", "SERVER_PORT=0")).toTypedArray())
+        ).profiles("test").properties(*(ContainersTest.settings().map { (k, v) -> "$k=$v" } + listOf("INSTANCE_ID=$id", "SERVER_PORT=0")).toTypedArray())
             .run().also { started += it }
 }

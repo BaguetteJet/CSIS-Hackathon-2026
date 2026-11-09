@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.env.Environment
+import org.springframework.core.env.Profiles
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.net.URI
@@ -22,7 +24,7 @@ import java.util.concurrent.atomic.AtomicLong
  * cut-off happens at one moment everywhere, and the organisers can move time forward in a demo.
  *
  * Never call Instant.now() or LocalDateTime.now(): inject `java.time.Clock` and call clock.instant().
- * In tests, use the test support's MutableClock and move time on in milliseconds.
+ * In tests, the test support's TestClock replaces it: move time on with TestClock.advance(...).
  *
  * GET CLOCK_URL answers the time as JSON {"now": "2026-11-14T12:00:00Z"} or as plain ISO text.
  * The offset from this machine's clock is refreshed every 30 seconds.
@@ -45,6 +47,21 @@ class ClockConfig {
     fun platformClock(): PlatformClock = PlatformClock()
 }
 
+/**
+ * CLOCK_URL is required (spec B, Technical conventions): without it the service would quietly use
+ * this machine's clock, and its cut-offs and timers would disagree with every other service. So the
+ * service refuses to start without it. Only the tests (profile `test`) run without it, on TestClock.
+ */
+@Component
+class ClockUrlCheck(settings: PlatformSettings, environment: Environment) {
+    init {
+        check(settings.clockUrl.isNotBlank() || environment.acceptsProfiles(Profiles.of("test"))) {
+            "CLOCK_URL is not set. Every service must read the platform clock: set CLOCK_URL=http://clock:8080/internal/clock " +
+                "in Docker (service.env), or http://localhost:8090/internal/clock when running in IntelliJ (local.env)"
+        }
+    }
+}
+
 @Component
 class PlatformClockSync(
     private val clock: PlatformClock,
@@ -58,7 +75,7 @@ class PlatformClockSync(
     @Scheduled(fixedDelay = 30_000, initialDelay = 0)
     fun refresh() {
         if (settings.clockUrl.isBlank()) {
-            if (!warned) log.warn("CLOCK_URL is not set: using this machine's clock, not the platform clock")
+            if (!warned) log.warn("CLOCK_URL is not set (allowed in tests only): using this machine's clock, not the platform clock")
             warned = true
             return
         }

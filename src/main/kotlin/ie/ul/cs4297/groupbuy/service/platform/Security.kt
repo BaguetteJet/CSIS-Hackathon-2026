@@ -14,6 +14,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver
+import org.springframework.util.AntPathMatcher
+import jakarta.servlet.http.HttpServletRequest
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.web.bind.support.WebDataBinderFactory
 import org.springframework.web.context.request.NativeWebRequest
@@ -39,23 +43,31 @@ class SecurityConfig {
          * and live stream here, for example "/api/experience/deals/ **" (without the space).
          */
         val PUBLIC_PATHS: List<String> = listOf()
+
+        /** The platform's own paths that need no token. */
+        val PLATFORM_OPEN_PATHS: List<String> = listOf(
+            "/actuator/health", "/actuator/health/**", "/actuator/info", "/actuator/prometheus",
+            "/app/**",      // the pages themselves; their API calls carry the token
+            "/internal/**", // inside the Docker network only; the gateway never routes it
+            "/error",
+        )
     }
 
     @Bean
     fun securityFilterChain(http: HttpSecurity, mapper: ObjectMapper): SecurityFilterChain {
         val problems = ProblemEntryPoint(mapper)
+        val open = PLATFORM_OPEN_PATHS + PUBLIC_PATHS
         http
             .csrf { it.disable() }                     // tokens, not cookies: no CSRF
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests {
-                it.requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info", "/actuator/prometheus").permitAll()
-                it.requestMatchers("/app/**").permitAll()      // the pages themselves; their API calls carry the token
-                it.requestMatchers("/internal/**").permitAll() // inside the Docker network only; the gateway never routes it
-                it.requestMatchers("/error").permitAll()
-                if (PUBLIC_PATHS.isNotEmpty()) it.requestMatchers(*PUBLIC_PATHS.toTypedArray()).permitAll()
+                it.requestMatchers(*open.toTypedArray()).permitAll()
                 it.anyRequest().authenticated()
             }
             .oauth2ResourceServer {
+                // On a path that needs no token the Authorization header is ignored, so a browser
+                // still holding an expired token can see the deal list and the live count.
+                it.bearerTokenResolver(OpenPathsTokenResolver(open))
                 it.jwt { jwt -> jwt.jwtAuthenticationConverter(::toAuthentication) }
                 it.authenticationEntryPoint(problems)
                 it.accessDeniedHandler(problems)
@@ -73,8 +85,24 @@ class SecurityConfig {
 }
 
 /**
+ * Reads the bearer token, except on [openPaths] (Ant patterns such as "/app/ **"), where it answers
+ * null: the request is then anonymous whatever its Authorization header says. Without this, an
+ * expired or invalid token would turn a public page into a 401. Everywhere else a bad token is 401.
+ */
+class OpenPathsTokenResolver(private val openPaths: List<String>) : BearerTokenResolver {
+    private val matcher = AntPathMatcher()
+    private val tokens = DefaultBearerTokenResolver()
+
+    override fun resolve(request: HttpServletRequest): String? {
+        val path = request.requestURI.removePrefix(request.contextPath ?: "")
+        return if (openPaths.any { matcher.match(it, path) }) null else tokens.resolve(request)
+    }
+}
+
+/**
  * The signed-in user. Add a `user: CurrentUser` parameter to a controller method and it is filled
- * from the token. Use `user: CurrentUser?` on a path anyone may call.
+ * from the token. `user: CurrentUser?` makes it optional; note that on a path in PUBLIC_PATHS the
+ * token is ignored (OpenPathsTokenResolver), so there it is always null.
  *
  * ```
  * @GetMapping("/api/orders/orders/{orderId}")

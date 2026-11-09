@@ -86,15 +86,18 @@ class EventConsumerConfig(private val settings: PlatformSettings) {
     /**
      * For broadcast consumers (a group per instance): a message one cannot read is logged and
      * skipped, not dead-lettered, because the service's main consumer dead-letters it already.
-     * Use it with @KafkaListener(containerFactory = "broadcastListenerFactory", ...).
+     * Use it with @KafkaListener(containerFactory = "broadcastListenerFactory", ...). Its listeners
+     * are recorded in [BroadcastListeners], so [ConsumerGroupCheck] lets them have a group of their own.
      */
     @Bean
     fun broadcastListenerFactory(
         configurer: org.springframework.boot.autoconfigure.kafka.ConcurrentKafkaListenerContainerFactoryConfigurer,
         consumers: org.springframework.kafka.core.ConsumerFactory<Any, Any>,
+        broadcast: BroadcastListeners,
     ): org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory<Any, Any> =
         org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory<Any, Any>().also {
             configurer.configure(it, consumers)
+            it.setContainerCustomizer { container -> container.listenerId?.let(broadcast::add) }
             it.setCommonErrorHandler(DefaultErrorHandler({ record, e ->
                 log.warn("Broadcast consumer skipped {} partition {} offset {}: {}", record.topic(), record.partition(), record.offset(), e.cause?.message ?: e.message)
             }, org.springframework.util.backoff.FixedBackOff(0, 0)))

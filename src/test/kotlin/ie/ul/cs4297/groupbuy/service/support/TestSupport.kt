@@ -54,7 +54,8 @@ object TestTokens {
  * A clock tests move by hand: never wait for a cut-off or a 15-minute timer, move time instead.
  *
  * ```
- * TestClock.advance(Duration.ofMinutes(15))   // and the timer is due
+ * TestClock.advance(Duration.ofMinutes(15))   // the timer is now due: it fires within about a second
+ * await atMost Duration.ofSeconds(5) untilAsserted { ... }   // timers are polled every 500 ms
  * ```
  *
  * One clock for the whole test JVM, so two instances started in one test agree on the time.

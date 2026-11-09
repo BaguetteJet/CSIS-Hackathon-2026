@@ -34,7 +34,8 @@ data class DueTimer(val type: String, val key: String, val fireAt: Instant, val 
  * timers.schedule("cut-off", dealId.toString(), deal.cutoffAt)
  * ```
  *
- * Times come from the platform clock: in tests, move the MutableClock forward and the timer fires.
+ * Times come from the platform clock. In tests, move TestClock forward, then wait with Awaitility:
+ * timers are polled every 500 ms, so the timer fires within about a second, not at once.
  */
 @Component
 class Timers(private val jdbc: JdbcTemplate) {

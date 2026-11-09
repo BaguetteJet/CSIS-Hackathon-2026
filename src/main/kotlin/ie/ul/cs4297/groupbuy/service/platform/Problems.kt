@@ -22,12 +22,14 @@ import org.springframework.web.servlet.resource.NoResourceFoundException
 
 /**
  * Errors as Problem Details (RFC 9457) with a machine-readable `code` (spec B, "Shared rules for
- * every API"). Throw an [ApiProblem] anywhere in a request and the page gets
+ * every API"). Throw an [ApiProblem] anywhere in a request, for example
+ * `throw Conflict("DEAL_FULL", "No places left")`, and the page gets
  *
  * ```
- * { "type": "about:blank", "title": "Deal full", "status": 409, "detail": "...", "code": "DEAL_FULL" }
+ * { "type": "about:blank", "title": "Conflict", "status": 409, "detail": "No places left", "code": "DEAL_FULL" }
  * ```
  *
+ * The title is always the HTTP status's reason phrase; `code` and `detail` say what happened.
  * Use the codes your service's OpenAPI file lists (contracts, src/main/resources/contracts/openapi).
  */
 open class ApiProblem(
