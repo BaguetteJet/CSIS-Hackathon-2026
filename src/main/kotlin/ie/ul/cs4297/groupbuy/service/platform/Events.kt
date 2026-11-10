@@ -75,10 +75,12 @@ class EventConsumerConfig(private val settings: PlatformSettings) {
             log.error("Dead letter: {} partition {} offset {} key {}: {}", record.topic(), record.partition(), record.offset(), record.key(), e.cause?.message ?: e.message)
             TopicPartition(deadLetterTopic, -1)
         }
+        // Five retries over about 2.5 minutes (5, 10, 20, 40, 80 s): a valid event is never dead-lettered
+        // because this service's database or Kafka was away for up to 2 minutes (DECISIONS, E11).
         val backOff = ExponentialBackOffWithMaxRetries(5).apply {
-            initialInterval = 1_000
+            initialInterval = 5_000
             multiplier = 2.0
-            maxInterval = 16_000
+            maxInterval = 80_000
         }
         return DefaultErrorHandler(recoverer, backOff)
     }
