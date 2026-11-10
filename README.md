@@ -131,6 +131,8 @@ IMAGE=cs4297.skynet.ie/hackathon-2026/line-a-orders:v1.0.0 docker compose up -d 
 
 Use your own repository's name (`line-a-<service>` or `line-b-<service>`) and tag. It needs `docker login cs4297.skynet.ie` (the dev kit README, Install). Without `IMAGE`, `docker compose` uses your local build, `<service>:local`.
 
+**For your handover document (the deploy gate):** the reference machine has Git and Docker but no Java and no Node.js, so its deploy step must be this command with your `release` tag, never `./gradlew bootJar` or `./check`. Try it on a laptop that has never built your service before you write it down.
+
 CI builds team images for amd64 only (the integration servers' architecture). On an Apple-silicon Mac, Docker runs them under emulation and warns `The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8)`. That is expected: it works, only slower to start. Your local build (`./check`) is native.
 
 ### In IntelliJ, with the dev kit in Docker
