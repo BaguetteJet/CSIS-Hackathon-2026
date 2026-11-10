@@ -111,6 +111,10 @@ Four fresh reviews (student, kitchen, Union, student developer). Every finding i
 - `./gradlew --offline test`: 18 tests, all passing (10 platform unit, 6 `ConsumerGroupCheckTest`, 2 contract), plus the zero-sum template, skipped. `ConsumerGroupCheckTest` builds real listener containers from `@KafkaListener` annotations (never started, no broker): an id without `idIsGroup = false` is reported and stops the context; `idIsGroup = false`, no id, and broadcast listeners pass.
 - `./gradlew --offline containerTest`: 20 tests, all passing, including the new `WebTest` case (expired token: health and pages 200, `hello` 401 without a redirect). Every container test starts the full service, so the group check passed on the real listeners.
 
+## Clock refresh every 5 seconds (10 November)
+
+- `PlatformClock` now refreshes the platform clock's offset every 5 seconds (was 30), so a service follows `./clock advance` within 5 seconds (DECISIONS, 10 November; spec B, D, F updated). Found in the go/no-go rehearsal: a deadline computed straight after the clock moved came from a stale clock and had already passed. Checked: `./gradlew test` passes (19 tests).
+
 ## Open
 
 1. **The decision in OPEN-QUESTIONS.md item 3** (items 1 and 2 are settled), before the starter is copied on Thursday.

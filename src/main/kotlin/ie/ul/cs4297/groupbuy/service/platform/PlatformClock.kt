@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicLong
  * In tests, the test support's TestClock replaces it: move time on with TestClock.advance(...).
  *
  * GET CLOCK_URL answers the time as JSON {"now": "2026-11-14T12:00:00Z"} or as plain ISO text.
- * The offset from this machine's clock is refreshed every 30 seconds.
+ * The offset from this machine's clock is refreshed every 5 seconds, so a service follows `./clock advance` within 5 seconds.
  */
 class PlatformClock(private val zone: ZoneId = ZoneOffset.UTC, private val offsetMillis: AtomicLong = AtomicLong(0)) : Clock() {
     override fun getZone(): ZoneId = zone
@@ -72,7 +72,7 @@ class PlatformClockSync(
     private val http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build()
     private var warned = false
 
-    @Scheduled(fixedDelay = 30_000, initialDelay = 0)
+    @Scheduled(fixedDelay = 5_000, initialDelay = 0)
     fun refresh() {
         if (settings.clockUrl.isBlank()) {
             if (!warned) log.warn("CLOCK_URL is not set (allowed in tests only): using this machine's clock, not the platform clock")
