@@ -1,6 +1,32 @@
 # Status
 
-Updated Monday 9 November 2026.
+Updated Tuesday 10 November 2026 (service audit). The earlier status follows this section.
+
+## 10 November: service audit fixes (not committed or pushed)
+
+- **Contracts 1.2.0.** The build depends on it and compiles. The README's error rows name 1.2.0.
+- **O7: the live-connections script now checks the final count** (`src/test/.../load/LiveConnections.kt`, `./gradlew liveConnections`). Spec C3 says every connection "must end on the final count". The script used to pass if every connection received at least one event. Now each connection's last count must equal the final count.
+  - `-Pfinal=<n>` gives the final count, checked against `confirmed`.
+  - Without it, the script opens one fresh connection at the end and takes the first count it is sent. Then `confirmed`, `pending` and `placesLeft` must all match.
+  - Each connection gets up to 5 seconds after the run to catch up.
+  - It lists the connections that did not end on the final count (up to 20, then a total).
+  - The README row is updated.
+- **README:** a short paragraph just above "What is where" names the three mistakes the go/no-go rehearsal hit:
+  - `Idempotency-Key` is required only where the OpenAPI says so;
+  - after the clock moves, use the platform clock and allow 5 seconds;
+  - a page call can come before your own consumer has seen the event, so answer 404 and let the page retry.
+- **CI: "Contract tests" is its own step** (Platform blocker 2).
+  - New Gradle task `contractTest` runs the tests tagged `@Tag("contract")`. `test` now excludes that tag and is finalized by `contractTest`, so `./gradlew test` and `./check` still run both. What is tested is unchanged: 19 tests before, the same 19 now, split 17 + 2.
+  - In `ci.yml`, step "Unit tests" (`test -x contractTest`) is followed by step "Contract tests" (`contractTest`, `if: '!cancelled()'`), which fails the job when they fail.
+  - JUnit XML (`build/test-results/**`) is uploaded as artefact `test-results` with `if: always()`, next to the existing `test-report`. The Gradle cache is unchanged.
+  - Noted in the README's CI and Tests sections.
+- **Verified** (offline, with the local-contracts init script):
+  - `./gradlew test`: 21 unit tests (4 new `LiveConnectionsTest`, 6 consumer-group, 10 platform unit, 1 zero-sum template skipped on purpose), then `contractTest`: 2. All pass.
+  - `LiveConnectionsTest` runs the script against an in-process stream. All connections on the final count pass. Two connections left on an old count fail and are named, though every connection received an event. `-Pfinal` passes when right and fails when wrong. Multi-line SSE data is parsed.
+  - `./gradlew containerTest`: 20 tests, all pass (Docker 29.8.2).
+  - A planted failing `@Tag("contract")` test: `test -x contractTest` exits 0 and `contractTest` exits 1. So the CI steps are separate, and the contract step fails the job. The planted test was then removed.
+- **Not verified:** the new `ci.yml` on the Forgejo runners (nothing pushed). `liveConnections` at 2,000 connections against a real Student experience service.
+
 
 ## Done when (from the brief)
 

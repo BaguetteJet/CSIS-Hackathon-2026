@@ -31,6 +31,11 @@ The versions are the Week 8 lab's: Kotlin 2.1.0, Spring Boot 3.4.3, Gradle 8.12,
 4. **Sign in** on the dev kit's sign-in page (http://localhost:8080/signin/): as one of your team's seeded students (student ID and PIN 1234; the dev kit README lists them), or as a restaurant or Union account. Then open your example page at `http://localhost:8080/app/<service>/` and press "Call hello".
 5. Read the two examples in `src/main/kotlin/.../example`, then build your first slice in packages of your own.
 
+**Three mistakes the organisers' go/no-go rehearsal hit, so you don't have to.**
+- Require `Idempotency-Key` only where your OpenAPI file says it is required (the Payments desk calls), not on every call.
+- Just after the clock moves, take the time from the platform clock (the injected `Clock`), and allow up to 5 seconds for every service to follow it.
+- A page call can arrive before your own consumer has seen the event that creates the thing it asks for. Answer 404, and let the page retry, as the journey test does.
+
 ## What is where
 
 | You need | Use | File |
@@ -175,7 +180,7 @@ Every setting is an environment variable. A missing required one stops the servi
 ./gradlew test
 ```
 
-Unit and contract tests: fast, no Docker, and what CI runs.
+Unit tests, then the contract tests: fast, no Docker, and what CI runs. `./gradlew contractTest` runs only the contract tests.
 
 ```bash
 ./gradlew containerTest
@@ -184,7 +189,7 @@ Unit and contract tests: fast, no Docker, and what CI runs.
 Tests tagged `@Tag("containers")`, run against real MySQL and Kafka in Docker.
 
 - **Unit tests:** JUnit 5 with MockK, for rules and state machines.
-- **Contract tests** (`ContractTest.kt`): add one per event you publish, with `assertMatchesContract(...)`. A broken event fails CI before it reaches the line.
+- **Contract tests** (`ContractTest.kt`): add one per event you publish, with `assertMatchesContract(...)`. Keep `@Tag("contract")` on the class: tagged tests run in their own CI step. A broken event fails CI before it reaches the line.
 - **Container tests:** extend `ContainersTest`, as `src/test/.../platform/ConsumerPatternsTest.kt` does. Use Awaitility for anything asynchronous (`await atMost Duration.ofSeconds(10) untilAsserted { ... }`); never `Thread.sleep`. In every consumer test, deliver the same event twice and check that nothing changes.
 - **Two instances in one test:** `TwoInstancesTest.kt` shows how.
 
@@ -194,13 +199,15 @@ Tests tagged `@Tag("containers")`, run against real MySQL and Kafka in Docker.
 |---|---|---|
 | k6 last-place test: 200 students, cap 50, both instances | Orders | Make the tokens in the dev kit (`./token --students 200 > tokens.txt`), then here `scripts/last-place.sh <dealId> ../dev-kit/tokens.txt` (the dev kit cloned next to this repository; any relative or absolute path works), then count the orders in the database |
 | Zero-sum property test | Ledger | `src/test/.../templates/ZeroSumPropertyTest.kt`: implement it, remove `@Disabled` |
-| 2,000 live-update connections | Student experience | `./gradlew liveConnections -Purl=http://localhost:8080/api/experience/deals/<id>/live` |
+| 2,000 live-update connections: every one must end on the final count | Student experience | `./gradlew liveConnections -Purl=http://localhost:8080/api/experience/deals/<id>/live`, with a rush-to-cutoff scenario running. It passes when every connection stayed open and its last count is the final one: give it with `-Pfinal=<confirmed>`, or leave it out and the script reads the deal's current count from a fresh connection at the end. It lists the connections that were not on it |
 
 k6 runs in Docker, so there is nothing to install.
 
 ## CI
 
-`.forgejo/workflows/ci.yml` runs on every push. It does the unit and contract tests, builds the jar, then builds and pushes your image to the Forgejo registry tagged `sha-<commit>`, plus the tag itself for a Git tag. Promotion into integration uses your Git tag.
+`.forgejo/workflows/ci.yml` runs on every push. It runs the unit tests, then the contract tests as their own step, "Contract tests", builds the jar, then builds and pushes your image to the Forgejo registry tagged `sha-<commit>`, plus the tag itself for a Git tag. Promotion into integration uses your Git tag.
+
+Every run keeps the HTML report (artefact `test-report`) and the JUnit XML results (artefact `test-results`), even when tests fail. The Platform team reads the "Contract tests" step and the `test-results` artefact through Forgejo's API, with read access to the line's repositories that the organisers grant.
 
 It needs the repository secret `PACKAGES_TOKEN`, which the organisers set. Gradle's dependencies are cached, but only two runners serve sixteen teams: do not add container tests to CI.
 
@@ -208,8 +215,8 @@ It needs the repository secret `PACKAGES_TOKEN`, which the organisers set. Gradl
 
 | You see | It means | Fix |
 |---|---|---|
-| `Could not resolve ie.ul.cs4297.groupbuy:contracts:1.1.0` ... `401` | Gradle has no token for the package registry | Step 1 of "Your first hour" |
-| `Could not find ie.ul.cs4297.groupbuy:contracts:1.1.0` | The registry answered, but has no 1.1.0 for you: the organisers have not published that version yet, or your Forgejo account has no access to the `hackathon-2026` organisation's packages | Check https://cs4297.skynet.ie/hackathon-2026/-/packages for `contracts` 1.1.0. If it is missing, tell the organisers; if it is there, ask them to add you to the organisation (and check your token has `read:package`) |
+| `Could not resolve ie.ul.cs4297.groupbuy:contracts:1.2.0` ... `401` | Gradle has no token for the package registry | Step 1 of "Your first hour" |
+| `Could not find ie.ul.cs4297.groupbuy:contracts:1.2.0` | The registry answered, but has no 1.2.0 for you: the organisers have not published that version yet, or your Forgejo account has no access to the `hackathon-2026` organisation's packages | Check https://cs4297.skynet.ie/hackathon-2026/-/packages for `contracts` 1.2.0. If it is missing, tell the organisers; if it is there, ask them to add you to the organisation (and check your token has `read:package`) |
 | `The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8)` with `IMAGE=... --no-build` on an Apple-silicon Mac | CI builds team images for amd64 only; Docker runs them under emulation | Expected: it works, only slower. Use `./check` (a native local build) for everyday work |
 | `Could not resolve placeholder 'DB_URL'` (or another name) | A setting is missing | Set it: `service.env` in Docker, `local.env` in the IDE |
 | `SERVICE_NAME is 'x'; it must be one of ...` | A typo in the service name | Use one of the eight names exactly |

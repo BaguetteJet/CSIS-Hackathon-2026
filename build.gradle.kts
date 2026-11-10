@@ -36,7 +36,7 @@ repositories {
 
 dependencies {
     // The contracts: event classes, topics, Money, state moves, the contract-test kit
-    implementation("ie.ul.cs4297.groupbuy:contracts:1.1.0")
+    implementation("ie.ul.cs4297.groupbuy:contracts:1.2.0")
 
     // Web, validation, health and metrics
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -82,13 +82,28 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     compilerOptions { freeCompilerArgs.addAll("-Xjsr305=strict") }
 }
 
-// Two kinds of tests:
-//   ./gradlew test           unit and contract tests: fast, no Docker. CI runs these.
+// Three kinds of tests:
+//   ./gradlew test           unit tests, then the contract tests (contractTest runs after it): fast, no Docker.
+//                            CI runs them as two steps: "Unit tests" (test -x contractTest), then "Contract tests".
+//   ./gradlew contractTest   only the tests tagged @Tag("contract") (ContractTest.kt).
 //   ./gradlew containerTest  tests tagged @Tag("containers"): real MySQL and Kafka in Docker.
-tasks.test {
-    useJUnitPlatform { excludeTags("containers") }
+val contractTest by tasks.registering(Test::class) {
+    description = "Runs the contract tests (tagged contract): every event you publish matches the contracts library."
+    group = "verification"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform { includeTags("contract"); excludeTags("containers") }
     testLogging { events("failed"); exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL }
+    shouldRunAfter(tasks.test)
 }
+
+tasks.test {
+    useJUnitPlatform { excludeTags("containers", "contract") }
+    testLogging { events("failed"); exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL }
+    finalizedBy(contractTest)
+}
+
+tasks.check { dependsOn(contractTest) }
 
 val containerTest by tasks.registering(Test::class) {
     description = "Runs the tests that need Docker (Testcontainers: MySQL and Kafka)."
@@ -100,9 +115,9 @@ val containerTest by tasks.registering(Test::class) {
     shouldRunAfter(tasks.test)
 }
 
-// The 2,000-connection live-update test (Student experience): ./gradlew liveConnections -Purl=...
+// The 2,000-connection live-update test (Student experience): ./gradlew liveConnections -Purl=... [-Pfinal=<confirmed>]
 val liveConnections by tasks.registering(JavaExec::class) {
-    description = "Opens many server-sent-event connections at once and reports how many stayed open."
+    description = "Opens many server-sent-event connections at once and checks every one ends on the final count."
     group = "verification"
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("ie.ul.cs4297.groupbuy.service.load.LiveConnectionsKt")
@@ -110,6 +125,7 @@ val liveConnections by tasks.registering(JavaExec::class) {
         (findProperty("url") as String?) ?: "http://localhost:8080/api/experience/deals/00000000-0000-0000-0000-000000000000/live",
         (findProperty("connections") as String?) ?: "2000",
         (findProperty("seconds") as String?) ?: "60",
+        (findProperty("final") as String?) ?: "",   // the final confirmed count; empty: read it from the stream at the end
     )
 }
 

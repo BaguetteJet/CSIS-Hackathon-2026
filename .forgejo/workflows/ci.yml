@@ -1,5 +1,6 @@
 # Your service's CI, on every push and pull request:
-#   1. unit and contract tests (./gradlew test; container tests run on your laptop, not here)
+#   1. unit tests, then the contract tests as their own step ("Contract tests"), so a run shows
+#      separately whether the contracts passed (container tests run on your laptop, not here)
 #   2. the jar
 #   3. on a push (not a pull request): the image, pushed to the Forgejo registry and tagged
 #      sha-<commit> and, for a Git tag, the tag itself. Promotion into integration uses the tag.
@@ -41,8 +42,13 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Unit and contract tests
-        run: ./gradlew test --no-daemon
+      - name: Unit tests
+        run: ./gradlew test -x contractTest --no-daemon
+
+      # Its own step: the Platform team reads its result through Forgejo's API. Runs even if a unit test failed.
+      - name: Contract tests
+        if: '!cancelled()'
+        run: ./gradlew contractTest --no-daemon
 
       - name: Build the jar
         run: ./gradlew bootJar --no-daemon
@@ -53,6 +59,14 @@ jobs:
         with:
           name: test-report
           path: build/reports/tests/test/
+          retention-days: 7
+
+      - name: Upload the JUnit results
+        if: always()
+        uses: https://code.forgejo.org/forgejo/upload-artifact@v4
+        with:
+          name: test-results
+          path: build/test-results/**
           retention-days: 7
 
       - name: Docker CLI
