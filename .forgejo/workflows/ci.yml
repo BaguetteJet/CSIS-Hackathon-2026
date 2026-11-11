@@ -35,6 +35,15 @@ jobs:
 
       - uses: https://github.com/actions/checkout@v4
 
+      # Only when the repository tracks files with Git LFS (README, "Large files"): fetch them, so the
+      # image is built from the files themselves, not from LFS pointers.
+      - name: Git LFS files
+        run: |
+          if grep -qs 'filter=lfs' .gitattributes; then
+            command -v git-lfs >/dev/null || { echo "This repository uses Git LFS but the runner has no git-lfs: ask the organisers"; exit 1; }
+            git lfs pull
+          fi
+
       - name: Set up JDK 21
         uses: https://github.com/actions/setup-java@v4
         with:

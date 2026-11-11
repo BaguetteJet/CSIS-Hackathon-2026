@@ -7,6 +7,7 @@ out/
 .DS_Store
 Thumbs.db
 *.log
-# Personal settings never go in Git; the committed .env holds only SERVICE_NAME.
+# Personal or secret values go in a file ending .local.env, never in Git. The committed .env,
+# local.env and service.env hold only the dev kit's local values.
 *.local.env
 .tokens.txt

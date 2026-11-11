@@ -33,6 +33,8 @@ forgejoUser=your-forgejo-username
 forgejoToken=the-token
 ```
 
+Personal or secret values go in a file ending `.local.env`, which Git ignores. A secret committed at any point in the history multiplies your project mark by 0.75 (handover, Part E, "Penalties"); the `DB_PASSWORD` in `local.env` and `service.env` is the dev kit's local value and does not count.
+
 To put your service in place of its fake behind the gateway, and to sign in, see the dev kit README, "The fake line, and using your own service" and "Signing in".
 
 ## Commands
@@ -88,6 +90,18 @@ Use your own repository's name and tag; it needs `docker login cs4297.skynet.ie`
 ## CI
 
 Every push to `main`, every Git tag and every pull request runs "Unit tests", then "Contract tests" as its own step (the Platform team reads it), then builds and pushes your image tagged `sha-<commit>`, and also with the tag name for a Git tag. Promotion into integration uses your Git tag.
+
+## Large files: Git LFS
+
+A binary file over 1 MB (an image, a video, a PDF, an archive) goes through Git LFS; committed directly, it multiplies your project mark by 0.75 (handover, Part E, "Penalties"). Git for Windows includes Git LFS; on macOS run `brew install git-lfs`, on Ubuntu `sudo apt install git-lfs`. Then, before you add the file:
+
+```bash
+git lfs install
+git lfs track "*.png" "*.jpg" "*.mp4" "*.pdf" "*.zip"
+git add .gitattributes
+```
+
+CI fetches the LFS files before it builds your image.
 
 ## Three mistakes the go/no-go rehearsal hit
 
