@@ -20,7 +20,7 @@ This repository is your team's service, already set up with the plumbing every s
 | A page | Copy `index.html`; use `api.js` and the UI kit's classes | `src/main/resources/pages/` |
 | Event classes, topics, Money, states | The contracts library | its README |
 | Tests with real MySQL and Kafka | Extend `ContainersTest`; `TestTokens`, `TestClock` | `src/test/.../support/` |
-| Your team's load or property test | `scripts/last-place.sh`, `templates/ZeroSumPropertyTest.kt`, `./gradlew liveConnections` | your team section says which |
+| Your team's load or property test | `scripts/last-place.sh`, `src/test/kotlin/.../templates/ZeroSumPropertyTest.kt`, `./gradlew liveConnections` | your team section says which |
 
 Leave the `platform` package as it is, except `PUBLIC_PATHS` in `platform/Security.kt` (the paths that need no token), which is yours to fill in. If something in it gets in your way, tell the Platform and reliability team or the organisers.
 
@@ -87,7 +87,7 @@ Use your own repository's name and tag; it needs `docker login cs4297.skynet.ie`
 
 ## CI
 
-Every push runs "Unit tests", then "Contract tests" as its own step (the Platform team reads it), then builds and pushes your image tagged `sha-<commit>`, and also with the tag name for a Git tag. Promotion into integration uses your Git tag.
+Every push to `main`, every Git tag and every pull request runs "Unit tests", then "Contract tests" as its own step (the Platform team reads it), then builds and pushes your image tagged `sha-<commit>`, and also with the tag name for a Git tag. Promotion into integration uses your Git tag.
 
 ## Three mistakes the go/no-go rehearsal hit
 

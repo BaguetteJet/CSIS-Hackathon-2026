@@ -52,7 +52,7 @@ class DeadLetterSerializer : Serializer<Any?> {
 
 /**
  * Retries and dead letters (spec B, rule 8): a failed event is retried five times with growing
- * gaps (1, 2, 4, 8, 16 seconds), then moved to this service's dead-letter topic, `<service>.dlt`,
+ * gaps (5, 10, 20, 40, 80 seconds, about 2.5 minutes in all), then moved to this service's dead-letter topic, `<service>.dlt`,
  * with the reason in its headers. A message that cannot be read at all goes there at once.
  * The platform team's tool replays dead letters after the fix.
  */

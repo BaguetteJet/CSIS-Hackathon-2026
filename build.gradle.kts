@@ -27,8 +27,8 @@ repositories {
         url = uri((findProperty("forgejoMavenUrl") as String?) ?: "https://cs4297.skynet.ie/api/packages/hackathon-2026/maven")
         isAllowInsecureProtocol = url.scheme == "http"
         credentials {
-            username = (findProperty("forgejoUser") as String?) ?: System.getenv("FORGEJO_USER") ?: ""
-            password = (findProperty("forgejoToken") as String?) ?: System.getenv("FORGEJO_TOKEN") ?: ""
+            username = (findProperty("forgejoUser") as String?) ?: System.getenv("FORGEJO_PACKAGES_USER") ?: ""
+            password = (findProperty("forgejoToken") as String?) ?: System.getenv("FORGEJO_PACKAGES_TOKEN") ?: ""
         }
         content { includeGroup("ie.ul.cs4297.groupbuy") }
     }
