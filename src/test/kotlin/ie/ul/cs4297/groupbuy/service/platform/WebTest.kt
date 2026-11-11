@@ -205,4 +205,11 @@ class WebTest : ContainersTest() {
         assertTrue(deep.body().contains("ui-kit.css"), "the deep link is answered with index.html")
         assertEquals(404, call("GET", "/app/$SERVICE/assets/missing-file.js").statusCode())
     }
+
+    @Test
+    fun `a path without html answers the page of that name, query string and all`() {
+        val page = call("GET", "/app/$SERVICE/complain?order=${UUID.randomUUID()}")
+        assertEquals(200, page.statusCode())
+        assertTrue(page.body().contains("test page: complain"), "answered with complain.html, not index.html")
+    }
 }
