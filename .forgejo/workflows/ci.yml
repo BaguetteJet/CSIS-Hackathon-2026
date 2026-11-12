@@ -5,8 +5,7 @@
 #   3. on a push (not a pull request): the image, pushed to the Forgejo registry and tagged
 #      sha-<commit> and, for a Git tag, the tag itself. Promotion into integration uses the tag.
 #
-# Only two runners serve all sixteen teams, and a cold build takes about 5.5 minutes: the Gradle
-# cache below matters. Do not add container tests here.
+# Only two runners serve all sixteen teams: keep the build short. Do not add container tests here.
 
 name: service
 
@@ -49,7 +48,8 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: gradle
+          # No `cache: gradle`: the module runners cannot reach their cache server, so restoring
+          # and saving it only timed out, adding about 9 minutes to every run (measured 12 Nov 2026).
 
       - name: Unit tests
         run: ./gradlew test -x contractTest --no-daemon
