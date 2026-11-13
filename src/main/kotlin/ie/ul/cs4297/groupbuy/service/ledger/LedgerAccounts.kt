@@ -87,6 +87,30 @@ class LedgerAccounts(
     }
 
     /**
+     * Opens the student's accounts and locks both rows, then returns their balances. The lock is
+     * held until the caller's transaction ends, so the hold operation can decide, check funds and
+     * post its movement as one atomic step.
+     */
+    fun lockStudent(studentId: UUID): Balance = transactions.execute {
+        ensure(AccountRef.studentAvailable(studentId))
+        ensure(AccountRef.studentHeld(studentId))
+        val balances = jdbc.query(
+            "SELECT purpose, balance_cents FROM ledger_account " +
+                "WHERE owner_type = ? AND owner_id = ? AND purpose IN (?, ?) ORDER BY id FOR UPDATE",
+            { rs, _ -> rs.getString(1) to rs.getLong(2) },
+            AccountOwner.STUDENT.name,
+            studentId.toString(),
+            AccountPurpose.AVAILABLE.name,
+            AccountPurpose.HELD.name,
+        ).toMap()
+        Balance(
+            studentId = studentId,
+            availableCents = balances[AccountPurpose.AVAILABLE.name] ?: 0L,
+            heldCents = balances[AccountPurpose.HELD.name] ?: 0L,
+        )
+    }!!
+
+    /**
      * The account's id, creating the row at zero when it does not exist. Call this in the
      * transaction that is about to post to the account.
      *
