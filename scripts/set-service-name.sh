@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # For the organisers, when the starter is copied into a team's repository:
 #   scripts/set-service-name.sh orders
-# Sets SERVICE_NAME, and the database name and user, in .env, service.env and local.env.
+# Sets SERVICE_NAME in the example and local .env, and updates the database settings.
 # For orders it also sets the hold call to the dev kit's fake Ledger, so orders reach Paid:
 #   service.env  HOLD_CLIENT=http  LEDGER_URL=http://fakes:8080      (the two containers)
 #   local.env    HOLD_CLIENT=http  LEDGER_URL=http://localhost:8091  (IntelliJ; the fakes' laptop-only port)
@@ -15,8 +15,12 @@ case "$name" in
   deals|orders|ledger|payments|restaurant-ops|support|experience|platform) ;;
   *) echo "$usage"; exit 2 ;;
 esac
-old=$(sed -n 's/^SERVICE_NAME=//p' .env)
-for f in .env service.env local.env; do
+old=$(sed -n 's/^SERVICE_NAME=//p' .env.example)
+files=(.env.example service.env local.env)
+if [[ -f .env ]]; then
+  files+=(.env)
+fi
+for f in "${files[@]}"; do
   sed -i.bak -e "s/^SERVICE_NAME=.*/SERVICE_NAME=$name/" \
              -e "s#3306/$old\$#3306/$name#" -e "s/^DB_USER=.*/DB_USER=$name/" -e "s/^DB_PASSWORD=.*/DB_PASSWORD=$name/" "$f"
   rm -f "$f.bak"
@@ -29,4 +33,4 @@ if [ "$name" = orders ]; then
   set_hold service.env http://fakes:8080
   set_hold local.env http://localhost:8091
 fi
-echo "SERVICE_NAME is now $name:"; grep -HE "SERVICE_NAME|DB_|LEDGER_URL|HOLD_CLIENT" .env service.env local.env
+printf 'SERVICE_NAME is now %s\n' "$name"

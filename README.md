@@ -26,6 +26,8 @@ Leave the `platform` package as it is, except `PUBLIC_PATHS` in `platform/Securi
 
 ## Before you start
 
+On a fresh clone, run `cp .env.example .env` from the repository root before using Docker Compose or `./check`. The example sets the service name to `ledger`. Git ignores your local `.env`.
+
 Start the dev kit and make its Forgejo token (dev kit README, "Install"): https://cs4297.skynet.ie/hackathon-2026/dev-kit. Put the token in `~/.gradle/gradle.properties` (on Windows, `C:\Users\<you>\.gradle\gradle.properties`), never in this repository:
 
 ```properties
