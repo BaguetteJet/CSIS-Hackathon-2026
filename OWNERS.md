@@ -1,0 +1,8 @@
+- **Team lead: Hersh**
+- **Hersh** - Owns the hold API and makes retries return the original answer. Backup: Igor. [Item 1](work-items/item1_hersh.md)
+- **Igor** - Owns the schema, shared posting operation, top-up storage, and the student balance endpoint (`/me`). Backup: Sam. [Item 2](work-items/item2_igor.md)
+- **Sam** - Owns receiving top-up events, publishing credit confirmations, and testing Ledger’s event contracts. Backup: Shakeeba. [Item 3](work-items/item3_sam.md)
+- **Shakeeba** - Owns the dev kit, runs the demo across both replicas, and captures API and Kafka evidence. Backup: Hersh. [Item 4](work-items/item4_shakeeba.md)
+- After Slice 1 [Unassigned] - Settlement, closures, and releases.
+- After Slice 1 [Unassigned] - Refunds, cash-outs, and payouts.
+- After Slice 1 [Unassigned] - Statement and finance read APIs, plus resilience.
