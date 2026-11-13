@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# ./check: is your service ready to ask for promotion? (On macOS and Linux, `make check` runs this.)
+#   1. unit and contract tests            (./gradlew test)
+#   2. builds the jar and the image
+#   3. starts two instances against the dev kit (compose.yml), each capped at 512 MB
+#   4. waits until both answer /actuator/health with UP, and shows their memory
+#
+#   ./check                   all of it; both instances stay running afterwards
+#   ./check --with-containers also runs the Testcontainers tests (./gradlew containerTest)
+#   ./check --down            then stops both instances
+# Works in Git Bash on Windows, macOS Terminal and Linux. Needs JDK 21 and Docker.
+set -euo pipefail
+cd "$(dirname "$0")"
+
+with_containers=no; down=no
+for arg in "$@"; do
+  case "$arg" in
+    --with-containers) with_containers=yes ;;
+    --down) down=yes ;;
+    -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
+    *) echo "Unknown option $arg (try ./check --help)"; exit 2 ;;
+  esac
+done
+
+# shellcheck disable=SC1091
+. ./.env
+step() { printf '\n\033[1m== %s\033[0m\n' "$*"; }
+ok()   { printf '\033[32mok\033[0m   %s\n' "$*"; }
+fail() { printf '\033[31mFAIL\033[0m %s\n' "$*"; exit 1; }
+
+step "Unit and contract tests"
+./gradlew test --no-daemon -q || fail "tests failed: open build/reports/tests/test/index.html"
+ok "unit and contract tests pass"
+
+if [ "$with_containers" = yes ]; then
+  step "Container tests (Testcontainers: MySQL and Kafka)"
+  ./gradlew containerTest --no-daemon -q || fail "container tests failed: open build/reports/tests/containerTest/index.html"
+  ok "container tests pass"
+fi
+
+step "Build"
+./gradlew bootJar --no-daemon -q || fail "the jar did not build"
+ok "build/libs/service.jar"
+
+step "Start two instances of $SERVICE_NAME against the dev kit"
+podman info >/dev/null 2>&1 || fail "Podman is not available"
+podman network inspect hackathon >/dev/null 2>&1 || fail "the network 'hackathon' does not exist: start the dev kit first (its README)"
+podman compose up -d --build --force-recreate || fail "podman compose could not start the instances (message above)"
+ok "$SERVICE_NAME-1 on port 8081, $SERVICE_NAME-2 on port 8082"
+
+step "Health"
+for port in 8081 8082; do
+  status=""
+  for _ in $(seq 1 90); do
+    status=$(curl -s "http://localhost:$port/actuator/health" | grep -o '"status":"[A-Z]*"' | head -1 | cut -d'"' -f4 || true)
+    [ "$status" = UP ] && break
+    sleep 2
+  done
+  if [ "$status" != UP ]; then
+    echo "--- last lines of the log:"; podman compose logs --tail 40 "instance-$((port - 8080))"
+    fail "instance on port $port is not healthy (status: ${status:-no answer}). The log above usually names the setting or service it cannot reach."
+  fi
+  ok "port $port: UP"
+done
+
+step "Memory"
+for n in 1 2; do
+  limit=$(podman inspect -f '{{.HostConfig.Memory}}' "$SERVICE_NAME-$n")
+  [ "$limit" = 536870912 ] || fail "$SERVICE_NAME-$n has no 512 MB limit (got $limit): keep mem_limit in compose.yml"
+  ok "$SERVICE_NAME-$n: limit 512 MB, using $(podman stats --no-stream --format '{{.MemUsage}}' "$SERVICE_NAME-$n" | cut -d/ -f1)"
+done
+
+if [ "$down" = yes ]; then
+  podman compose down >/dev/null 2>&1
+  ok "stopped both instances"
+fi
+printf '\n\033[32mReady:\033[0m tests pass and two instances run healthy within 512 MB each.\n'

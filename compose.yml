@@ -9,7 +9,7 @@ name: ${SERVICE_NAME}
 
 x-instance: &instance
   build: .
-  image: ${IMAGE:-${SERVICE_NAME}:local}   # IMAGE=<registry image:tag> with --no-build runs a CI-built image
+  image: ${IMAGE:-ledger:local}   # IMAGE=<registry image:tag> with --no-build runs a CI-built image
   env_file: service.env
   mem_limit: 512m          # each instance is capped at 512 MB (integration holds sixteen)
   memswap_limit: 512m
