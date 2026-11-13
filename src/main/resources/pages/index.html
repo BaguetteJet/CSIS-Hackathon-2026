@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Example page</title>
+  <link rel="stylesheet" href="ui-kit.css">
+</head>
+<body>
+  <!-- EXAMPLE PAGE. Copy it for each of your pages, then delete this one.
+       It is served at /app/<service>/ ; files next to it at /app/<service>/<file>. -->
+  <header class="gb-header" data-title="Example" data-nav="Example|index.html"></header>
+
+  <main class="page">
+    <div class="page-title">
+      <h1>Example page</h1>
+      <p>A plain form, a table and an error message, built only from the UI kit's classes.</p>
+    </div>
+
+    <div class="columns">
+      <section class="card">
+        <h2>Who am I?</h2>
+        <p class="muted small">Calls <code>GET /api/&lt;service&gt;/hello</code> with your token.</p>
+        <div id="hello" class="stack"></div>
+        <div class="actions"><button id="say-hello" type="button">Call hello</button></div>
+      </section>
+
+      <section class="card">
+        <h2>A form</h2>
+        <form id="example-form">
+          <div class="notice bad" hidden></div>
+          <label class="field">Dish <input name="dish" required placeholder="Chicken curry with rice"></label>
+          <label class="field">Normal price (euro) <input name="normalPrice" type="number" min="0" step="0.01" required></label>
+          <fieldset>
+            <label class="check"><input type="checkbox" name="allergens" value="GLUTEN"> Gluten</label>
+            <label class="check"><input type="checkbox" name="allergens" value="MILK"> Milk</label>
+          </fieldset>
+          <div class="actions">
+            <button class="grow" type="submit">Save</button>
+            <button class="secondary" type="reset">Clear</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <table class="table">
+      <thead><tr><th>Slot</th><th>Status</th><th class="num">Orders</th></tr></thead>
+      <tbody>
+        <tr><td>12:00 to 12:15</td><td><span class="badge good">Going ahead</span></td><td class="num">14</td></tr>
+        <tr><td>12:15 to 12:30</td><td><span class="badge warn">Nearly full</span></td><td class="num">15</td></tr>
+      </tbody>
+    </table>
+  </main>
+
+  <script type="module" src="ui-kit.js"></script>
+  <script type="module">
+    import { api, currentUser, escapeHtml, irishTime, showProblem } from "./api.js";
+
+    // The service name is the second part of this page's path: /app/<service>/
+    const service = location.pathname.split("/")[2];
+
+    document.getElementById("say-hello").addEventListener("click", async () => {
+      const out = document.getElementById("hello");
+      try {
+        const hello = await api.get(`/api/${service}/hello`);
+        out.innerHTML = `
+          <div class="card-row"><span>User</span><span>${escapeHtml(hello.name || hello.userId)}</span></div>
+          <div class="card-row"><span>Role</span><span>${escapeHtml(hello.role)}</span></div>
+          <div class="card-row"><span>Instance</span><span>${escapeHtml(hello.instance)}</span></div>
+          <div class="card-row"><span>Platform time</span><span>${escapeHtml(irishTime(hello.now))}</span></div>`;
+      } catch (e) {
+        out.innerHTML = `<div class="notice bad">${escapeHtml(e.code)}: ${escapeHtml(e.message)}</div>`;
+      }
+    });
+
+    // Shows how a Problem's field errors appear next to the fields. Replace with your own api.post(...).
+    document.getElementById("example-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      showProblem(event.target, {
+        message: "This example form does not save anything.",
+        errors: [{ field: "dish", message: "an example of a field error from the API" }],
+      });
+    });
+
+    if (!currentUser()) document.getElementById("hello").innerHTML = '<div class="notice info">Sign in on the dev sign-in page first.</div>';
+  </script>
+</body>
+</html>

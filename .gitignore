@@ -1,0 +1,13 @@
+.gradle/
+.kotlin/
+build/
+out/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+*.log
+# Personal or secret values go in a file ending .local.env, never in Git. The committed .env,
+# local.env and service.env hold only the dev kit's local values.
+*.local.env
+.tokens.txt
