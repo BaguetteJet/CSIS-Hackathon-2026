@@ -87,6 +87,26 @@ class LedgerAccounts(
     }
 
     /**
+     * Opens the student's accounts if needed, locks both until the transaction ends, and returns
+     * the balance as committed right now. Call it inside the transaction that decides on the
+     * student's money (a hold, the balance after a top-up), so the decision and the event's
+     * balance can't be overtaken by another instance (LED-20).
+     *
+     * AVAILABLE is always opened before HELD, so its id is lower and this locks in ascending id
+     * order, like [LedgerPostingService.post]. FOR UPDATE also matters for reading: a plain SELECT
+     * in a REPEATABLE READ transaction can return a snapshot older than the lock.
+     */
+    fun lockStudent(studentId: UUID): Balance {
+        val available = ensure(AccountRef.studentAvailable(studentId))
+        val held = ensure(AccountRef.studentHeld(studentId))
+        val cents = jdbc.query(
+            "SELECT id, balance_cents FROM ledger_account WHERE id IN (?, ?) ORDER BY id FOR UPDATE",
+            { rs, _ -> rs.getLong(1) to rs.getLong(2) }, available, held,
+        ).toMap()
+        return Balance(studentId, cents.getValue(available), cents.getValue(held))
+    }
+
+    /**
      * The account's id, creating the row at zero when it does not exist. Call this in the
      * transaction that is about to post to the account.
      *

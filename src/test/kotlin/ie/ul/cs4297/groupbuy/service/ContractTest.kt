@@ -88,12 +88,16 @@ class ContractTest {
             HoldPlaced(order, deal, student, amountCents = 2000, availableCents = 0, heldCents = 2000), // exactly the balance
             HoldRejected(order, deal, student, HoldRejectedReason.INSUFFICIENT_FUNDS, availableCents = 1999, heldCents = 0), // a cent short
             HoldRejected(order, deal, student, HoldRejectedReason.INSUFFICIENT_FUNDS, availableCents = 0, heldCents = 0), // no account yet
+            HoldRejected(order, deal, student, HoldRejectedReason.ORDER_CLOSED, availableCents = 1000, heldCents = 0), // withdrawn or abandoned first
+            HoldRejected(order, deal, student, HoldRejectedReason.DEAL_CLOSED, availableCents = 1000, heldCents = 600), // confirmed, failed or cancelled first
         ).forEach { assertMatchesContract(it) }
     }
 
     @Test
     fun `the service can read every event type it consumes`() {
-        for (type in listOf("UserRegistered", "UserUpdated", "RoleChanged", "UserDeleted", "TopUpRecorded")) {
+        // TopUpRecorded: PaymentsConsumer. The orders.v1 and deals.v1 closures: ClosuresConsumer (the hold's ORDER_CLOSED/DEAL_CLOSED).
+        for (type in listOf("UserRegistered", "UserUpdated", "RoleChanged", "UserDeleted", "TopUpRecorded",
+            "OrderWithdrawn", "OrderAbandoned", "DealConfirmed", "DealFailed", "DealCancelled")) {
             val envelope = EnvelopeDeserializer().deserialize(EventCatalogue.byType(type)!!.topic, ContractSamples.json(type).toByteArray())
             assertEquals(type, envelope!!.type)
         }
