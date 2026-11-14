@@ -45,9 +45,9 @@ Every change of money starts from one of these. A field not listed is in the con
 | Release a deal's holds | Deals | DealFailed, DealCancelled (deals.v1) | `dealId` | `dealId`; `orderId` per release | Built (LED-09) |
 | Settle a deal | Deals | DealConfirmed (deals.v1) | `dealId`, `restaurantId`, `priceCents`, `commissionBasisPoints` (0 to 10000), `orders[]` of `orderId` and `studentId`; the amount set aside comes from our hold | `dealId`; `orderId` per charge | Built (LED-05, 06, 10) |
 | Refund after a charge | Support | RefundApproved (support.v1) | `refundId`, `orderId`, `dealId`, `studentId`, `amountCents` ≥ 1, `reason` | `refundId` | Built (LED-13); waking early ones: item 6 |
-| Reserve a cash-out | Payments | WithdrawalRequested (payments.v1) | `withdrawalId`, `studentId`, `amountCents` ≥ 1 | `withdrawalId` | Item 8 |
-| Pay out or return a cash-out | Payments | WithdrawalCompleted, WithdrawalFailed (payments.v1) | `withdrawalId`; the amount is the one we reserved | `withdrawalId` | Item 8 |
-| Pay a restaurant | Payments | PayoutConfirmed (payments.v1) | `payoutId`, `restaurantId`, `amountCents` ≥ 1 | `payoutId` | Item 8 |
+| Reserve a cash-out | Payments | WithdrawalRequested (payments.v1) | `withdrawalId`, `studentId`, `amountCents` ≥ 1 | `withdrawalId` | Built (LED-15) |
+| Pay out or return a cash-out | Payments | WithdrawalCompleted, WithdrawalFailed (payments.v1) | `withdrawalId`; the amount is the one we reserved | `withdrawalId` | Built (LED-16) |
+| Pay a restaurant | Payments | PayoutConfirmed (payments.v1) | `payoutId`, `restaurantId`, `amountCents` ≥ 1 | `payoutId` | Built (LED-17) |
 | Every timestamp | Platform | The clock (`CLOCK_URL`) | Now | | Built |
 
 Commission comes from DealConfirmed, never from RestaurantRegistered: the deal's rate is the one charged. How each change is written: [schema §4](schema.md#4-what-each-operation-writes).
@@ -61,8 +61,8 @@ Commission comes from DealConfirmed, never from RestaurantRegistered: the deal's
 | Orders | OrderCharged | ledger.v1 | Sat 21:00 | Nothing reaches PAID | Yes (LED-05) | Their doc |
 | Orders | RefundPosted | ledger.v1 | Sun 12:00 | Nothing reaches REFUNDED | Yes (LED-13) | Their doc |
 | Payments | TopUpCredited | ledger.v1 | Sat 16:30 | Desk top-ups and the reset's €50 show "waiting for the Ledger" | Yes (LED-02) | No |
-| Payments | WithdrawalDebited, WithdrawalRefused, WithdrawalPaidOut, WithdrawalReturned | ledger.v1 | Sun 12:00 | Cash-outs stay REQUESTED | No (item 8) | No |
-| Payments | OrderCharged, RefundPosted, PayoutDebited | ledger.v1 | Sun 12:00 | Restaurant payables and the payout file are wrong | OrderCharged, RefundPosted | No |
+| Payments | WithdrawalDebited, WithdrawalRefused, WithdrawalPaidOut, WithdrawalReturned | ledger.v1 | Sun 12:00 | Cash-outs stay REQUESTED | Yes (LED-15, 16) | No |
+| Payments | OrderCharged, RefundPosted, PayoutDebited | ledger.v1 | Sun 12:00 | Restaurant payables and the payout file are wrong | Yes | No |
 | Payments | A student's available balance at the desk | `GET /api/ledger/students/{studentId}` (UNION_FINANCE) | Sun 12:00 | Desk shows the balance as unknown, still lets staff start a cash-out | Yes | No |
 | Support | OrderCharged, HoldReleased, RefundPosted, RefundRefused, SettlementIssue | ledger.v1 | Sun 12:00 | Support can't see charges or answer refunds | Yes; NEVER_CHARGED not yet (item 6) | No |
 | Student experience | Balance and statement on the Account page | `GET /api/ledger/me`, `GET /api/ledger/me/entries` (STUDENT) | Sun 12:00 | The Account page has no balance or history | `/me` and entries yes | No |

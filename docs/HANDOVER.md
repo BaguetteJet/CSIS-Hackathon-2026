@@ -16,7 +16,8 @@ The Ledger is the bank inside Campus Group-Buy. It decides one thing, whether a 
 | Show a balance and statement | `GET /api/ledger/me`, `/me/entries` through the gateway | |
 | Show any student's balance at the desk | `GET /api/ledger/students/{id}` through the gateway (Union finance) | |
 | Give money back after a charge, never more than charged | RefundApproved (support.v1) | RefundPosted or RefundRefused |
-| **Not yet:** cash-outs, payouts | Withdrawal\*, PayoutConfirmed | Withdrawal\*, PayoutDebited |
+| Cash-outs at the desk: reserve, then pay out or return | WithdrawalRequested, then WithdrawalCompleted or WithdrawalFailed (payments.v1) | WithdrawalDebited or WithdrawalRefused, then WithdrawalPaidOut or WithdrawalReturned |
+| Pay a restaurant from its payable | PayoutConfirmed (payments.v1) | PayoutDebited |
 
 Who depends on each of these: [NEIGHBOURS.md](NEIGHBOURS.md). How it is built and why: [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -72,7 +73,6 @@ About 2 minutes: 1 for the dev kit, under 1 for the Ledger (both instances were 
    cp ../line-a-ledger/grafana/ledger.json grafana/dashboards/
    docker compose --profile full up -d
    ```
-   **Not yet:** `grafana/ledger.json` (item 4). Until it exists, skip the `cp` line.
    Ready when http://localhost:8080 shows a page (about a minute).
 3. Start both Ledger instances from the image CI built for the `release` tag:
    ```bash
@@ -150,7 +150,7 @@ Also checked by the test agents: every hold within 2 s, also during a 202-order 
 
 ## 7 Dashboard tour
 
-**Not yet:** the Grafana dashboard (item 4). The measures it will show already exist on each instance (`curl -s localhost:8081/actuator/prometheus | grep '^ledger_'`):
+Grafana at http://localhost:3000, folder "Dev kit", dashboard "Ledger" (`grafana/ledger.json`, copied in §4 step 2); set "Scrape job" to `services`. The same measures are on each instance (`curl -s localhost:8081/actuator/prometheus | grep '^ledger_'`):
 
 | Measure | What normal looks like |
 |---|---|

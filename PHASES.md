@@ -6,8 +6,8 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 |---|---|---|---|
 | 1 Slice 1 | Fri | Hold call, top-ups, `/me` | **Done**: LED-02, 03, 04, 07 |
 | 2 Golden path | Sat 21:00 | Accounts, settlement, releases | **Done**: LED-01, 05, 06, 08, 09, 10, 22 |
-| 3 Rest of the core | Sun 12:00 | Statement, desk, refunds, cash-outs, payouts | LED-11, 12 and 13 done, 14 partly; to do: 15, 16, 17 |
-| 4 Production bar | Sun 16:00 | Security, bad input, outages, dashboard, handover | Partly: LED-18 done; 19, 20, 21, 23, 24 to do |
+| 3 Rest of the core | Sun 12:00 | Statement, desk, refunds, cash-outs, payouts | LED-11, 12, 13, 15, 16, 17 done; 14 partly |
+| 4 Production bar | Sun 16:00 | Security, bad input, outages, dashboard, handover | LED-18, 19 done; 20, 23, 24 partly; 21 to do |
 
 ## Done
 
@@ -22,7 +22,10 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 | 11 | Statement | `StatementTest` (9), live via gateway |
 | 12 | Desk balance | `DeskTest` (4), live via gateway |
 | 13 | Refunds, never over the charge | `RefundsTest` (5), `ContractTest`, live refund on the fake line |
+| 15, 16 | Cash-outs: reserved, then paid out or returned, never both | `WithdrawalsTest` (8), `ContractTest`, live on the fake line |
+| 17 | Payouts, once per payoutId | `WithdrawalsTest`, `ContractTest` |
 | 18 | 401 before 403 on `/me`, statement and desk; 503 when sign-in key is down | `LedgerCoreTest`, `StatementTest`, `DeskTest`, `SignInUnavailableTest`, live via gateway |
+| 19 | Bad hold input 422/413; zero-amount top-up, refund, cash-out and payout to `ledger.dlt` | `HoldsTest`, `ContractTest`, `PaymentsDeadLetterTest`, [evidence](docs/evidence/led-19-payments-dlt.md) |
 | 22 | 100 holds/s, also during settlement | [k6 evidence](docs/evidence/led-22-holds-k6.md) |
 
 ## Partly done
@@ -30,17 +33,14 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 | LED | Done | Left (item) |
 |---|---|---|
 | 14 | Early refunds parked | Wake on charge or release; NEVER_CHARGED (6) |
-| 19 | Hold input 422/413; zero top-up and zero refund to DLT | Zero-amount cash-out, payout (3) |
 | 20 | Movements sum to zero, no negatives, chaining | Zero-sum property test, marked (7) |
-| 23 | Hold and settlement metrics | Refund and DLT metrics, dashboard, 6 h alert (4, 6) |
+| 23 | Hold and settlement metrics; Grafana dashboard live on the dev kit | Refund and DLT metrics, 6 h alert (4, 6) |
 | 24 | Migrations, recompute and settlement SQL | Rest of the handover document (4) |
 
 ## To do
 
 | LED | What | Item |
 |---|---|---|
-| 15, 16 | Cash-outs | 8 |
-| 17 | Payouts | 8 |
 | 21 | Outage drills | 4 |
 
 ## Marked properties (20 marks)
