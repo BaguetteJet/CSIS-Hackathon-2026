@@ -1,6 +1,6 @@
 # Item 7: Statement, desk and testing
 
-**Owner:** Member 7 · **Backup:** Shakeeba · **LED:** 11, 12, 18 (page routes), 20 (property test)
+**Owner:** Pierce · **Backup:** Shakeeba · **LED:** 11, 12, 18 (page routes), 20 (property test)
 
 **Slice 1:** no: phases 3 and 4.
 

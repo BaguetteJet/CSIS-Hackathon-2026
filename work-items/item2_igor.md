@@ -1,6 +1,6 @@
 # Item 2: Core and data
 
-**Owner:** Igor · **Backup:** Member 7 · **LED:** 07, 20 (posting rules), 24 (migrations)
+**Owner:** Igor · **Backup:** Pierce · **LED:** 07, 20 (posting rules), 24 (migrations)
 
 **Slice 1:** yes: schema, posting, `/me`.
 

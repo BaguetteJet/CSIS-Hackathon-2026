@@ -1,6 +1,6 @@
 # Item 6: Refunds
 
-**Owner:** Member 6 · **Backup:** Member 5 · **LED:** 13, 14
+**Owner:** Member 6 · **Backup:** Cian · **LED:** 13, 14
 
 **Slice 1:** no: phase 3.
 
