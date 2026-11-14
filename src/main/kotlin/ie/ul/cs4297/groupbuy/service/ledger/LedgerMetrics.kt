@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit
 /**
  * [LED-23] - Observability: parked refunds, the age of the oldest (the 6 h alert), and dead letters, read at each scrape.
  * They come from the database and the topic, not from memory, so both instances report the same number and a restart loses nothing:
- * the dashboard takes the max, not the sum. Unreachable: NaN, never a slow scrape.
+ * the dashboard takes the max, not the sum. Unreachable: NaN; with Kafka down the dead-letter read waits up to 3 × 2 s, inside the 10 s scrape timeout.
  */
 @Component
 class LedgerMetrics(
