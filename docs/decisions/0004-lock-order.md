@@ -1,6 +1,8 @@
 # 0004 One lock order for every money change
 
-**Context.** A hold, a top-up, a release and a settlement can hit the same student at once on our two instances. No balance may go below zero (LED-20). Two transactions that lock the same rows in opposite orders wait for each other, and MySQL rolls one back (a deadlock).
+**Protects.** No balance goes below zero (marked, LED-20). No deadlocks.
+
+**Problem.** A hold, a top-up, a release and a settlement can hit the same student at once on our two instances. Two transactions that lock the same rows in opposite orders wait for each other, and MySQL rolls one back (a deadlock).
 
 **Decision.** Every money change locks in this order:
 1. the hold, closure and settlement rows it needs;
@@ -16,4 +18,4 @@ Check a balance only after step 2, with that locked read. A plain SELECT can ret
 
 **Cost.** A release must lock the hold before it writes the closure row.
 
-**Check.** Race tests in `HoldsTest` and `ReleasesTest`; the k6 load test during a settlement.
+**Proof.** `HoldsTest`: two €6 orders racing for €10 on both instances, one placed and one refused. `ReleasesTest`: holds racing a failing deal. The k6 load test during a settlement.

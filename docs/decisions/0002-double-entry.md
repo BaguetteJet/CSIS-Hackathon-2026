@@ -1,6 +1,8 @@
 # 0002 Double-entry accounts and postings
 
-**Context.** Finance must be able to explain every euro (LED-24). Every movement of money must add up to zero (LED-20).
+**Protects.** Every movement sums to zero (marked, LED-20). Finance can explain every euro (LED-24).
+
+**Problem.** A balance on its own can't show where money came from or went.
 
 **Decision.** A student has two accounts, AVAILABLE and HELD; a restaurant has PAYABLE; the Union has CASH and COMMISSION. Each movement is one `ledger_movement` row plus two or more `ledger_posting` rows, plus and minus, that sum to zero. A hold moves money from AVAILABLE to HELD.
 
@@ -10,4 +12,4 @@
 
 **Cost.** 2 to 4 rows per movement.
 
-**Check.** All postings sum to 0 after every test that moves money in `LedgerCoreTest`, `ReleasesTest` and `SettlementTest`.
+**Proof.** All postings sum to 0 after every test in `LedgerCoreTest`, `ReleasesTest` and `SettlementTest`.

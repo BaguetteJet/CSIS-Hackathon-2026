@@ -1,6 +1,8 @@
 # 0006 One Kafka listener per topic
 
-**Context.** All our listeners share one consumer group, and Kafka gives each partition of a topic to one member of the group. Two listeners on one topic would split the partitions, and each would never see the other's events (`reading-week6_1.pdf`).
+**Protects.** No event is missed.
+
+**Problem.** All our listeners share one consumer group, and Kafka gives each partition of a topic to one member of the group. Two listeners on one topic would split the partitions, and each would never see the other's events (`reading-week6_1.pdf`).
 
 **Decision.** One listener per topic. It reads the event type and calls the right area's code: `PaymentsConsumer` (payments.v1), `ClosuresConsumer` (orders.v1, deals.v1), the starter's `KnownUsersConsumer` (users.v1), and later `SupportConsumer` (support.v1).
 
@@ -10,4 +12,4 @@
 
 **Cost.** Areas sharing a listener agree how it calls them first.
 
-**Check.** `ConsumerGroupCheckTest` (starter): every listener uses the shared group. Review: no second listener on a topic.
+**Proof.** `ConsumerGroupCheckTest` (starter): every listener uses the shared group. Review: no second listener on a topic.

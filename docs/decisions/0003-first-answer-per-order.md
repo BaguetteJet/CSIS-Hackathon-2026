@@ -1,6 +1,8 @@
 # 0003 Store the first hold answer per orderId
 
-**Context.** When Orders times out it asks again, maybe on our other instance, maybe with a different amount (LED-04). A timeout doesn't mean we failed: we may already have committed (`lecture06a.pdf` pp. 4–12).
+**Protects.** One orderId gets one answer (LED-04).
+
+**Problem.** When Orders times out it asks again, maybe on our other instance, maybe with a different amount. A timeout doesn't mean we failed: we may already have committed (`lecture06a.pdf` pp. 4–12).
 
 **Decision.** A hold first inserts a `hold_decision` row keyed by orderId, in the same transaction as the money and the event. A second call for that order waits for the row, then returns the saved answer. Refusals are saved too. A 503 saves nothing, so the retry decides fresh.
 
@@ -13,4 +15,4 @@
 
 **Cost.** One row per order.
 
-**Check.** `HoldsTest`: repeats, 8 calls at once across two instances, 503 within 2 s.
+**Proof.** `HoldsTest`: a repeat on the other instance gets the first answer; the same order racing on both instances is decided once; 503 within 2 s leaves no answer behind.

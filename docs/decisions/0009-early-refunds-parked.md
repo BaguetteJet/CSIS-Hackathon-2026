@@ -1,8 +1,10 @@
 # 0009 Park early refunds
 
-**Context.** A refund can arrive before its order was charged (LED-14).
+**Protects.** No order is refunded more than it was charged (marked, LED-13, LED-14). Planned: item 6.
 
-**Decision.** Park it: save it with the starter's `parking` to handle later. When settlement or a release finishes the order, it wakes the refund through `RefundWakeups`, in the same transaction. Each refund ends one way: paid, EXCEEDS_CHARGE or NEVER_CHARGED.
+**Problem.** A refund can arrive before its order was charged.
+
+**Decision.** Park it: save it with the starter's `parking` to handle later. When settlement or a release finishes the order, it wakes the refund through `RefundWakeups`, in the same transaction. Each refund ends one way: paid, EXCEEDS_CHARGE or NEVER_CHARGED. A refund locks the order's `order_charge` row and adds up earlier refunds before paying.
 
 **Rejected.**
 - Retry until the charge exists: holds up every event behind it, then ends in the dead-letter topic.
@@ -11,4 +13,4 @@
 
 **Cost.** One function shared by settlement and refunds (`RefundWakeups`); an alert if a refund waits over 6 hours.
 
-**Check.** Item 6's tests, still to write: refund before charge, refund then release, refund over the charge.
+**Proof.** Item 6's tests, still to write: refund before charge, refund then release, refunds over the charge. Until then nothing can be refunded, so nothing can be over-refunded.

@@ -1,6 +1,8 @@
 # 0001 Split the work by money flow
 
-**Context.** Seven people, one service. Each area needs an owner and a backup (handover §16).
+**Protects.** Every LED item has one owner (handover §16).
+
+**Problem.** Seven people, one service. Each area needs an owner and a backup.
 
 **Decision.** One area per way money moves: holds, top-ups, settlement, refunds, cash-outs. Each area has its own listener or API and its own tables. The lead owns holds, releases and settlement: they all change the same hold, and together they are the golden path.
 
@@ -20,3 +22,5 @@
 - One owner per LED item: LED-03, 04, 05, 08 and 09 all change the same hold, so its state machine (0008) would have five owners.
 
 **Cost.** Every area depends on area 2, so its functions were agreed first. Areas that share a listener (1 and 5, 3 and 8) or a function one calls in the other (5 and 6) agree it up front.
+
+**Proof.** [OWNERS.md](../../OWNERS.md): an owner and a backup per area. One Forgejo issue per LED item (#7–#30), assigned to its owner.
