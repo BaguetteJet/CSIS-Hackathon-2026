@@ -2,6 +2,8 @@
 
 **Owner:** Hersh (lead) · **Backup:** Igor · **LED:** 01, 03, 04, 18 (sign-in down), 22 (holds), 24 (recompute SQL)
 
+**Slice 1:** yes: the hold call.
+
 - Orders gets one answer per order, fast, on either instance; holds for closed orders or deals are refused.
 - Accounts open on registration; the service is promoted into integration and kept in line with the contracts.
 

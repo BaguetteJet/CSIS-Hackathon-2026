@@ -2,6 +2,8 @@
 
 **Owner:** Shakeeba · **Backup:** Sam · **LED:** 21, 22 (k6), 23, 24 (handover)
 
+**Slice 1:** yes: the demo and its evidence.
+
 - Two instances anyone can deploy from the handover document alone.
 - Health visible on Grafana; proof the service survives the faults testers inject.
 

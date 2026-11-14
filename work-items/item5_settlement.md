@@ -2,6 +2,8 @@
 
 **Owner:** Hersh · **Backup:** Member 5 · **LED:** 05, 06, 08, 09, 10
 
+**Slice 1:** no: phase 2, the golden path.
+
 - A confirmed deal charges each listed order the tier price once: commission to the Union, the rest to the restaurant, leftover back.
 - An order or deal that doesn't go ahead returns every cent; problems are reported, not hidden.
 

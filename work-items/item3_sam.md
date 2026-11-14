@@ -2,6 +2,8 @@
 
 **Owner:** Sam · **Backup:** Member 6 · **LED:** 02, 19, contract tests
 
+**Slice 1:** yes: top-ups.
+
 - Every desk top-up is credited once, at its first amount.
 - Broken events go straight to the dead-letter topic; every event we publish matches the contracts, in CI.
 

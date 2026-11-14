@@ -2,6 +2,8 @@
 
 **Owner:** Igor · **Backup:** Member 7 · **LED:** 07, 20 (posting rules), 24 (migrations)
 
+**Slice 1:** yes: schema, posting, `/me`.
+
 - One posting service moves all money: movements sum to zero, students never go negative.
 - `/me` shows the committed balance; restarts keep every balance.
 

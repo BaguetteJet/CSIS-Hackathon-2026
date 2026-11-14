@@ -2,6 +2,8 @@
 
 **Owner:** Member 6 · **Backup:** Member 5 · **LED:** 13, 14
 
+**Slice 1:** no: phase 3.
+
 - A refund goes back to the student, reversing commission and the restaurant's share in proportion.
 - No order is refunded more than it was charged; an early refund waits for its charge.
 

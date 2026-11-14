@@ -1,6 +1,8 @@
 # Item 8: Cash-outs and payouts
 
-**Owner:** Member 5 · **Backup:** Sam · **LED:** 15, 16, 17
+**Owner:** Member 5 · **Backup:** Hersh · **LED:** 15, 16, 17
+
+**Slice 1:** no: phase 3.
 
 - A cash-out is reserved before cash leaves, then paid out or returned, never both.
 - Each restaurant payout is taken from its payable once.
