@@ -8,10 +8,10 @@ One area per person (decision [0001](../docs/decisions/0001-work-split.md)). Eve
 | [2](item2_igor.md) | Core and data | Igor · Member 7 | 07, 20 (posting), 24 (migrations) |
 | [3](item3_sam.md) | Payments events, contracts | Sam · Member 6 | 02, 19 |
 | [4](item4_shakeeba.md) | Operations | Shakeeba · Sam | 21, 22 (k6), 23, 24 (handover) |
-| [5](item5_settlement.md) | Settlement, releases | Hersh · Member 5 | 05, 06, 08, 09, 10 |
-| [6](item6_refunds.md) | Refunds | Member 6 · Member 5 | 13, 14 |
+| [5](item5_settlement.md) | Settlement, releases | Hersh · Cian | 05, 06, 08, 09, 10 |
+| [6](item6_refunds.md) | Refunds | Member 6 · Cian | 13, 14 |
 | [7](item7_statement.md) | Statement, desk, testing | Member 7 · Shakeeba | 11, 12, 18 (pages), 20 (property test) |
-| [8](item8_cashouts.md) | Cash-outs, payouts | Member 5 · Hersh | 15, 16, 17 |
+| [8](item8_cashouts.md) | Cash-outs, payouts | Cian · Hersh | 15, 16, 17 |
 
 ## Dependencies
 

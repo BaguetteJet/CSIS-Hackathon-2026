@@ -1,6 +1,6 @@
 # Item 5: Settlement and releases
 
-**Owner:** Hersh · **Backup:** Member 5 · **LED:** 05, 06, 08, 09, 10
+**Owner:** Hersh · **Backup:** Cian · **LED:** 05, 06, 08, 09, 10
 
 **Slice 1:** no: phase 2, the golden path.
 

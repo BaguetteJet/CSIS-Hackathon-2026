@@ -17,10 +17,10 @@ We split the Ledger **by money flow**: each area owns one way money enters or le
 | Core and data | Igor | Member 7 | 07, 20 (posting), 24 (migrations) | Yes: schema, posting, `/me` | [2](work-items/item2_igor.md) |
 | Payments events, contracts | Sam | Member 6 | 02, 19 | Yes: top-ups | [3](work-items/item3_sam.md) |
 | Operations | Shakeeba | Sam | 21, 22 (k6), 23, 24 (handover) | Yes: demo and evidence | [4](work-items/item4_shakeeba.md) |
-| Settlement, releases | Hersh | Member 5 | 05, 06, 08, 09, 10 | No: golden path | [5](work-items/item5_settlement.md) |
-| Refunds | Member 6 | Member 5 | 13, 14 | No | [6](work-items/item6_refunds.md) |
+| Settlement, releases | Hersh | Cian | 05, 06, 08, 09, 10 | No: golden path | [5](work-items/item5_settlement.md) |
+| Refunds | Member 6 | Cian | 13, 14 | No | [6](work-items/item6_refunds.md) |
 | Statement, desk, testing | Member 7 | Shakeeba | 11, 12, 18 (pages), 20 (property test) | No | [7](work-items/item7_statement.md) |
-| Cash-outs, payouts | Member 5 | Hersh | 15, 16, 17 | No | [8](work-items/item8_cashouts.md) |
+| Cash-outs, payouts | Cian | Hersh | 15, 16, 17 | No | [8](work-items/item8_cashouts.md) |
 
 ## Each person
 
@@ -44,7 +44,7 @@ We split the Ledger **by money flow**: each area owns one way money enters or le
 - Done: the slice-1 demo bench and its evidence.
 - Next: tag `checkpoint-1` (Sat 11:00); dashboard (23); outage drills (21); the handover document (24, by Sun 16:00).
 
-**Member 5**
+**Cian**
 - Owns: cash-outs and payouts (item 8). Backs up: settlement (item 5) and refunds (item 6).
 - Next: cash-outs (LED-15, 16) and payouts (17), by Sun 12:00.
 
