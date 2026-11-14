@@ -12,10 +12,10 @@
 ### Steps
 
 1. [x] **Stub.** `RefundWakeups.kt` with no-op `NoParkedRefunds` (added by item 5); replace it.
-2. [ ] **Migration:** `refund(refund_id PK, order_id, deal_id, student_id, amount_cents, commission_reversed_cents, reason, outcome, decided_at)`. Deal and student come from RefundApproved: RefundRefused needs them even with no charge ([schema §7](../docs/schema.md#7-fit-with-the-contracts)).
-3. [ ] **`SupportConsumer`** on support.v1: claim the refundId inside `inbox.once`.
+2. [x] **Migration:** `V9__refund.sql` (V8 is item 8's `withdrawal`): `refund(refund_id PK, order_id, deal_id, student_id, amount_cents, commission_reversed_cents, reason, outcome, decided_at)`. Deal and student come from RefundApproved: RefundRefused needs them even with no charge ([schema §7](../docs/schema.md#7-fit-with-the-contracts)).
+3. [x] **`SupportConsumer`** on support.v1: claim the refundId inside `inbox.once`.
    *Done when:* the same refundId twice posts once.
-4. [ ] **Post (LED-13).** Lock `order_charge`, then the student. Over the charge: EXCEEDS_CHARGE. Otherwise reverse commission with `Money.refundReversal` and post REFUND.
+4. [x] **Post (LED-13).** Lock `order_charge`, then the student. Over the charge: EXCEEDS_CHARGE. Otherwise reverse commission with `Money.refundReversal` and post REFUND.
    *Done when:* 450 / 45 refunded 5 then 445 reverses 1 then 44.
 5. [ ] **Park and wake (LED-14).** Park by order or deal; `orderCharged` posts, `holdReleased` and `dealDecided` refuse NEVER_CHARGED.
    *Done when:* tests cover refund before charge, then release, and with no hold.

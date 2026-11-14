@@ -46,13 +46,13 @@ abstract class LedgerFlowTest : ContainersTest() {
         kafka.send(envelope.payload.topic(), envelope.key, ContractJson.write(envelope)).get()
     }
 
-    /** Sends each envelope and waits until the closures listener has processed all of them. */
-    fun sendAndWait(vararg envelopes: Envelope<ContractEvent>) {
+    /** Sends each envelope and waits until [consumer] (the closures listener unless named) has processed all of them. */
+    fun sendAndWait(vararg envelopes: Envelope<ContractEvent>, consumer: String = ClosuresConsumer.CONSUMER) {
         envelopes.forEach { send(it) }
         await atMost Duration.ofSeconds(30) untilAsserted {
             envelopes.map { it.eventId }.distinct().forEach { id ->
                 assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM processed_event WHERE consumer = ? AND event_id = ?",
-                    Int::class.java, ClosuresConsumer.CONSUMER, id.toString()), "processed $id")
+                    Int::class.java, consumer, id.toString()), "processed $id")
             }
         }
     }

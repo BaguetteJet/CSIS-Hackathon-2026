@@ -15,7 +15,8 @@ The Ledger is the bank inside Campus Group-Buy. It decides one thing, whether a 
 | Settle a confirmed deal, once | DealConfirmed (deals.v1) | OrderCharged per order, SettlementIssue per problem, one DealSettled |
 | Show a balance and statement | `GET /api/ledger/me`, `/me/entries` through the gateway | |
 | Show any student's balance at the desk | `GET /api/ledger/students/{id}` through the gateway (Union finance) | |
-| **Not yet:** refunds, cash-outs, payouts | RefundApproved, Withdrawal\*, PayoutConfirmed | RefundPosted, RefundRefused, Withdrawal\*, PayoutDebited |
+| Give money back after a charge, never more than charged | RefundApproved (support.v1) | RefundPosted or RefundRefused |
+| **Not yet:** cash-outs, payouts | Withdrawal\*, PayoutConfirmed | Withdrawal\*, PayoutDebited |
 
 Who depends on each of these: [NEIGHBOURS.md](NEIGHBOURS.md). How it is built and why: [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -23,11 +24,12 @@ Who depends on each of these: [NEIGHBOURS.md](NEIGHBOURS.md). How it is built an
 flowchart LR
   Orders -->|hold call| H[Holds]
   GW[Gateway] -->|/api/ledger/me| C[LedgerController]
-  K[(Kafka)] --> PC[PaymentsConsumer] & CC[ClosuresConsumer] & KU[KnownUsersConsumer]
+  K[(Kafka)] --> PC[PaymentsConsumer] & CC[ClosuresConsumer] & KU[KnownUsersConsumer] & SC[SupportConsumer]
+  SC --> RF[Refunds]
   CC --> R[Releases] & S[Settlement]
-  H & R & S & PC --> P[LedgerPostingService] --> DB[(MySQL ledger)]
+  H & R & S & PC & RF --> P[LedgerPostingService] --> DB[(MySQL ledger)]
   KU & C --> A[LedgerAccounts] --> DB
-  H & R & S & PC --> OB[Outbox] -.->|ledger.v1| K
+  H & R & S & PC & RF --> OB[Outbox] -.->|ledger.v1| K
 ```
 
 Two instances (`ledger-1`, `ledger-2`) share one database. Either can answer any call or event: the database decides, never the instance.
@@ -141,7 +143,7 @@ Checked with repeats, disorder and a stopped instance. Tests that need Java are 
 |---|---|---|---|
 | Every movement sums to zero; no student balance negative | §8 "Is the whole Ledger balanced?" after §5: every row 0 | Zero-sum assertions after every flow test; `ZeroSumPropertyTest` | Holds everywhere; **Not yet:** the random property test (item 7) |
 | A deal settles exactly once, through a crash | `./sim deal-confirmed --repeat` publishes DealConfirmed twice; §8 "One deal's settlement" shows one row | `SettlementTest`: a crash halfway charges nothing, the retry settles once; DealConfirmed twice settles once | Done |
-| No order refunded more than it was charged | | | **Not yet** (item 6) |
+| No order refunded more than it was charged | Refund more than is left of the charge: RefundRefused `EXCEEDS_CHARGE` (`refund` row, no REFUND movement) | `RefundsTest`: over the charge refused; part refunds of 5 then 445 on 450 reverse 1 then 44 commission; a repeat posts once | Done; an early refund waits parked, its wake-up is item 6 |
 | A hold after its order or deal closed is refused | §5 step 7: DEAL_CLOSED | `HoldsTest`: ORDER_CLOSED and DEAL_CLOSED, before and racing the closure | Done |
 
 Also checked by the test agents: every hold within 2 s, also during a 202-order settlement ([LED-22 k6](evidence/led-22-holds-k6.md): max 666 ms); each event's balance-after chains with the one before (every balance on an event is read under the student's lock).
@@ -269,7 +271,7 @@ WHERE h.state = 'OPEN' GROUP BY h.deal_id, dc.reason ORDER BY oldest;
 
 ## 10 Known limitations
 
-- **Not built:** refunds (LED-13, 14), cash-outs (15, 16), payouts (17), the statement (11), the desk balance (12). Owners and dates: [PHASES.md](../PHASES.md).
+- **Not built:** waking early refunds and NEVER_CHARGED (LED-14), cash-outs (15, 16), payouts (17), the statement (11), the desk balance (12). An early refund waits parked, moving nothing. Owners and dates: [PHASES.md](../PHASES.md).
 - A `DealConfirmed` outside the contract (negative price, commission outside 0–10000) can't come from Deals; if one arrives anyway it moves nothing, is retried for 2.5 min, then goes to `ledger.dlt`.
 - One `orderId` listed twice with different students in a `DealConfirmed`: the second is dropped without a SettlementIssue.
 - A listed order that can't be charged keeps its money set aside until its order closes (§8 "Is money stuck?"). The alert is Platform's (PLT-11).

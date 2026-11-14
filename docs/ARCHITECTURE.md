@@ -50,7 +50,7 @@ A timeout after commit is safe: Orders retries the same orderId and gets the sto
 | payments.v1 | `PaymentsConsumer` | Credit top-ups; cash-outs (`Withdrawals`), payouts (`Payouts`) |
 | orders.v1, deals.v1 | `ClosuresConsumer` | Close; release; settle; open payables |
 | users.v1 | `KnownUsersConsumer` (starter, `example/`) | Open student accounts |
-| support.v1 | `SupportConsumer` (planned, item 6) | Refunds; the rest of support.v1 is ignored |
+| support.v1 | `SupportConsumer` | Refunds: posted, refused or parked; the rest of support.v1 is ignored |
 | ledger.v1 | Outbox relay (starter) | Every Ledger event, balance after it; keyed by student, restaurant or deal ([NEIGHBOURS §4](NEIGHBOURS.md#4-event-keys)) |
 
 ## 4. Data
@@ -63,7 +63,7 @@ A timeout after commit is safe: Orders retries the same orderId and gets the sto
 | `hold_decision` | order_id | First hold answer; `state` OPEN → RELEASED or CHARGED |
 | `order_closure`, `deal_closure` | order_id, deal_id | Refusing late holds |
 | `order_charge`, `deal_settlement` | order_id, deal_id | What was charged; that a deal settled |
-| `refund` (planned) | refund_id | Each refund's outcome (item 6, [schema §7](schema.md#7-fit-with-the-contracts)) |
+| `refund` | refund_id | Each refund's outcome (item 6) |
 | `withdrawal` | withdrawal_id | A cash-out's reserved amount and state: RESERVED, REFUSED, PAID_OUT or RETURNED |
 | starter inbox, outbox, parking | event id | Once-only consumption, publishing, early events |
 
@@ -73,11 +73,12 @@ A timeout after commit is safe: Orders retries the same orderId and gets the sto
 flowchart LR
   Orders -->|hold call| H[Holds]
   Gateway -->|/api/ledger| A[LedgerAccounts]
-  Kafka[(Kafka)] --> PC[PaymentsConsumer] & CC[ClosuresConsumer] & KU[KnownUsersConsumer]
+  Kafka[(Kafka)] --> PC[PaymentsConsumer] & CC[ClosuresConsumer] & KU[KnownUsersConsumer] & SC[SupportConsumer]
+  SC --> RF[Refunds]
   CC --> R[Releases] & S[Settlement]
-  H & R & S & PC --> P[LedgerPostingService] --> DB[(MySQL)]
+  H & R & S & PC & RF --> P[LedgerPostingService] --> DB[(MySQL)]
   KU --> A --> DB
-  H & R & S & PC --> OB[Outbox] -.relay.-> Kafka
+  H & R & S & PC & RF --> OB[Outbox] -.relay.-> Kafka
 ```
 
 **A hold, step by step:**

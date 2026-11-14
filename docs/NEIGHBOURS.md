@@ -44,7 +44,7 @@ Every change of money starts from one of these. A field not listed is in the con
 | Release an order's hold | Orders | OrderWithdrawn, OrderAbandoned (orders.v1) | `orderId`, `dealId`; the student and amount come from our hold | `orderId` | Built (LED-08) |
 | Release a deal's holds | Deals | DealFailed, DealCancelled (deals.v1) | `dealId` | `dealId`; `orderId` per release | Built (LED-09) |
 | Settle a deal | Deals | DealConfirmed (deals.v1) | `dealId`, `restaurantId`, `priceCents`, `commissionBasisPoints` (0 to 10000), `orders[]` of `orderId` and `studentId`; the amount set aside comes from our hold | `dealId`; `orderId` per charge | Built (LED-05, 06, 10) |
-| Refund after a charge | Support | RefundApproved (support.v1) | `refundId`, `orderId`, `dealId`, `studentId`, `amountCents` ≥ 1, `reason` | `refundId` | Item 6 |
+| Refund after a charge | Support | RefundApproved (support.v1) | `refundId`, `orderId`, `dealId`, `studentId`, `amountCents` ≥ 1, `reason` | `refundId` | Built (LED-13); waking early ones: item 6 |
 | Reserve a cash-out | Payments | WithdrawalRequested (payments.v1) | `withdrawalId`, `studentId`, `amountCents` ≥ 1 | `withdrawalId` | Item 8 |
 | Pay out or return a cash-out | Payments | WithdrawalCompleted, WithdrawalFailed (payments.v1) | `withdrawalId`; the amount is the one we reserved | `withdrawalId` | Item 8 |
 | Pay a restaurant | Payments | PayoutConfirmed (payments.v1) | `payoutId`, `restaurantId`, `amountCents` ≥ 1 | `payoutId` | Item 8 |
@@ -59,14 +59,14 @@ Commission comes from DealConfirmed, never from RestaurantRegistered: the deal's
 | Orders | Hold answer: PLACED, INSUFFICIENT_FUNDS, ORDER_CLOSED, DEAL_CLOSED | `POST /internal/ledger/holds`, the one direct call | Sat 16:30 | Orders stay PENDING and are abandoned after 2 min | Yes (LED-03, 04) | Their doc, not yet in person |
 | Orders | HoldPlaced, HoldRejected | ledger.v1 | Sat 16:30 | Pending orders aren't settled from the event; only their retry every 20 s does it | Yes | Their doc |
 | Orders | OrderCharged | ledger.v1 | Sat 21:00 | Nothing reaches PAID | Yes (LED-05) | Their doc |
-| Orders | RefundPosted | ledger.v1 | Sun 12:00 | Nothing reaches REFUNDED | No (item 6) | Their doc |
+| Orders | RefundPosted | ledger.v1 | Sun 12:00 | Nothing reaches REFUNDED | Yes (LED-13) | Their doc |
 | Payments | TopUpCredited | ledger.v1 | Sat 16:30 | Desk top-ups and the reset's €50 show "waiting for the Ledger" | Yes (LED-02) | No |
 | Payments | WithdrawalDebited, WithdrawalRefused, WithdrawalPaidOut, WithdrawalReturned | ledger.v1 | Sun 12:00 | Cash-outs stay REQUESTED | No (item 8) | No |
-| Payments | OrderCharged, RefundPosted, PayoutDebited | ledger.v1 | Sun 12:00 | Restaurant payables and the payout file are wrong | OrderCharged only | No |
+| Payments | OrderCharged, RefundPosted, PayoutDebited | ledger.v1 | Sun 12:00 | Restaurant payables and the payout file are wrong | OrderCharged, RefundPosted | No |
 | Payments | A student's available balance at the desk | `GET /api/ledger/students/{studentId}` (UNION_FINANCE) | Sun 12:00 | Desk shows the balance as unknown, still lets staff start a cash-out | Yes | No |
-| Support | OrderCharged, HoldReleased, RefundPosted, RefundRefused, SettlementIssue | ledger.v1 | Sun 12:00 | Support can't see charges or answer refunds | Charges, releases, issues; refunds no | No |
+| Support | OrderCharged, HoldReleased, RefundPosted, RefundRefused, SettlementIssue | ledger.v1 | Sun 12:00 | Support can't see charges or answer refunds | Yes; NEVER_CHARGED not yet (item 6) | No |
 | Student experience | Balance and statement on the Account page | `GET /api/ledger/me`, `GET /api/ledger/me/entries` (STUDENT) | Sun 12:00 | The Account page has no balance or history | `/me` and entries yes | No |
-| Student experience | Charges, refunds and desk money | ledger.v1 | Sun 12:00 | Pages and emails miss money events | Charges and top-ups | No |
+| Student experience | Charges, refunds and desk money | ledger.v1 | Sun 12:00 | Pages and emails miss money events | Charges, refunds and top-ups | No |
 | Platform and reliability | Every ledger.v1 event, `ledger.dlt`, metrics; one alert per SettlementIssue (PLT-12) | Kafka, `/actuator/prometheus` | Now | Their alerts and stuck-hold timer are blind | Yes | No |
 | Deals, Restaurant operations | Nothing: they never wait for settlement | | | | | Their docs |
 
