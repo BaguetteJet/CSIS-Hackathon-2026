@@ -9,7 +9,7 @@ One area per person (decision [0001](../docs/decisions/0001-work-split.md)). Eve
 | [3](item3_sam.md) | Payments events, contracts | Sam · Md Hossain | 02, 19 |
 | [4](item4_shakeeba.md) | Operations | Shakeeba · Sam | 21, 22 (k6), 23, 24 (handover) |
 | [5](item5_settlement.md) | Settlement, releases | Hersh · Cian | 05, 06, 08, 09, 10 |
-| [6](item6_refunds.md) | Refunds | Md Hossain · Cian | 13, 14 |
+| [6](item6_refunds.md) | Refunds | Hersh (from Md Hossain) · Cian | 13, 14 |
 | [7](item7_statement.md) | Statement, desk, testing | Pierce · Shakeeba | 11, 12, 18 (pages), 20 (property test) |
 | [8](item8_cashouts.md) | Cash-outs, payouts | Cian · Hersh | 15, 16, 17 |
 | [9](item9_robustness.md) | Edge cases, robustness | Cian · Igor | 06, 19, 20, 21 (with 4); marked properties |

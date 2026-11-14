@@ -1,6 +1,6 @@
 # Item 6: Refunds
 
-**Owner:** Md Hossain · **Backup:** Cian · **LED:** 13, 14
+**Owner:** Hersh (from Md Hossain, Sat 14 Nov) · **Backup:** Cian · **LED:** 13, 14
 
 **Slice 1:** no: phase 3.
 

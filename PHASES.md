@@ -56,7 +56,7 @@ Each LED item has a Forgejo issue (#7 LED-01 to #30 LED-24): closed means done, 
 
 ## Next for the lead
 
-`checkpoint-1` tagged and on `main`. Promote by 16:30. Confirm [NEIGHBOURS.md](docs/NEIGHBOURS.md) with each team lead.
+`checkpoint-2` tagged (`6e8cce1`, the proof of concept: [POC-DEMO.md](docs/POC-DEMO.md)). Next: promote into integration; LED-14 (item 6), LED-20 property test (item 7), LED-21 outage drills (item 4) before Sun 12:00. Item 9 (edge cases) is a stretch.
 
 ## How we're marked
 

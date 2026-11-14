@@ -18,7 +18,7 @@ We split the Ledger **by money flow**: each area owns one way money enters or le
 | Payments events, contracts | Sam | Md Hossain | 02, 19 | Yes: top-ups | [3](work-items/item3_sam.md) |
 | Operations | Shakeeba | Sam | 21, 22 (k6), 23, 24 (handover) | Yes: demo and evidence | [4](work-items/item4_shakeeba.md) |
 | Settlement, releases | Hersh | Cian | 05, 06, 08, 09, 10 | No: golden path | [5](work-items/item5_settlement.md) |
-| Refunds | Md Hossain | Cian | 13, 14 | No | [6](work-items/item6_refunds.md) |
+| Refunds | Hersh (from Md Hossain, Sat) | Cian | 13, 14 | No | [6](work-items/item6_refunds.md) |
 | Statement, desk, testing | Pierce | Shakeeba | 11, 12, 18 (pages), 20 (property test) | No | [7](work-items/item7_statement.md) |
 | Cash-outs, payouts | Cian | Hersh | 15, 16, 17 | No | [8](work-items/item8_cashouts.md) |
 | Edge cases, robustness | Cian | Igor | 06, 19, 20, 21 (with item 4); every marked property | No | [9](work-items/item9_robustness.md) |
@@ -26,9 +26,9 @@ We split the Ledger **by money flow**: each area owns one way money enters or le
 ## Each person
 
 **Hersh** (team lead)
-- Owns: holds (item 1), settlement and releases (item 5). Backs up: cash-outs (item 8).
-- Done: the hold call (LED-03, 04), accounts on registration (01), releases and settlement (05, 06, 08, 09, 10), the load test (22), the sign-in 503 fix (18), the recompute SQL (24).
-- Next: promote into integration (Sat 16:30); confirm [NEIGHBOURS.md](docs/NEIGHBOURS.md) with each team lead.
+- Owns: holds (item 1), settlement and releases (item 5), refunds (item 6, from Md Hossain on Sat). Backs up: cash-outs (item 8).
+- Done: the hold call (LED-03, 04), accounts on registration (01), releases and settlement (05, 06, 08, 09, 10), refunds never over the charge (13), the load test (22), the sign-in 503 fix (18), the recompute SQL (24); the proof of concept (`checkpoint-2`, [POC-DEMO.md](docs/POC-DEMO.md)).
+- Next: wake parked refunds (LED-14) and their metrics (23); promote into integration; confirm [NEIGHBOURS.md](docs/NEIGHBOURS.md) with each team lead.
 
 **Igor**
 - Owns: core and data (item 2). Backs up: holds (item 1) and edge cases (item 9).
@@ -37,33 +37,34 @@ We split the Ledger **by money flow**: each area owns one way money enters or le
 
 **Sam**
 - Owns: payments events and contract tests (item 3). Backs up: operations (item 4).
-- Done: top-ups credited once (LED-02); zero-amount top-ups go to the dead-letter topic (19); the reset at 204 students.
-- Next: listener stubs so item 8 can start (Sat 12:00); zero-amount cash-outs and payouts (19); contract tests for each new event.
+- Done: top-ups credited once (LED-02); zero-amount top-ups, cash-outs and payouts to the dead-letter topic (19); the payments routing item 8 builds on; contract tests for the new events; the reset at 204 students. Item 3 complete.
+- Next: back up item 4 (outage drills, handover).
 
 **Shakeeba**
 - Owns: operations (item 4). Backs up: statement and testing (item 7).
-- Done: the slice-1 demo bench and its evidence.
-- Next: tag `checkpoint-2` (Sat 15:50); dashboard (23); outage drills (21); the handover document (24, by Sun 16:00).
+- Done: the slice-1 demo bench and its evidence; the Grafana dashboard (LED-23); `checkpoint-2`.
+- Next: outage drills (21); the handover document (24, by Sun 16:00); refund and dead-letter panels once their metrics exist (23).
 
 **Cian**
 - Owns: cash-outs and payouts (item 8), edge cases and robustness (item 9). Backs up: settlement (item 5) and refunds (item 6).
-- Next: cash-outs (LED-15, 16) and payouts (17), by Sun 12:00; then item 9, steps 1 and 2 first.
+- Done: cash-outs (LED-15, 16) and payouts (17), with the cash-out-versus-hold race. Item 8 complete.
+- Next: item 9 (edge cases), a stretch: steps 1 and 2 first.
 
 **Md Hossain**
-- Owns: refunds (item 6). Backs up: payments events (item 3).
-- Next: refunds (LED-13) and refund limits and parking (14), by Sun 12:00. The stub they plug into already exists.
+- Backs up: payments events (item 3). Refunds (item 6) moved to Hersh on Sat afternoon.
 
 **Pierce**
 - Owns: statement, desk balance and testing (item 7). Backs up: core and data (item 2).
-- Next: the statement (LED-11), the desk balance (12), page security (18) and the zero-sum property test (20), by Sun 12:00.
+- Done: the statement (LED-11), the desk balance (12), page security (18).
+- Next: the zero-sum property test (20, marked) and the marked-property map, by Sun 12:00.
 
 ## LED items
 
 | Status | LED |
 |---|---|
-| Done | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 22 |
-| Partly done | 18, 19, 20, 23, 24 |
-| To do | 11, 12, 13, 14, 15, 16, 17, 21 |
+| Done | 01–13, 15–19, 22 |
+| Partly done | 14, 20, 23, 24 |
+| To do | 21 |
 
-**Work items completed:** item 5 in full. Items 1–4 are partly done: their slice-1 steps are ticked; see each item's checkboxes.
+**Work items completed:** items 3, 5 and 8 in full. Items 1, 2, 4, 6 and 7 are partly done: see each item's checkboxes. Item 9 (edge cases) is a stretch, not started.
 
