@@ -17,7 +17,7 @@
    *Done when:* `/api/ledger/hello` answers from `ledger-1` or `ledger-2` everywhere.
 4. [ ] **Tags.** `checkpoint-1` (Sat 11:00), `checkpoint-2` (15:50), `checkpoint-3`, `release` (Sun 16:00).
    *Done when:* each has a green CI run.
-5. [ ] **Dashboard (LED-23).** `grafana/ledger.json`: hold rate, latency, result; settlement time; SettlementIssue count; parked refunds; dead letters. Alert: a refund parked over 6 h.
+5. [x] **Dashboard (LED-23).** `grafana/ledger.json`: hold rate, latency, result; settlement time; SettlementIssue count; parked refunds; dead letters. Alert: a refund parked over 6 h.
    *Done when:* it shows live traffic.
 6. [ ] **Outage drills (LED-21).** Pause Kafka 5 min, stop MySQL, kill one instance, stop both for 10 min.
    *Done when:* nothing is lost and everything catches up once.
