@@ -84,10 +84,10 @@ If all pass:
 
 | Table | What happens |
 | --- | --- |
+| `hold_decision` | Add 1 row `order_id` PK, `student_id`, `deal_id`, `amount_cents = 700`, `result = PLACED`, `available_cents = null`, `decided_at`, `state = OPEN`. Inserted first: if this row already exists the call returns the stored answer instead. |
 | `ledger_account` | Add 2 student rows if missing (set balance 0). Lock both. Update STUDENT AVAILABLE `balance_cents` −700, STUDENT HELD `balance_cents` +700. |
 | `ledger_movement` | Add 1 row `reference_type = HOLD`, `reference_id = orderId`, new UUID, `posted_at`. The unique `(reference_type, reference_id)` stops a new event for the same order moving money again. |
 | `ledger_posting` | Add 2 rows, same `movement_id`: STUDENT AVAILABLE −700, STUDENT HELD +700. The student AVAILABLE side gets `entry_kind = HOLD` and the statement wording. |
-| `hold_decision` | Add 1 row `order_id` PK, `student_id`, `deal_id`, `amount_cents = 700`, `result = PLACED`, `available_cents = null`, `decided_at`, `state = OPEN`. Inserted first: if this row already exists the call returns the stored answer instead. |
 | `outbox_event` | Add 1 row: topic `ledger.v1`, key `studentId`, type `HoldPlaced`, message JSON, `published_at = null`. Written in the same transaction as the money. |
 | `key_sequence` | The `(topic, event_key)` row is inserted or incremented, giving the event its per-student sequence number. |
 
