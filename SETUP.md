@@ -149,6 +149,20 @@ If only `service.env` changed:
 podman compose up -d --force-recreate
 ```
 
+## Dashboard
+
+The Ledger dashboard is `grafana/ledger.json`. Grafana runs only in the dev-kit `full` profile:
+
+```bash
+cp grafana/ledger.json ../dev-kit/grafana/dashboards/
+cd ../dev-kit
+podman compose --profile full up -d
+```
+
+Open http://localhost:3000, folder "Dev kit", dashboard "Ledger". Grafana picks up a changed file within a minute.
+
+Set "Scrape job" to `services` for the containers, or `in-your-ide` for IntelliJ runs. Prometheus scrapes the containers under both, so the dashboard shows one at a time.
+
 ## Troubleshooting
 
 | Symptom | Fix |
