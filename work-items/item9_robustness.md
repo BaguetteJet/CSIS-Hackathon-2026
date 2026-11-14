@@ -50,3 +50,4 @@ Dropped on Sat 14 Nov to keep to the spec:
 | Balances near the BIGINT limit, price 0 | Not in the spec; Payments caps top-ups at €200 |
 | Crash-before-publish tests | The starter's outbox; item 4's drills cover LED-21 |
 | DealConfirmed outside its schema to `ledger.dlt` | The contract forbids it, so Deals can't send it |
+| SettlementIssue for one `orderId` listed twice with different students, or for zero orders | Inside the schema, but no test needs it; listed as a known limitation (HANDOVER §10) |
