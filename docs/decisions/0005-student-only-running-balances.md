@@ -1,14 +1,13 @@
 # 0005 Running balances for students only
 
-**Context.** Locking every account's balance made Union CASH and COMMISSION hot rows: every top-up and settlement queued on them (`tutorial-nosql.pdf` pp. 3–9).
+**Context.** Every top-up and settlement also changes the Union's CASH or COMMISSION account. When those had a balance column, every transaction locked the same Union row and waited in line: a hot row (`tutorial-nosql.pdf` pp. 3–9).
 
-**Decision.** Only student accounts keep `balance_cents`. Union and restaurant balances are the sum of their postings; no API or event needs them live (LED-24 known limitation).
+**Decision.** Only student accounts keep a `balance_cents` column. Union and restaurant balances are the sum of their postings. Nothing decides on them, so nothing needs them instantly.
 
 **Rejected.**
-- Balances on every account: hot rows on Union CASH and COMMISSION.
-- Sharded CASH rows: complexity not needed at 100/s.
-- Union balances updated from events: a second truth that can drift.
+- Several CASH rows to spread the locks: still locks, and a read still has to add the rows up. With no column there is nothing to lock.
+- Union balances updated later from events: a second copy that can drift from the postings.
 
-**Cost.** Reading a payable is a SUM. The zero-sum check sums postings.
+**Cost.** Reading a Union or restaurant balance adds up its postings; there's no API for them yet (handover §10).
 
-**Check.** `LedgerCoreTest`: "top-ups never wait on the Union cash account" fails on the old code.
+**Check.** `LedgerCoreTest`: "top-ups for different students never wait on the Union cash account" fails on the old code.

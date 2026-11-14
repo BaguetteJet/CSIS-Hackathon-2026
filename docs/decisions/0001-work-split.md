@@ -1,20 +1,22 @@
 # 0001 Split the work by money flow
 
-**Context.** Seven people share one service. Each area needs an owner and a backup (handover §16).
+**Context.** Seven people, one service. Each area needs an owner and a backup (handover §16).
 
-**Decision.** One area per money flow, each with its own entry point and tables. The lead owns holds and the hold lifecycle (settlement, releases), since they're one state machine and the critical path.
+**Decision.** One area per way money moves: holds, top-ups, settlement, refunds, cash-outs. Each area has its own listener or API and its own tables. The lead owns holds, releases and settlement: they all change the same hold, and together they are the golden path.
 
-| Area | Entry point |
+| Area | Starts from |
 |---|---|
-| 1 Holds, integration | Hold call, closures listener, users.v1 |
-| 2 Core | Posting service, accounts |
-| 3 Payments events, contracts | payments.v1, contract tests |
-| 4 Operations | CI, compose, Grafana, handover |
-| 5 Settlement, releases | Hooks in the closures listener |
-| 6 Refunds | support.v1 |
-| 7 Statement, desk, testing | Page API, property tests |
-| 8 Cash-outs, payouts | Branches in the payments listener |
+| 1 Holds, integration | Hold call; orders.v1, deals.v1 and users.v1 listeners |
+| 2 Core | Posting service and accounts, used by every area |
+| 3 Payments events, contracts | payments.v1 listener, contract tests |
+| 4 Operations | CI, Docker, Grafana, handover document |
+| 5 Settlement, releases | Called from the deals.v1 listener |
+| 6 Refunds | support.v1 listener |
+| 7 Statement, desk, testing | Page API, property test |
+| 8 Cash-outs, payouts | Called from the payments.v1 listener |
 
-**Rejected.** Split by layer: each LED item would need three people.
+**Rejected.**
+- Split every story by layer (one owner for the controllers, one for the SQL, one for the Kafka events): a hold's answer, money and event commit in one transaction (0003), and so do a settlement's (0007). Each LED item would need three owners editing one transaction, and nobody would own the rule it has to prove, such as "a retried hold gets its first answer". Areas 2 and 4 are layers on purpose: money must post one way for every flow (0002), and there is one CI and one dashboard. Each gives the others a small, fixed interface instead of a slice of every story.
+- One owner per LED item: LED-03, 04, 05, 08 and 09 all change the same hold, so its state machine (0008) would have five owners.
 
-**Cost.** Area 2 is everyone's dependency, so its interface is fixed first. Pairs that share a listener (1+5, 3+8) or a hook (5+6) agree it up front.
+**Cost.** Every area depends on area 2, so its functions were agreed first. Areas that share a listener (1 and 5, 3 and 8) or a function one calls in the other (5 and 6) agree it up front.

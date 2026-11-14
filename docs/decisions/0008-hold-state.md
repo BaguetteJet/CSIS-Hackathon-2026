@@ -1,14 +1,14 @@
 # 0008 A hold ends once
 
-**Context.** Withdrawal, abandonment, a failed deal and settlement can all reach one hold. Releasing and charging it would create money.
+**Context.** A withdrawal, an abandoned order, a failed deal and settlement can all reach the same hold. Released and charged would give the money back and pay the restaurant: money from nowhere.
 
-**Decision.** `hold_decision.state` (V6): OPEN, then RELEASED or CHARGED via `UPDATE ... WHERE state = 'OPEN'`. One updated row wins (`lecture12a-the-on-sale-1.pdf` pp. 13–14).
+**Decision.** Each hold has a `state` (V6): OPEN, then RELEASED or CHARGED. Ending it is `UPDATE ... WHERE state = 'OPEN'`: only the first update changes the row, and only that one moves money (`lecture12a-the-on-sale-1.pdf` pp. 13–14).
 
 **Rejected.**
-- Boolean `released`: can't tell released from charged.
-- Deleting the row: loses the stored answer (0003).
-- Inferring from postings: two transactions can both see "open".
+- A yes/no released column: can't tell released from charged, and a second "charged" column would let both be set.
+- Deleting the row: loses the saved answer that retries need (0003).
+- Working it out from the postings: RELEASE and ORDER_CHARGE movements have different keys, so nothing stops both being posted for one order.
 
-**Cost.** None beyond one column and an index.
+**Cost.** One column and an index.
 
-**Check.** `HoldsTest` (OPEN on placing), `ReleasesTest`, `SettlementTest`.
+**Check.** `HoldsTest` (new holds are OPEN), `ReleasesTest`, `SettlementTest`.
