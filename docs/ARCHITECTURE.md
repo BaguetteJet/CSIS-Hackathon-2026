@@ -1,6 +1,6 @@
 # Ledger architecture
 
-The Ledger decides one thing: whether a student's money is available. Every movement of money is a set of postings that sum to zero. Structured by the module's seven steps; decisions in [decisions/](decisions/README.md), progress in [PHASES.md](../PHASES.md).
+The Ledger decides one thing: whether a student's money is available. Every movement of money is a set of postings that sum to zero. Structured by the module's seven steps; decisions in [decisions/](decisions/README.md), progress in [PHASES.md](../PHASES.md). Words: [GLOSSARY.md](../GLOSSARY.md). What we own, what we need from each team and what they need from us: [NEIGHBOURS.md](NEIGHBOURS.md).
 
 ## 1. Requirements
 
@@ -11,6 +11,7 @@ The Ledger decides one thing: whether a student's money is available. Every move
 | Deals | Confirmed / failed / cancelled | Settle exactly once, even through a crash |
 | Support | Refunds | Never exceed the charge; wait if early |
 | Student, Union finance | `/me`, entries, desk balance | Show the committed balance |
+| Platform | UserRegistered; metrics and events for its alerts | Open each student's accounts once; publish every event once |
 
 **Invariants** (each one a test can break):
 1. Every movement sums to zero.
@@ -48,9 +49,9 @@ A timeout after commit is safe: Orders retries the same orderId and gets the sto
 |---|---|---|
 | payments.v1 | `PaymentsConsumer` | Credit top-ups; later cash-outs, payouts |
 | orders.v1, deals.v1 | `ClosuresConsumer` | Close; release; settle; open payables |
-| users.v1 | `KnownUsersConsumer` (starter) | Open student accounts |
-| support.v1 | `SupportConsumer` (planned) | Refunds |
-| ledger.v1 | Outbox relay (starter) | Every Ledger event, balance after it |
+| users.v1 | `KnownUsersConsumer` (starter, `example/`) | Open student accounts |
+| support.v1 | `SupportConsumer` | Refunds: posted, refused or parked; the rest of support.v1 is ignored |
+| ledger.v1 | Outbox relay (starter) | Every Ledger event, balance after it; keyed by student, restaurant or deal ([NEIGHBOURS §4](NEIGHBOURS.md#4-event-keys)) |
 
 ## 4. Data
 
@@ -62,6 +63,8 @@ A timeout after commit is safe: Orders retries the same orderId and gets the sto
 | `hold_decision` | order_id | First hold answer; `state` OPEN → RELEASED or CHARGED |
 | `order_closure`, `deal_closure` | order_id, deal_id | Refusing late holds |
 | `order_charge`, `deal_settlement` | order_id, deal_id | What was charged; that a deal settled |
+| `refund` | refund_id | Each refund's outcome (item 6) |
+| `withdrawal` (planned) | withdrawal_id | Each cash-out's outcome (item 8; [schema §7](schema.md#7-fit-with-the-contracts)) |
 | starter inbox, outbox, parking | event id | Once-only consumption, publishing, early events |
 
 ## 5. Design
@@ -70,11 +73,12 @@ A timeout after commit is safe: Orders retries the same orderId and gets the sto
 flowchart LR
   Orders -->|hold call| H[Holds]
   Gateway -->|/api/ledger| A[LedgerAccounts]
-  Kafka[(Kafka)] --> PC[PaymentsConsumer] & CC[ClosuresConsumer] & KU[KnownUsersConsumer]
+  Kafka[(Kafka)] --> PC[PaymentsConsumer] & CC[ClosuresConsumer] & KU[KnownUsersConsumer] & SC[SupportConsumer]
+  SC --> RF[Refunds]
   CC --> R[Releases] & S[Settlement]
-  H & R & S & PC --> P[LedgerPostingService] --> DB[(MySQL)]
+  H & R & S & PC & RF --> P[LedgerPostingService] --> DB[(MySQL)]
   KU --> A --> DB
-  H & R & S & PC --> OB[Outbox] -.relay.-> Kafka
+  H & R & S & PC & RF --> OB[Outbox] -.relay.-> Kafka
 ```
 
 **A hold, step by step:**

@@ -1,6 +1,6 @@
 # Item 6: Refunds
 
-**Owner:** Member 6 · **Backup:** Cian · **LED:** 13, 14
+**Owner:** Md Hossain · **Backup:** Cian · **LED:** 13, 14
 
 **Slice 1:** no: phase 3.
 
@@ -12,7 +12,7 @@
 ### Steps
 
 1. [x] **Stub.** `RefundWakeups.kt` with no-op `NoParkedRefunds` (added by item 5); replace it.
-2. [x] **Migration:** `V8__refund.sql`: `refund` keyed by refund_id, with RefundApproved's order, deal and student (RefundRefused needs them even with no charge).
+2. [x] **Migration:** `V8__refund.sql`: `refund(refund_id PK, order_id, deal_id, student_id, amount_cents, commission_reversed_cents, reason, outcome, decided_at)`. Deal and student come from RefundApproved: RefundRefused needs them even with no charge ([schema §7](../docs/schema.md#7-fit-with-the-contracts)).
 3. [x] **`SupportConsumer`** on support.v1: claim the refundId inside `inbox.once`.
    *Done when:* the same refundId twice posts once.
 4. [x] **Post (LED-13).** Lock `order_charge`, then the student. Over the charge: EXCEEDS_CHARGE. Otherwise reverse commission with `Money.refundReversal` and post REFUND.

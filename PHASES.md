@@ -56,7 +56,7 @@ Each LED item has a Forgejo issue (#7 LED-01 to #30 LED-24): closed means done, 
 
 ## Next for the lead
 
-`checkpoint-1` tagged. Merge `docs` into `main`; promote by 16:30.
+`checkpoint-1` tagged and on `main`. Promote by 16:30. Confirm [NEIGHBOURS.md](docs/NEIGHBOURS.md) with each team lead.
 
 ## How we're marked
 

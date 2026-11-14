@@ -21,9 +21,9 @@
    *Done when:* unit test passes and the live check answers 503.
 5. [x] **Recompute SQL (LED-24).** In `docs/HANDOVER.md` §8.
    *Done when:* it matches `/me` and DealSettled live.
-6. [x] **Speed (LED-22).** k6 at 100 holds/s, alone and during a cap-sized settlement.
+6. [x] **Speed (LED-22).** k6 at 100 holds/s, alone and during a 202-order settlement.
    *Done when:* every answer is under 2 s.
-7. [ ] **Ship slice 1.** Push, PR into `main` (reviewed by Igor), tag `checkpoint-1` before Sat 11:00.
+7. [x] **Ship slice 1.** Push, PR into `main` (reviewed by Igor), tag `checkpoint-1` before Sat 11:00.
    *Done when:* CI is green on `main`.
 8. [ ] **Promote** (by Sat 16:30). Post `promote ledger <tag>` in the line channel.
    *Done when:* the organisers report live and Orders' holds arrive.

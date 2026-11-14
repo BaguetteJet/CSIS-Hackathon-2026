@@ -1,6 +1,6 @@
 # 0009 Park early refunds
 
-**Protects.** No order is refunded more than it was charged (marked, LED-13, LED-14). Planned: item 6.
+**Protects.** No order is refunded more than it was charged (marked, LED-13, LED-14).
 
 **Problem.** A refund can arrive before its order was charged.
 
@@ -13,4 +13,4 @@
 
 **Cost.** One function shared by settlement and refunds (`RefundWakeups`); an alert if a refund waits over 6 hours.
 
-**Proof.** Item 6's tests, still to write: refund before charge, refund then release, refunds over the charge. Until then nothing can be refunded, so nothing can be over-refunded.
+**Proof.** `RefundsTest`: refunds over the charge refused, part refunds rounded on the running total, a refund before its charge parked. Still to write (item 6, step 5): a parked refund posted when the order is charged, refused NEVER_CHARGED when it is released.
