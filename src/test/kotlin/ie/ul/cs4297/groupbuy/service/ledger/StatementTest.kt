@@ -17,6 +17,7 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.time.Duration
 import java.util.UUID
 
 // Item 7, LED-11 and LED-18: the student's own statement, newest first, netting to availableCents.
@@ -155,9 +156,12 @@ class StatementTest : LedgerFlowTest() {
     }
 
     @Test
-    fun `no token is 401, then a role other than student is 403`() {
+    fun `no or expired token is 401, then a role other than student is 403`() {
         val noToken = entries(null)
         assertEquals(401, noToken.statusCode(), noToken.body())
+
+        val expired = entries(TestTokens.token(UUID.randomUUID(), Role.STUDENT, expiresIn = Duration.ofMinutes(-5)))
+        assertEquals(401, expired.statusCode(), expired.body())
 
         val finance = entries(TestTokens.union(Role.UNION_FINANCE))
         assertEquals(403, finance.statusCode(), finance.body())
