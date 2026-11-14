@@ -14,7 +14,8 @@ The Ledger is the bank inside Campus Group-Buy. It decides one thing, whether a 
 | Give set-aside money back | OrderWithdrawn, OrderAbandoned (orders.v1); DealFailed, DealCancelled (deals.v1) | HoldReleased |
 | Settle a confirmed deal, once | DealConfirmed (deals.v1) | OrderCharged per order, SettlementIssue per problem, one DealSettled |
 | Show a balance and statement | `GET /api/ledger/me`, `/me/entries` through the gateway | |
-| **Not yet:** refunds, cash-outs, payouts, desk balance | RefundApproved, Withdrawal\*, PayoutConfirmed; `/students/{id}` | RefundPosted, RefundRefused, Withdrawal\*, PayoutDebited |
+| Show any student's balance at the desk | `GET /api/ledger/students/{id}` through the gateway (Union finance) | |
+| **Not yet:** refunds, cash-outs, payouts | RefundApproved, Withdrawal\*, PayoutConfirmed | RefundPosted, RefundRefused, Withdrawal\*, PayoutDebited |
 
 Who depends on each of these: [NEIGHBOURS.md](NEIGHBOURS.md). How it is built and why: [ARCHITECTURE.md](ARCHITECTURE.md).
 
