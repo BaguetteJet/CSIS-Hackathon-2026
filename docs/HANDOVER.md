@@ -71,6 +71,7 @@ About 2 minutes: 1 for the dev kit, under 1 for the Ledger (both instances were 
    cd dev-kit
    sed -i 's|^LEDGER_URL=.*|LEDGER_URL=http://ledger:8080|; s|^FAKE_EXCLUDE=.*|FAKE_EXCLUDE=ledger|' .env
    cp ../line-a-ledger/grafana/ledger.json grafana/dashboards/
+   mkdir -p grafana/provisioning/alerting && cp ../line-a-ledger/grafana/alerting/ledger.yml grafana/provisioning/alerting/
    docker compose --profile full up -d
    ```
    Ready when http://localhost:8080 shows a page (about a minute).
@@ -157,7 +158,9 @@ Grafana at http://localhost:3000, folder "Dev kit", dashboard "Ledger" (`grafana
 | `ledger_holds_seconds{result}`: hold rate, latency, answer | Mostly PLACED; every answer well under 2 s (k6 max 666 ms at 100/s) |
 | `ledger_settlement_seconds` | One per confirmed deal; about 0.1 s for 12 orders, 0.79 s for 202 (k6) |
 | `ledger_settlement_issues_total` | 0. Anything else is a listed order we couldn't charge: §8 |
-| Dead letters on `ledger.dlt` | 0 new during a run (§8, K4) |
+| `ledger_dead_letters`: messages on `ledger.dlt` | 0 new during a run (§9, K4) |
+| `ledger_refunds_parked`, `ledger_refunds_parked_oldest_seconds` | A few for a moment while a deal settles; the oldest well under 6 h. Over 6 h the alert "Ledger: refund parked over 6 h" fires (Grafana, folder Ledger): §8 "Is money stuck?" |
+| `ledger_daily_check_problems`, `ledger_daily_check_last_run_seconds` | 0 problems; last run at 02:00 Irish time. A problem is named in the log line `Daily check` |
 
 ## 8 Runbooks
 
@@ -240,6 +243,12 @@ FROM hold_decision h JOIN deal_closure dc ON dc.deal_id = h.deal_id
 WHERE h.state = 'OPEN' GROUP BY h.deal_id, dc.reason ORDER BY oldest;
 ```
 
+Parked refunds: each waits for its order's charge (`order:<id>`) or, with no money set aside, its deal's outcome (`deal:<id>`). One over 6 h means Deals or Orders never sent that outcome: ask them, don't post it by hand.
+
+```sql
+SELECT waits_for, event_id, parked_at FROM parked_event WHERE consumer = 'support-v1' ORDER BY parked_at;
+```
+
 ### Failures (reference, Scenarios K)
 
 | Failure | Symptom | Confirm | Fix |
@@ -271,12 +280,13 @@ WHERE h.state = 'OPEN' GROUP BY h.deal_id, dc.reason ORDER BY oldest;
 
 ## 10 Known limitations
 
-- **Not built:** cash-outs (15, 16), payouts (17), the statement (11), the desk balance (12). Owners and dates: [PHASES.md](../PHASES.md).
+- **Not yet run:** the full outage drills (LED-21: Kafka paused 5 min, both instances down 10 min). Owners and dates: [PHASES.md](../PHASES.md).
 - A `DealConfirmed` outside the contract (negative price, commission outside 0–10000) can't come from Deals; if one arrives anyway it moves nothing, is retried for 2.5 min, then goes to `ledger.dlt`.
 - One `orderId` listed twice with different students in a `DealConfirmed`: the second is dropped without a SettlementIssue.
 - A listed order that can't be charged keeps its money set aside until its order closes (§8 "Is money stuck?"). The alert is Platform's (PLT-11).
 - All three were left out on purpose: [item 9, Out of scope](../work-items/item9_robustness.md#out-of-scope).
 - No API for the Ledger's own totals (Union cash, commission, payables): use §8.
+- The daily check's metric is kept by the instance that ran it, and starts at 0 after a restart; the log line is the record.
 
 ## 11 Stop and reset
 

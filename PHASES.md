@@ -7,7 +7,7 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 | 1 Slice 1 | Fri | Hold call, top-ups, `/me` | **Done**: LED-02, 03, 04, 07 |
 | 2 Golden path | Sat 21:00 | Accounts, settlement, releases | **Done**: LED-01, 05, 06, 08, 09, 10, 22 |
 | 3 Rest of the core | Sun 12:00 | Statement, desk, refunds, cash-outs, payouts | **Done**: LED-11 to 17 |
-| 4 Production bar | Sun 16:00 | Security, bad input, outages, dashboard, handover | LED-18, 19, 20 done; 23, 24 partly; 21 to do |
+| 4 Production bar | Sun 16:00 | Security, bad input, outages, dashboard, handover | LED-18, 19, 20, 23, 24 done; 21 partly |
 
 ## Done
 
@@ -25,23 +25,18 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 | 14 | Early refunds parked, then posted on the charge or refused NEVER_CHARGED | `RefundsTest` (6 more), `ContractTest` |
 | 15, 16 | Cash-outs: reserved, then paid out or returned, never both | `WithdrawalsTest` (8), `ContractTest`, live on the fake line |
 | 17 | Payouts, once per payoutId | `WithdrawalsTest`, `ContractTest` |
-| 20 | Movements sum to zero, no negatives, balances chain | `ZeroSumPropertyTest` (15 random runs of up to 120 steps), `RefundsTest` chain check |
 | 18 | 401 before 403 on `/me`, statement and desk; 503 when sign-in key is down | `LedgerCoreTest`, `StatementTest`, `DeskTest`, `SignInUnavailableTest`, live via gateway |
 | 19 | Bad hold input 422/413; zero-amount top-up, refund, cash-out and payout to `ledger.dlt` | `HoldsTest`, `ContractTest`, `PaymentsDeadLetterTest`, [evidence](docs/evidence/led-19-payments-dlt.md) |
+| 20 | Movements sum to zero, no negatives, balances chain | `ZeroSumPropertyTest` (15 random runs of up to 120 steps), `RefundsTest` chain check |
 | 22 | 100 holds/s, also during settlement | [k6 evidence](docs/evidence/led-22-holds-k6.md) |
+| 23 | Holds, settlement, parked refunds (count, oldest; 6 h alert), dead letters on the dashboard | `LedgerMetricsTest`, alert checked on Grafana 13.0.3 (fired on a test value) |
+| 24 | Flyway with validate; recompute, settlement and crash runbooks; daily check at 02:00 (stretch) | HANDOVER §8, §9; `LedgerMetricsTest` |
 
 ## Partly done
 
 | LED | Done | Left (item) |
 |---|---|---|
-| 23 | Hold and settlement metrics; Grafana dashboard live on the dev kit | Refund and DLT metrics, 6 h alert (4, 6) |
-| 24 | Migrations, recompute and settlement SQL | Rest of the handover document (4) |
-
-## To do
-
-| LED | What | Item |
-|---|---|---|
-| 21 | Outage drills (503 instead of 500 with MySQL down: done) | 4 |
+| 21 | 503 `UNAVAILABLE`, never 500, with MySQL down (`DatabaseUnavailableTest`); Kafka down and both instances down, short runs (EDGE-CASES O1, X4) | Full drills: Kafka paused 5 min, MySQL stopped, one instance killed, both down 10 min (4) |
 
 ## Marked properties (20 marks)
 
