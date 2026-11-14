@@ -90,40 +90,24 @@ class LedgerPostingService(
         val studentIds = studentDeltaById.keys.sorted()
         val accountById = idByAccount.entries.associate { (account, id) -> id to account }
 
-        val afterById = LinkedHashMap<Long, Long>(studentIds.size)
+        // One relative update per student account: it takes the row lock, and refuses to go below zero.
         for (id in studentIds) {
-            val before = jdbc.queryForObject(
-                "SELECT balance_cents FROM ledger_account WHERE id = ? FOR UPDATE",
-                Long::class.java, id,
-            )!!
-            val after = Math.addExact(before, studentDeltaById.getValue(id))
-            if (after < 0) error("posting ${reference.type} ${reference.id} would make ${accountById.getValue(id)} negative: $after cents")
-            afterById[id] = after
+            val delta = studentDeltaById.getValue(id)
+            if (jdbc.update("UPDATE ledger_account SET balance_cents = balance_cents + ? WHERE id = ? AND balance_cents + ? >= 0", delta, id, delta) != 1) {
+                error("posting ${reference.type} ${reference.id} would make ${accountById.getValue(id)} negative")
+            }
         }
 
-        val postingSql =
-            "INSERT INTO ledger_posting " +
-                "(movement_id, account_id, amount_cents, posted_at, entry_kind, description, deal_id, order_id) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-        for (line in lines) {
-            jdbc.update(
-                postingSql,
-                movementId,
-                idByAccount.getValue(line.account),
-                line.amountCents,
-                Timestamp.from(postedAt),
-                line.entry?.kind?.name,
-                line.entry?.description,
-                line.entry?.dealId?.toString(),
-                line.entry?.orderId?.toString(),
-            )
+        // Every side of the movement in one statement.
+        val args = lines.flatMap { line ->
+            listOf(movementId, idByAccount.getValue(line.account), line.amountCents, Timestamp.from(postedAt),
+                line.entry?.kind?.name, line.entry?.description, line.entry?.dealId?.toString(), line.entry?.orderId?.toString())
         }
-        for (id in studentIds) {
-            jdbc.update(
-                "UPDATE ledger_account SET balance_cents = ? WHERE id = ?",
-                afterById.getValue(id), id,
-            )
-        }
+        jdbc.update(
+            "INSERT INTO ledger_posting (movement_id, account_id, amount_cents, posted_at, entry_kind, description, deal_id, order_id) VALUES " +
+                lines.joinToString(",") { "(?, ?, ?, ?, ?, ?, ?, ?)" },
+            *args.toTypedArray(),
+        )
         return true
     }
 }

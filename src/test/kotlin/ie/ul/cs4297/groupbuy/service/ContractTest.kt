@@ -2,10 +2,15 @@ package ie.ul.cs4297.groupbuy.service
 
 import ie.ul.cs4297.groupbuy.contracts.ContractEvent
 import ie.ul.cs4297.groupbuy.contracts.Envelope
+import ie.ul.cs4297.groupbuy.contracts.events.DealSettled
 import ie.ul.cs4297.groupbuy.contracts.events.EventCatalogue
 import ie.ul.cs4297.groupbuy.contracts.events.HoldPlaced
 import ie.ul.cs4297.groupbuy.contracts.events.HoldRejected
 import ie.ul.cs4297.groupbuy.contracts.events.HoldRejectedReason
+import ie.ul.cs4297.groupbuy.contracts.events.HoldReleased
+import ie.ul.cs4297.groupbuy.contracts.events.HoldReleasedReason
+import ie.ul.cs4297.groupbuy.contracts.events.OrderCharged
+import ie.ul.cs4297.groupbuy.contracts.events.SettlementIssue
 import ie.ul.cs4297.groupbuy.contracts.events.TopUpCredited
 import ie.ul.cs4297.groupbuy.contracts.events.TopUpRecorded
 import ie.ul.cs4297.groupbuy.contracts.events.Topics
@@ -13,6 +18,7 @@ import ie.ul.cs4297.groupbuy.contracts.testkit.ContractSamples
 import ie.ul.cs4297.groupbuy.contracts.testkit.assertMatchesContract
 import ie.ul.cs4297.groupbuy.service.ledger.InvalidEvent
 import ie.ul.cs4297.groupbuy.service.ledger.PaymentsConsumer
+import ie.ul.cs4297.groupbuy.service.ledger.Releases
 import ie.ul.cs4297.groupbuy.service.ledger.TopUpPosting
 import ie.ul.cs4297.groupbuy.service.ledger.TopUpResult
 import ie.ul.cs4297.groupbuy.service.platform.EnvelopeDeserializer
@@ -115,5 +121,21 @@ class ContractTest {
         val e = assertThrows<InvalidEvent> { send(topUp(0)) }
         assertTrue(ExceptionClassifier.defaultFatalExceptionsList().any { it.isInstance(e) })
         assertTrue(credited.isEmpty() && published.isEmpty())
+    }
+
+    @Test
+    fun `release and settlement events match the contract`() {
+        val order = UUID.randomUUID()
+        val deal = UUID.randomUUID()
+        val restaurant = UUID.randomUUID()
+        // Every release reason, with the balance after it (Releases.release).
+        HoldReleasedReason.entries.forEach { assertMatchesContract(HoldReleased(order, deal, student, 600, it, availableCents = 1000, heldCents = 0)) }
+        // The worked example (Settlement.charge), and a charge that returns nothing.
+        assertMatchesContract(OrderCharged(order, deal, student, restaurant, 475, 48, 125, availableCents = 4525, heldCents = 0))
+        assertMatchesContract(OrderCharged(order, deal, student, restaurant, 475, 48, 0, availableCents = 525, heldCents = 0))
+        assertMatchesContract(DealSettled(deal, restaurant, 1, 475, 48))
+        assertMatchesContract(DealSettled(deal, restaurant, 0, 0, 0)) // nothing chargeable
+        assertMatchesContract(SettlementIssue(deal, order, "The money set aside is for another student"))
+        assertTrue(HoldReleasedReason.entries.none { Releases.wording(it).contains("hold", ignoreCase = true) })
     }
 }
