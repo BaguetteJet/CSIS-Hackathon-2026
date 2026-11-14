@@ -8,18 +8,11 @@ import java.sql.Timestamp
 import java.time.Clock
 import java.util.UUID
 
-/** Who owns an account. */
 enum class AccountOwner { STUDENT, RESTAURANT, UNION }
 
-/** What an account holds. */
 enum class AccountPurpose { AVAILABLE, HELD, PAYABLE, CASH, COMMISSION }
 
-/**
- * The name of one account: who owns it and what it holds.
- *
- * A student has two accounts, AVAILABLE and HELD, so setting money aside is a movement between
- * them (double entry) rather than a flag on a single balance.
- */
+/** An account: owner plus purpose. A hold moves money from AVAILABLE to HELD: no flag. */
 data class AccountRef(
     val owner: AccountOwner,
     val ownerId: String,
@@ -28,31 +21,22 @@ data class AccountRef(
     override fun toString(): String = "$owner/$ownerId/$purpose"
 
     companion object {
-        /**
-         * The Union owns the CASH and COMMISSION accounts. Its owner id is the zero UUID, so it
-         * fits the CHAR(36) owner column exactly like a student's or restaurant's id does.
-         */
+        /** The Union's owner id: zero UUID, so it fits the CHAR(36) column. */
         const val UNION = "00000000-0000-0000-0000-000000000000"
 
         fun studentAvailable(studentId: UUID) = AccountRef(AccountOwner.STUDENT, studentId.toString(), AccountPurpose.AVAILABLE)
         fun studentHeld(studentId: UUID) = AccountRef(AccountOwner.STUDENT, studentId.toString(), AccountPurpose.HELD)
         fun restaurantPayable(restaurantId: UUID) = AccountRef(AccountOwner.RESTAURANT, restaurantId.toString(), AccountPurpose.PAYABLE)
 
-        /** The other side of money paid in or out at the desk. */
+        /** Desk money in and out. */
         val UNION_CASH = AccountRef(AccountOwner.UNION, UNION, AccountPurpose.CASH)
 
-        /** What the Union keeps of each order. */
+        /** What the Union keeps from each order. */
         val UNION_COMMISSION = AccountRef(AccountOwner.UNION, UNION, AccountPurpose.COMMISSION)
     }
 }
 
-/**
- * Reads accounts and opens them on first use.
- *
- * Balances are only ever changed through [LedgerPostingService]. A student has no row until their
- * first movement (or UserRegistered arrives): [balance] then answers 200 with zeros, as LED-07
- * requires, and [openStudent] creates both rows at zero.
- */
+/** Read accounts and open them on first use. Balances only change through [LedgerPostingService]. */
 @Component
 class LedgerAccounts(
     private val jdbc: JdbcTemplate,
@@ -60,7 +44,7 @@ class LedgerAccounts(
     private val transactions: TransactionTemplate,
 ) {
 
-    /** Opens a student's AVAILABLE and HELD accounts at zero; a second call changes nothing. */
+    /** Open both student accounts at zero. Safe to call twice. */
     fun openStudent(studentId: UUID) {
         transactions.executeWithoutResult {
             ensure(AccountRef.studentAvailable(studentId))
@@ -68,7 +52,7 @@ class LedgerAccounts(
         }
     }
 
-    /** The student's balances, or zeros when no account has been opened yet. */
+    /** No accounts yet: zeros (LED-07). */
     fun balance(studentId: UUID): Balance {
         val balances = jdbc.query(
             "SELECT purpose, balance_cents FROM ledger_account " +
@@ -87,14 +71,10 @@ class LedgerAccounts(
     }
 
     /**
-     * Opens the student's accounts if needed, locks both until the transaction ends, and returns
-     * the balance as committed right now. Call it inside the transaction that decides on the
-     * student's money (a hold, the balance after a top-up), so the decision and the event's
-     * balance can't be overtaken by another instance (LED-20).
-     *
-     * AVAILABLE is always opened before HELD, so its id is lower and this locks in ascending id
-     * order, like [LedgerPostingService.post]. FOR UPDATE also matters for reading: a plain SELECT
-     * in a REPEATABLE READ transaction can return a snapshot older than the lock.
+     * Open and lock the student's accounts, then return the latest balance (LED-20).
+     * Use it for money decisions and for any balance put on an event.
+     * AVAILABLE is opened first: locks go in ascending id order, like [LedgerPostingService.post].
+     * FOR UPDATE, not a plain read: a REPEATABLE READ snapshot can be out of date.
      */
     fun lockStudent(studentId: UUID): Balance {
         val available = ensure(AccountRef.studentAvailable(studentId))
@@ -107,13 +87,9 @@ class LedgerAccounts(
     }
 
     /**
-     * The account's id, creating the row at zero when it does not exist. Call this in the
-     * transaction that is about to post to the account.
-     *
-     * The SELECT first keeps the common path free of locks: a posting locks its accounts only
-     * once, in id order, in [LedgerPostingService.post]. The upsert handles the rare race where
-     * another instance opens the same account at the same moment, and LAST_INSERT_ID() returns
-     * the existing row's id without a second snapshot read.
+     * The account's id. Opens it at zero if needed.
+     * Plain SELECT first: [LedgerPostingService.post] does the locking.
+     * The upsert handles two instances opening it at once.
      */
     fun ensure(ref: AccountRef): Long {
         findId(ref)?.let { return it }
@@ -132,10 +108,7 @@ class LedgerAccounts(
         ref.owner.name, ref.ownerId, ref.purpose.name,
     ).firstOrNull()
 
-    /**
-     * The sum of every account's balance. Double entry means it is always zero; the zero-sum
-     * property test and the operator's daily check use this.
-     */
+    /** Always zero under double entry (LED-20). */
     fun sumOfAllAccounts(): Long = jdbc.queryForObject(
         "SELECT COALESCE(SUM(balance_cents), 0) FROM ledger_account", Long::class.java,
     )!!

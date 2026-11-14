@@ -9,10 +9,7 @@ import java.sql.Timestamp
 import java.time.Clock
 import java.util.UUID
 
-/**
- * What a movement is for. Together with its reference id it is the business key that stops a
- * repeated event from moving money twice (a top-up by topUpId, a charge by orderId, ...).
- */
+/** With the reference id: the business key that makes a repeat do nothing. */
 enum class MovementType {
     TOP_UP,
     HOLD,
@@ -25,14 +22,9 @@ enum class MovementType {
     PAYOUT,
 }
 
-/** One business movement: what it is and the id of the thing that caused it. */
 data class MovementRef(val type: MovementType, val id: UUID)
 
-/**
- * The student statement line a posting represents, when the posting is one the student sees.
- * [LedgerEntryKind] maps to the statement's kind (LED-11); a hold is a debit, a release a credit,
- * and so on, so the statement can take `credit` from the sign of [PostingLine.amountCents].
- */
+/** Statement line (LED-11). `credit` comes from the posting's sign. */
 data class EntryDetails(
     val kind: LedgerEntryKind,
     val description: String,
@@ -40,10 +32,7 @@ data class EntryDetails(
     val orderId: UUID? = null,
 )
 
-/**
- * One side of a movement. [amountCents] is signed: positive increases that account's balance,
- * negative decreases it. The lines of one movement must add up to zero.
- */
+/** One side of a movement: signed cents. A movement's sides add up to zero. */
 data class PostingLine(
     val account: AccountRef,
     val amountCents: Long,
@@ -51,24 +40,11 @@ data class PostingLine(
 )
 
 /**
- * The posting primitive: the only way money moves in the Ledger.
- *
- * [post] writes one balanced movement and updates every account it names, all in one transaction.
- * The movement's business reference makes it idempotent: calling it again with the same
- * [MovementRef] returns false and changes nothing, even if the amounts are different. So a
- * repeated TopUpRecorded with the same topUpId credits the first amount once, and a repeated
- * DealConfirmed cannot charge an order twice.
- *
- * Accounts are locked in id order before any balance changes, so two movements that touch the
- * same accounts cannot deadlock each other by taking them in opposite orders. A posting may never
- * take a student's AVAILABLE or HELD balance below zero: a caller that has to refuse a request
- * (a hold with too little money) checks first and publishes its refusal itself, while this guard
- * catches a bug. Restaurant payables and Union accounts may go negative, as LED-13 and LED-17
- * require.
- *
- * Call this inside the transaction that publishes the movement's event, so the money and the
- * event are saved together (the outbox does the publishing). A call already inside a transaction
- * joins it; a call on its own gets one of its own.
+ * The only way money moves.
+ * Same [MovementRef] twice: returns false and moves nothing.
+ * Locks accounts in ascending id order: no deadlocks.
+ * Students never go negative: callers check first, this only catches bugs. Payables and Union can (LED-13, LED-17).
+ * Joins the caller's transaction: the event commits with the money.
  */
 @Component
 class LedgerPostingService(
@@ -88,7 +64,6 @@ class LedgerPostingService(
         return transactions.execute { postInTransaction(reference, lines) }!!
     }
 
-    /** Runs in [post]'s transaction: the movement, every posting and every balance change. */
     private fun postInTransaction(reference: MovementRef, lines: List<PostingLine>): Boolean {
         val postedAt = clock.instant()
         val movementId = UUID.randomUUID().toString()
@@ -98,12 +73,11 @@ class LedgerPostingService(
                 movementId, reference.type.name, reference.id.toString(), Timestamp.from(postedAt),
             )
         } catch (e: DuplicateKeyException) {
-            // The business movement is already posted: keep the first one, whatever this repeat says.
+            // Already posted: the first one wins.
             return false
         }
 
-        // Find or open every account in a fixed order, so two instances opening the same accounts
-        // race safely; then lock the ids in ascending order, which every movement does.
+        // Open accounts in a fixed order, then lock by ascending id.
         val distinctAccounts = lines.map { it.account }.distinct()
         val idByAccount = distinctAccounts
             .sortedBy { "${it.owner.name}|${it.ownerId}|${it.purpose.name}" }

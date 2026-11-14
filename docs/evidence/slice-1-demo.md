@@ -41,4 +41,3 @@ Owner: Shakeeba · Backup: Hersh
 - [ ] Refusal: INSUFFICIENT_FUNDS
 
 - [ ] Replay on the other replica: same answer, no new event
-

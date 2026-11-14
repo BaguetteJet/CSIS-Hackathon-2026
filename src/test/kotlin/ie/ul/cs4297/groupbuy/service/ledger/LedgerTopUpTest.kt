@@ -26,11 +26,7 @@ import java.net.http.HttpResponse
 import java.time.Duration
 import java.util.UUID
 
-/**
- * The first vertical slice across items 2 and 3: TopUpRecorded (PaymentsConsumer) credits once
- * through TopUpStore, publishes TopUpCredited, and /me reads the balance from the accounts.
- * Needs Docker and Kafka: ./gradlew containerTest
- */
+/** Top-up end to end: a Kafka event credits once, publishes one TopUpCredited and shows at /me. */
 class LedgerTopUpTest : ContainersTest() {
 
     @LocalServerPort var port = 0

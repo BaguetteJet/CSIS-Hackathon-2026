@@ -30,11 +30,7 @@ import org.springframework.kafka.listener.ExceptionClassifier
 import java.time.Instant
 import java.util.UUID
 
-/**
- * Contract tests: every event the Ledger publishes matches the contracts library, every event it
- * consumes can be read, and a replayed top-up publishes nothing new. CI runs these on every push,
- * so a broken event never reaches the line.
- */
+/** Contract tests (CI, every push): published events match, consumed ones parse, replays publish nothing. */
 @Tag("contract")
 class ContractTest {
 
@@ -95,7 +91,7 @@ class ContractTest {
 
     @Test
     fun `the service can read every event type it consumes`() {
-        // TopUpRecorded: PaymentsConsumer. The orders.v1 and deals.v1 closures: ClosuresConsumer (the hold's ORDER_CLOSED/DEAL_CLOSED).
+        // Read by PaymentsConsumer and ClosuresConsumer.
         for (type in listOf("UserRegistered", "UserUpdated", "RoleChanged", "UserDeleted", "TopUpRecorded",
             "OrderWithdrawn", "OrderAbandoned", "DealConfirmed", "DealFailed", "DealCancelled")) {
             val envelope = EnvelopeDeserializer().deserialize(EventCatalogue.byType(type)!!.topic, ContractSamples.json(type).toByteArray())

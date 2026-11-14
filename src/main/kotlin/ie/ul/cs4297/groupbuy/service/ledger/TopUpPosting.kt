@@ -2,15 +2,9 @@ package ie.ul.cs4297.groupbuy.service.ledger
 
 import java.util.UUID
 
-/**
- * The top-up operation from the shared posting code (Igor, item 2), as PaymentsConsumer calls it.
- * It runs inside the caller's transaction, so the credit and the TopUpCredited outbox row commit together.
- */
+/** The top-up credit PaymentsConsumer calls. Joins its transaction: the event commits with it. */
 interface TopUpPosting {
-    /**
-     * Credits the student's available balance and debits Union cash, once per [topUpId], at the
-     * first amount. A student with no account yet starts at 0.
-     */
+    /** Credit once per [topUpId] at the first amount. Unknown student: starts at 0. */
     fun creditTopUp(topUpId: UUID, studentId: UUID, amountCents: Long): TopUpResult
 }
 

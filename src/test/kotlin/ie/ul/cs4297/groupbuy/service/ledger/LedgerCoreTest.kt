@@ -22,11 +22,7 @@ import java.net.http.HttpResponse
 import java.time.Instant
 import java.util.UUID
 
-/**
- * The Item 2 review: fresh migration, one movement per business key, rollback agreement, and
- * the /me role/balance rules. The hold itself is item 1's [Holds]; its own cases are in HoldsTest. Needs Docker or a working Podman socket:
- *   ./gradlew containerTest --tests 'ie.ul.cs4297.groupbuy.service.ledger.LedgerCoreTest'
- */
+/** Item 2 review: migration, business-key dedupe, rollback, /me rules. Holds are in HoldsTest. */
 class LedgerCoreTest : ContainersTest() {
 
     @LocalServerPort var port = 0

@@ -13,17 +13,10 @@ import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.messaging.converter.MessageConversionException
 import org.springframework.stereotype.Component
 
-/**
- * An event that breaks its contract, such as a zero amount. Spring Kafka's error handler never
- * retries a MessageConversionException, so the starter sends it straight to ledger.dlt (LED-19).
- */
+/** An event that breaks the contract (e.g. zero amount): never retried, goes straight to ledger.dlt (LED-19). */
 class InvalidEvent(message: String) : MessageConversionException(message)
 
-/**
- * The Ledger's payments.v1 consumer. Keep it the only listener on this topic: a second one in the
- * shared group would split the topic's partitions with this one, and each would miss the other's
- * events. Cash-outs and payouts belong here as more branches of the `when`.
- */
+/** The only payments.v1 listener: a second one would split the partitions. Add cash-outs and payouts here. */
 @Component
 class PaymentsConsumer(
     private val inbox: EventInbox,
@@ -41,13 +34,11 @@ class PaymentsConsumer(
         val envelope = record.value() ?: return 
         when (val e = envelope.payload) {
             is TopUpRecorded -> topUp(envelope, e)
-            else -> {} // other payments.v1 events: TODO
+            else -> {} // cash-outs and payouts (LED-15 to 17)
         }
     }
 
-    /**
-     * LED-02. Credited whatever its sequence, its amount or its student.
-     */
+    /** LED-02: credit any sequence (reset is 0), amount or student. Limits and blocks: Payments' job (D-A4). */
     private fun topUp(envelope: Envelope<ContractEvent>, e: TopUpRecorded) {
         if (e.amountCents < 1) throw InvalidEvent("TopUpRecorded ${envelope.eventId}: amountCents must be 1 or more")
         inbox.once(CONSUMER, envelope) {

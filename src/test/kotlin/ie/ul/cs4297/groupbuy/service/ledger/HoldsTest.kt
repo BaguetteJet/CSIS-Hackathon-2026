@@ -40,9 +40,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import javax.sql.DataSource
 
-// Item 1's "Ready to review", against real MySQL and Kafka with two Ledger instances running, as in
-// integration. Every test makes its own students and orders, so they can run in any order.
-// Run with ./gradlew containerTest (Docker needed).
+// Item 1 review on real MySQL and Kafka with two instances. Tests are independent.
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class HoldsTest : ContainersTest() {
 
@@ -133,7 +131,7 @@ class HoldsTest : ContainersTest() {
     fun `the same order racing on both instances is decided once`() {
         val student = funded(1000)
         val order = UUID.randomUUID()
-        // Like Orders retrying while the first call is still running: 8 calls, alternating instances.
+        // Like Orders retrying while the first call runs: 8 calls, alternating instances.
         val answers = race(List(8) { i -> (if (i % 2 == 0) port else portTwo) to body(order, student, 600) })
         assertTrue(answers.all { it.statusCode() == 200 }, answers.map { it.statusCode() }.toString())
         assertEquals(1, answers.map { fields(it) }.toSet().size)
@@ -160,7 +158,7 @@ class HoldsTest : ContainersTest() {
     fun `a student locked for longer than Orders waits answers 503 within 2 seconds, and leaves no answer behind`() {
         val student = funded(1000)
         val order = UUID.randomUUID()
-        // Hold the student's row lock from outside the service for 3 s, longer than Orders will wait.
+        // Hold the student's lock from outside for 3 s: longer than Orders waits.
         val locked = CountDownLatch(1)
         val blocker = Executors.newSingleThreadExecutor().submit {
             dataSource.connection.use { c ->
@@ -209,7 +207,7 @@ class HoldsTest : ContainersTest() {
         assertEquals(413, big.statusCode())
         assertEquals("PAYLOAD_TOO_LARGE", tree(big.body())["code"].asText())
 
-        // Nothing above was decided; unknown fields are ignored.
+        // Nothing above was decided. Unknown fields are ignored.
         assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM hold_decision WHERE order_id = ?", Int::class.java, order.toString()))
         val ok = hold(port, body(order, student, 6).replace("{", "{\"note\":\"ignored\","), "application/json; charset=utf-8")
         assertEquals(200, ok.statusCode())
@@ -263,7 +261,7 @@ class HoldsTest : ContainersTest() {
 
     @Test
     fun `several reasons at once - ORDER_CLOSED, then DEAL_CLOSED, then INSUFFICIENT_FUNDS`() {
-        val broke = UUID.randomUUID() // no money at all, so INSUFFICIENT_FUNDS would also apply
+        val broke = UUID.randomUUID() // no money at all: INSUFFICIENT_FUNDS would also apply
         val deal = UUID.randomUUID()
         val order = UUID.randomUUID()
         publish(DealFailed(deal, 1))
@@ -285,19 +283,19 @@ class HoldsTest : ContainersTest() {
         assertEquals(1, holdEvents(student).size)
     }
 
-    /** Sends [event] on its real topic, the way Orders or Deals would. */
+    /** Send [event] on its real topic, like Orders or Deals would. */
     private fun publish(event: ContractEvent) {
         kafka.send(event.topic(), event.key(), ContractJson.write(Envelope.of(event, sequence = 1, occurredAt = TestClock.instant()))).get()
     }
 
-    /** Waits until the closures listener has written the row for [id]. */
+    /** Wait until the closures listener writes the row for [id]. */
     private fun awaitClosed(table: String, column: String, id: UUID) {
         await atMost Duration.ofSeconds(30) untilAsserted {
             assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM $table WHERE $column = ?", Int::class.java, id.toString()))
         }
     }
 
-    /** A new student with [cents] available, funded through the real top-up path. */
+    /** A new student with [cents] available: funded through the real top-up path. */
     private fun funded(cents: Long): UUID = UUID.randomUUID().also { student ->
         tx.execute { topUps.creditTopUp(UUID.randomUUID(), student, cents) }
     }
@@ -313,7 +311,7 @@ class HoldsTest : ContainersTest() {
         return http.send(request, HttpResponse.BodyHandlers.ofString())
     }
 
-    /** Sends every call at once and returns the answers in the same order. */
+    /** Send every call at once and return the answers in order. */
     private fun race(calls: List<Pair<Int, String>>): List<HttpResponse<String>> {
         val pool = Executors.newFixedThreadPool(calls.size)
         val go = CountDownLatch(1)
@@ -326,7 +324,7 @@ class HoldsTest : ContainersTest() {
         }
     }
 
-    /** A 200 answer's fields as strings, so two answers compare with plain equality. */
+    /** A 200 answer's fields as strings: two answers compare with plain equality. */
     private fun fields(answer: HttpResponse<String>): Map<String, String> {
         assertEquals(200, answer.statusCode(), answer.body())
         return tree(answer.body()).properties().associate { it.key to it.value.asText() }

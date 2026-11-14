@@ -39,14 +39,8 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 /**
- * POST /internal/ledger/holds: Orders asks "can this student afford this order?" (LED-03, LED-04).
- *
- * Only Orders calls it, from inside the Docker network, so there is no token. The starter already
- * leaves /internal/ ** open in platform/Security.kt, and the gateway never routes it.
- *
- * We read the body ourselves instead of using @RequestBody. Spring would answer 415 for a wrong
- * Content-Type and has no size limit; the contract wants 422 with errors[] for every bad input
- * (DEC E3) and 413 over 64 KB (DEC E5).
+ * POST /internal/ledger/holds (LED-03, LED-04). Internal only: no token.
+ * Body parsed by hand: the contract wants 422 with errors[] (not Spring's 415) and 413 over 64 KB.
  */
 @RestController
 class HoldController(private val holds: Holds, private val mapper: ObjectMapper) {
@@ -54,22 +48,21 @@ class HoldController(private val holds: Holds, private val mapper: ObjectMapper)
     @PostMapping(ApiPaths.PLACE_HOLD)
     fun place(request: HttpServletRequest): HoldResponse = holds.place(read(request))
 
-    /** Turns the raw request into a [HoldRequest], or throws 413/422 naming every bad field. */
+    /** Turn the raw request into a [HoldRequest] or throw 413/422 naming every bad field. */
     private fun read(request: HttpServletRequest): HoldRequest {
-        // Refuse a big body before reading it when the client tells us its size...
+        // Reject early when Content-Length is too big...
         if (request.contentLengthLong > MAX_BODY_BYTES) throw tooLarge()
         val type = runCatching { MediaType.parseMediaType(request.contentType) }.getOrNull()
         if (type == null || !MediaType.APPLICATION_JSON.equalsTypeAndSubtype(type)) {
             throw Invalid("The Content-Type must be application/json", listOf(FieldError("Content-Type", "must be application/json")))
         }
-        // ...and still never read more than 64 KB + 1 byte when it doesn't.
+        // ...and cap the read when it isn't sent.
         val bytes = request.inputStream.readNBytes(MAX_BODY_BYTES + 1)
         if (bytes.size > MAX_BODY_BYTES) throw tooLarge()
         val body = try { mapper.readTree(bytes) } catch (e: JacksonException) { null }
         if (body == null || !body.isObject) throw Invalid("The request body is not a JSON object")
 
-        // Collect every problem, not just the first, so Orders sees them all at once.
-        // Unknown fields are ignored, as the contract says.
+        // Report every bad field at once. Ignore unknown fields.
         val errors = mutableListOf<FieldError>()
         fun present(field: String): JsonNode? = body.get(field)?.takeUnless { it.isNull }
             .also { if (it == null) errors += FieldError(field, "is required") }
@@ -80,13 +73,13 @@ class HoldController(private val holds: Holds, private val mapper: ObjectMapper)
         val orderId = uuid("orderId")
         val studentId = uuid("studentId")
         val dealId = uuid("dealId")
-        // We don't act on cutoffAt (the Ledger never refuses for time, DEC X1), but a malformed one is still bad input.
+        // Checked but not used: the Ledger never refuses for time (DEC X1).
         val cutoffAt = present("cutoffAt")?.let { node ->
             node.takeIf { it.isTextual && UTC_PATTERN.matches(it.textValue()) }
                 ?.let { runCatching { Instant.parse(it.textValue()) }.getOrNull() }
                 .also { if (it == null) errors += FieldError("cutoffAt", "must be a UTC date-time ending in Z") }
         }
-        // Whole cents only: 6.5, "600" and anything past a Long are refused, not rounded.
+        // Whole cents only: 6.5, "600" and overflow are refused, not rounded.
         val amountCents = present("amountCents")?.let { node ->
             when {
                 !node.isIntegralNumber || !node.canConvertToLong() -> null.also { errors += FieldError("amountCents", "must be a whole number of cents") }
@@ -102,33 +95,20 @@ class HoldController(private val holds: Holds, private val mapper: ObjectMapper)
 
     companion object {
         const val MAX_BODY_BYTES = 64 * 1024
-        // The same patterns as ledger-internal.yaml.
+        // Same patterns as ledger-internal.yaml.
         private val UUID_PATTERN = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
         private val UTC_PATTERN = Regex("""^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?Z$""")
     }
 }
 
 /**
- * Decides each order's hold exactly once, however many times and on whichever instance Orders asks.
+ * Decide each order's hold once, on either instance in one transaction:
+ * 1. Claim the orderId in hold_decision. Already taken: return the saved answer.
+ * 2. Closed order or deal: refuse. Otherwise lock the student and move AVAILABLE to HELD if they can pay.
+ * 3. Save the answer and queue the event: both commit with the money.
  *
- * One transaction does three things:
- *  1. Claim the orderId by inserting its hold_decision row. If the row already exists, this is a
- *     repeat: return the saved answer and do nothing else, even if the body changed. If another
- *     instance is deciding this order right now, the insert waits for it to commit, then lands here.
- *  2. Refuse a closed order or deal ([ClosuresConsumer] records those), otherwise lock the
- *     student's accounts ([LedgerAccounts.lockStudent]) and, if there's enough available, post
- *     the movement from AVAILABLE to HELD ([LedgerPostingService]). Two different orders for the
- *     same student are decided one after the other.
- *  3. Save the answer and put HoldPlaced or HoldRejected in the outbox. The event only exists if
- *     the money moved, and it carries the balance after the decision.
- *
- * Why the orderId comes first: a retry with a different studentId never touches the second
- * student, and the lock order (business key, then student) is the same as for top-ups, so the
- * two can't deadlock each other.
- *
- * Orders gives up after 2 seconds. So the transaction times out after 1 second, a deadlock is
- * retried while there's still time, and anything else from the database is a 503 UNAVAILABLE,
- * which Orders treats as "ask again later". A 503 saves nothing, so the retry decides afresh.
+ * Order before student: same lock order as top-ups, so no deadlock.
+ * Orders waits 2 s: 1 s timeout, deadlocks retried, any other DB error is a 503 that Orders retries.
  */
 @Service
 class Holds(
@@ -149,7 +129,7 @@ class Holds(
         try {
             return decide(request, started).also { result = it.result.name }
         } finally {
-            // Shows up as ledger_holds_seconds{result=...}: call rate, latency and outcome for Grafana (LED-23).
+            // ledger_holds_seconds{result} for Grafana (LED-23).
             meters.timer("ledger.holds", "result", result).record(System.nanoTime() - started, TimeUnit.NANOSECONDS)
         }
     }
@@ -159,18 +139,18 @@ class Holds(
             try {
                 return tx.execute { decideOnce(request) }!!
             } catch (e: PessimisticLockingFailureException) {
-                // MySQL broke a deadlock by rolling us back. Nothing was saved, so trying again is safe.
+                // Deadlock: nothing saved, safe to retry.
                 if (System.nanoTime() - started > RETRY_WINDOW.toNanos()) throw unavailable(e)
             } catch (e: DataAccessException) {
                 throw unavailable(e)
             } catch (e: TransactionException) {
-                throw unavailable(e) // includes "couldn't even get a connection"
+                throw unavailable(e) // e.g. no connection within 1 s
             }
         }
     }
 
     private fun decideOnce(r: HoldRequest): HoldResponse {
-        // 1. Claim the order. PENDING is never seen by anyone else: it's replaced before we commit.
+        // 1. Claim the order. PENDING never commits.
         try {
             jdbc.update(
                 "INSERT INTO hold_decision (order_id, student_id, deal_id, amount_cents, result, decided_at) VALUES (?, ?, ?, ?, 'PENDING', ?)",
@@ -180,14 +160,13 @@ class Holds(
             return firstAnswer(r.orderId)
         }
 
-        // 2. Decide. Closed beats broke: ORDER_CLOSED, then DEAL_CLOSED, then funds (DEC Ledger).
+        // 2. Decide: ORDER_CLOSED, then DEAL_CLOSED, then funds (DEC Ledger).
         val closed = when {
             isClosed("SELECT 1 FROM order_closure WHERE order_id = ? FOR SHARE", r.orderId) -> HoldRejectedReason.ORDER_CLOSED
             isClosed("SELECT 1 FROM deal_closure WHERE deal_id = ? FOR SHARE", r.dealId) -> HoldRejectedReason.DEAL_CLOSED
             else -> null
         }
-        // Every answer's event carries the balance, read under the student's lock (LED-20). A
-        // student we've never seen gets accounts at 0, so they're refused (D-A1, LED-01).
+        // Locked balance for the event (LED-20). Unknown student: starts at 0 (D-A1).
         val now = accounts.lockStudent(r.studentId)
         if (closed != null) {
             return answer(r, HoldResponse(r.orderId, HoldResult.valueOf(closed.name)),
@@ -197,7 +176,7 @@ class Holds(
             return answer(r, HoldResponse(r.orderId, HoldResult.INSUFFICIENT_FUNDS, now.availableCents),
                 HoldRejected(r.orderId, r.dealId, r.studentId, HoldRejectedReason.INSUFFICIENT_FUNDS, now.availableCents, now.heldCents))
         }
-        // The orderId was claimed above, so this movement can't already exist.
+        // Can't exist yet: the orderId was claimed above.
         check(postings.post(MovementRef(MovementType.HOLD, r.orderId), listOf(
             PostingLine(AccountRef.studentAvailable(r.studentId), -r.amountCents,
                 EntryDetails(LedgerEntryKind.HOLD, "Set aside for your order", r.dealId, r.orderId)),
@@ -207,14 +186,10 @@ class Holds(
             HoldPlaced(r.orderId, r.dealId, r.studentId, r.amountCents, now.availableCents - r.amountCents, now.heldCents + r.amountCents))
     }
 
-    /**
-     * FOR SHARE, not a plain read: if the closing event is being written right now, wait for it.
-     * With no row it also blocks a closure from being written until we commit, so the release
-     * work (later) is guaranteed to see this hold.
-     */
+    /** FOR SHARE: wait for a closure in progress, and block a new one until we commit. */
     private fun isClosed(sql: String, id: UUID): Boolean = jdbc.queryForList(sql, id.toString()).isNotEmpty()
 
-    /** 3. Remember the answer for repeats, and announce it. Both commit with the money or not at all. */
+    /** 3. Save the answer for repeats and queue the event. */
     private fun answer(r: HoldRequest, response: HoldResponse, event: ContractEvent): HoldResponse {
         jdbc.update(
             "UPDATE hold_decision SET result = ?, available_cents = ? WHERE order_id = ?",
@@ -224,7 +199,7 @@ class Holds(
         return response
     }
 
-    /** The answer the first call saved. FOR SHARE makes sure we read the commit we just waited for. */
+    /** The saved answer. FOR SHARE: read the commit we just waited for. */
     private fun firstAnswer(orderId: UUID): HoldResponse = jdbc.queryForObject(
         "SELECT result, available_cents FROM hold_decision WHERE order_id = ? FOR SHARE",
         { rs, _ -> HoldResponse(orderId, HoldResult.valueOf(rs.getString(1)), rs.getLong(2).takeUnless { rs.wasNull() }) },
@@ -237,7 +212,7 @@ class Holds(
     }
 
     companion object {
-        /** Deadlocks are detected instantly, so retrying for up to a second still answers inside Orders' 2 s. */
+        /** Retry deadlocks for up to 1 s: still inside Orders' 2 s. */
         private val RETRY_WINDOW: Duration = Duration.ofMillis(1000)
     }
 }

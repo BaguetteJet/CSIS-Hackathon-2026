@@ -18,13 +18,9 @@ import java.time.Clock
 import java.util.UUID
 
 /**
- * Remembers which orders and deals are closed, so the hold call can refuse them (LED-04).
- * Owner: Hersh (the hold side). Releasing holds that already exist (LED-08, LED-09) belongs to
- * the releases work after slice 1; it can hook in here, after the closure row is written.
- *
- * Writing the row and the hold call's check meet on the same key: the hold reads it FOR SHARE,
- * so a closure and a hold for the same order are always one after the other. Either the closure
- * lands first and the hold is refused, or the hold lands first and the release finds it.
+ * Record closed orders and deals so the hold can refuse them (LED-04).
+ * Only listener on orders.v1 and deals.v1: add releases and settlement here.
+ * The hold reads these rows FOR SHARE: a closure and a hold for the same order never overlap.
  */
 @Component
 class ClosuresConsumer(private val inbox: EventInbox, private val jdbc: JdbcTemplate, private val clock: Clock) {
@@ -42,11 +38,11 @@ class ClosuresConsumer(private val inbox: EventInbox, private val jdbc: JdbcTemp
             is DealConfirmed -> inbox.once(CONSUMER, envelope) { closeDeal(e.dealId, "CONFIRMED") }
             is DealFailed -> inbox.once(CONSUMER, envelope) { closeDeal(e.dealId, "FAILED") }
             is DealCancelled -> inbox.once(CONSUMER, envelope) { closeDeal(e.dealId, "CANCELLED") }
-            else -> {} // every other orders.v1 and deals.v1 event: nothing to do here
+            else -> {}
         }
     }
 
-    // The first closing event wins; a later one (say DealCancelled after DealConfirmed) changes nothing.
+    // First closing event wins.
     private fun closeOrder(orderId: UUID, dealId: UUID, reason: String) = jdbc.update(
         "INSERT INTO order_closure (order_id, deal_id, reason, closed_at) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE order_id = order_id",
         orderId.toString(), dealId.toString(), reason, Timestamp.from(clock.instant()),
