@@ -126,7 +126,7 @@ The example is the contracts' own: a student topped up €20 at the desk and has
 **Why it can't go wrong:**
 - **Set aside first.** The cash can't also be spent on an order while staff count it out. A cash-out and an order racing for the same money both lock the student's row, so one wins and the other is refused.
 - **Ends once.** Step 2 only acts on a RESERVED row, so whichever of Completed or Failed arrives first wins; the other changes nothing. A cash-out is never both paid and returned.
-- **The reserved amount wins.** Step 2 moves what was set aside, whatever amount the later event carries.
+- **The reserved amount wins.** Step 2 moves what was set aside, whatever amount the later event carries; a different one is logged (`warn`).
 - **Repeats do nothing.** The `withdrawal` row (by withdrawalId) and the movement key (by payoutId) stop a second effect; the inbox stops a replayed message.
 - **Bad input is dead-lettered.** A €0 cash-out or payout goes to `ledger.dlt` (LED-19).
 - **Unknown or refused cash-out.** A Completed or Failed for it logs a warning and moves nothing.

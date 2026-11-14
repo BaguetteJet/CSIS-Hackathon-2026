@@ -137,7 +137,7 @@ Checked against contracts 1.3.0 on Sat 14 Nov: every shape another service sends
 | RefundPosted needs `restaurantId`, `commissionReversedCents` | `order_charge.restaurant_id`; the refund row | Yes (V9) |
 | RefundRefused needs `dealId`, `studentId`, also for NEVER_CHARGED, when no `order_charge` row exists | RefundApproved's own fields | Yes: the refund row keeps them |
 | WithdrawalRefused `reason`: INSUFFICIENT_FUNDS only; Payments shows RESERVED or REFUSED | The withdrawal row | Planned: REFUSED is kept, so a repeat gets the same answer |
-| WithdrawalCompleted, WithdrawalFailed: `amountCents` ≥ 0 | `withdrawal.amount_cents`, from WithdrawalRequested | Planned: the reserved amount wins (item 8) |
+| WithdrawalCompleted, WithdrawalFailed: `amountCents` ≥ 0 | `withdrawal.amount_cents`, from WithdrawalRequested | Yes: the reserved amount wins; a different one is logged |
 | PayoutConfirmed: `payoutId`, `restaurantId`, `amountCents` ≥ 1 | The PAYOUT movement, keyed by `payoutId` | Planned: no table, the movement key makes it once. A payable may go negative after a refund |
 | DealConfirmed `orders`: no maximum | | The 200 orders in `SettlementTest` is the load test's deal (PLT-14), not a contract limit |
 
