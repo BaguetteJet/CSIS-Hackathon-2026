@@ -1,127 +1,93 @@
-# Your service
+# Ledger
 
-This repository is your team's service, already set up with the plumbing every service needs: Kotlin 2.1.0 and Spring Boot 3.4.3 (the Week 8 lab's versions, JDK 21), MySQL with Flyway, Kafka with an outbox, sign-in, errors, metrics, a page template, Docker and CI. It has none of your service's logic: that is your design, and what you are assessed on. Your team's document in the spec (spec/teams/) says what to build.
+The bank inside Campus Group-Buy, line A. Every cent a student tops up, sets aside for a lunch, pays, gets back or takes out is a movement between two accounts, and the two sides always add up to zero. Orders asks us, in one direct call, whether a student's money is available; everything else arrives and leaves as Kafka events.
 
-## What is here
+Kotlin 2.1 and Spring Boot 3.4 on JDK 21, MySQL with Flyway, Kafka with an outbox. Two instances, 512 MB each.
 
-| You need | Use | Where |
-|---|---|---|
-| Publish an event | `outbox.publish(event)` inside your `@Transactional` method | `platform/Outbox.kt` |
-| Consume an event once | `@KafkaListener(id = "...", idIsGroup = false, ...)` and `inbox.once(...) { }` | `platform/Events.kt`, `example/KnownUsers.kt` |
-| An event that arrives too early | `parking.park(...)`, then `parking.release(...)` | `platform/Events.kt`, `example/KnownUsers.kt` |
-| A consumer every instance runs (live counts) | `containerFactory = "broadcastListenerFactory"` | `example/BroadcastExample.kt` |
-| Something to happen at a time | `timers.schedule(type, key, at)` and a `TimerHandler` bean | `platform/Timers.kt` |
-| The time | Inject `java.time.Clock`; never `Instant.now()` | `platform/PlatformClock.kt` |
-| The hold call (Orders) | Inject `HoldClient` | `platform/HoldClient.kt` |
-| The signed-in user, own data only, roles | A `user: CurrentUser` parameter; `user.requireOwner(...)`, `requireRestaurant(...)`, `requireRole(...)` | `platform/Security.kt` |
-| An error the page can act on | `throw Conflict("DEAL_FULL", "...")`, `NotFound(...)`, `Invalid(...)` | `platform/Problems.kt` |
-| `Idempotency-Key` | `idempotent.handle(key, caller, body) { ... }` | `platform/Idempotency.kt` |
-| A table | A Flyway migration `V3__your_table.sql` | `src/main/resources/db/migration` |
-| A page | Copy `index.html`; use `api.js` and the UI kit's classes | `src/main/resources/pages/` |
-| Event classes, topics, Money, states | The contracts library | its README |
-| Tests with real MySQL and Kafka | Extend `ContainersTest`; `TestTokens`, `TestClock` | `src/test/.../support/` |
-| Your team's load or property test | `scripts/last-place.sh`, `src/test/kotlin/.../templates/ZeroSumPropertyTest.kt`, `./gradlew liveConnections` | your team section says which |
-
-Leave the `platform` package as it is, except `PUBLIC_PATHS` in `platform/Security.kt` (the paths that need no token), which is yours to fill in. If something in it gets in your way, tell the Platform and reliability team or the organisers.
-
-## Before you start
-
-On a fresh clone, run `cp .env.example .env` from the repository root before using Docker Compose or `./check`. The example sets the service name to `ledger`. Git ignores your local `.env`.
-
-Start the dev kit and make its Forgejo token (dev kit README, "Install"): https://cs4297.skynet.ie/hackathon-2026/dev-kit. Put the token in `~/.gradle/gradle.properties` (on Windows, `C:\Users\<you>\.gradle\gradle.properties`), never in this repository:
-
-```properties
-forgejoUser=your-forgejo-username
-forgejoToken=the-token
+```mermaid
+flowchart LR
+  Orders -- "POST /internal/ledger/holds" --> L[Ledger x2]
+  Pages["Account page, desk page"] -- "/api/ledger/*" --> L
+  In["deals.v1, orders.v1, payments.v1, users.v1"] --> L
+  L -- "ledger.v1: HoldPlaced, OrderCharged, TopUpCredited..." --> Out[Orders, Payments, Support, Experience]
+  L --- DB[(MySQL: accounts, movements, postings)]
 ```
 
-Personal or secret values go in a file ending `.local.env`, which Git ignores. A secret committed at any point in the history multiplies your project mark by 0.75 (handover, Part E, "Penalties"); the `DB_PASSWORD` in `local.env` and `service.env` is the dev kit's local value and does not count.
+## Where things are
 
-To put your service in place of its fake behind the gateway, and to sign in, see the dev kit README, "The fake line, and using your own service" and "Signing in".
+| You want | Read |
+|---|---|
+| Deploy, verify, operate, recover it | [docs/HANDOVER.md](docs/HANDOVER.md) |
+| How it works and why | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/decisions/](docs/decisions/README.md) |
+| Every table and column | [docs/schema.md](docs/schema.md) |
+| The words we use | [GLOSSARY.md](GLOSSARY.md) |
+| Who needs what from us | [docs/NEIGHBOURS.md](docs/NEIGHBOURS.md) |
+| What's done and what's left | [PHASES.md](PHASES.md) |
+| Who owns what; each item's steps | [OWNERS.md](OWNERS.md), [work-items/](work-items/README.md) |
+| Proof from live runs | [docs/evidence/](docs/evidence/) |
+| Rules for changing the code | [agents/AGENTS.md](agents/AGENTS.md) (read by Claude Code and OpenCode too) |
+
+## Start
+
+1. `cp .env.example .env` (sets `SERVICE_NAME=ledger`; Git ignores `.env`).
+2. Put your Forgejo token in `~/.gradle/gradle.properties`, never in this repository:
+   ```properties
+   forgejoUser=your-forgejo-username
+   forgejoToken=the-token
+   ```
+3. Start the dev kit (its README). For our real Ledger behind the gateway, set `LEDGER_URL=http://ledger:8080` and `FAKE_EXCLUDE=ledger` in `dev-kit/.env`, then `docker compose --profile lite up -d`.
+4. Use JDK 21: Gradle 8.12 fails on 24. On macOS, `export JAVA_HOME=$(/usr/libexec/java_home -v 21)`.
+
+Podman instead of Docker: [SETUP.md](SETUP.md).
 
 ## Commands
 
-Tests, image, two instances against the dev kit (512 MB each), health checked. When it prints `Ready`, push:
+| Command | Does | Needs |
+|---|---|---|
+| `./gradlew test` | Unit tests | JDK 21 |
+| `./gradlew contractTest` | Every event we publish against the contracts library (CI runs it) | JDK 21 |
+| `./gradlew containerTest` | Real MySQL and Kafka, two instances (CI does **not** run it) | Docker |
+| `./check` | Tests, image, two instances healthy within 512 MB. Run before every PR | Docker, dev kit |
+| `./gradlew bootJar && docker compose up -d --build` | Two instances: `ledger-1` on 8081, `ledger-2` on 8082 | Dev kit |
+| `scripts/run-local.sh [port]` | One instance from the IDE settings in `local.env` | Dev kit |
 
-```bash
-./check
-```
+Add `--rerun-tasks` to a Gradle test command to run the tests again instead of reusing the last results.
 
-On macOS and Linux, `make check` does the same.
+## The starter's plumbing
 
-Unit tests and contract tests only (no Docker):
+`src/.../platform/` comes from the organisers' starter: leave it as it is, except `PUBLIC_PATHS` in `Security.kt`.
 
-```bash
-./gradlew test
-```
+| You need | Use | Where |
+|---|---|---|
+| Move money | `LedgerPostingService.post(reference, lines)`, the only way | `ledger/LedgerPostings.kt` |
+| A balance for a decision or an event | `lockStudent` / `lockStudents` | `ledger/LedgerAccounts.kt` |
+| Publish an event | `outbox.publish(event)` inside the money's transaction | `platform/Outbox.kt` |
+| Consume an event once | `@KafkaListener(id = "...", idIsGroup = false)` and `inbox.once(...) { }`; add a branch to the topic's one listener | `platform/Events.kt` |
+| An event that arrives too early | `parking.park(...)`, then `parking.release(...)` | `platform/Events.kt` |
+| The time | The injected `Clock`, never `Instant.now()` | `platform/PlatformClock.kt` |
+| The signed-in user | A `user: CurrentUser` parameter; `requireOwner`, `requireRole` | `platform/Security.kt` |
+| An error a caller can act on | `throw Conflict(...)`, `NotFound(...)`, `Invalid(...)` | `platform/Problems.kt` |
+| A table | The next free Flyway `V` number when you merge; never edit an applied one | `src/main/resources/db/migration` |
+| Tests on real MySQL and Kafka | Extend `ContainersTest`; `TestTokens`, `TestClock` | `src/test/.../support/` |
 
-Tests against real MySQL and Kafka:
+## CI and images
 
-```bash
-./gradlew containerTest
-```
+Every push to `main`, every tag and every pull request runs the unit tests, then the contract tests as their own step, then builds and pushes `cs4297.skynet.ie/hackathon-2026/line-a-ledger:sha-<7 chars>` (and `:<tag>` for a tag). Promotion and the deploy gate use a tag: `checkpoint-1`, `checkpoint-2`, `checkpoint-3`, `release`. The gate has no Java, so it runs the image, never Gradle (HANDOVER §4).
 
-In IntelliJ, run `ServiceApplication` with the variables from `local.env` (EnvFile plugin, or paste them into "Environment variables"). Or from a terminal:
+## Two penalties (each ×0.75 on the project mark)
 
-```bash
-scripts/run-local.sh
-```
-
-A second instance, in another terminal:
-
-```bash
-scripts/run-local.sh 8082
-```
-
-The dev kit's containers reach a service in the IDE at `host.docker.internal:8081`, not `localhost` (on Linux, `172.17.0.1:8081`).
-
-Two instances in Docker without the checks (`<service>-1` on port 8081, `<service>-2` on 8082; stop with `docker compose down`):
-
-```bash
-./gradlew bootJar && docker compose up -d --build
-```
-
-An image CI built and pushed, for a Git tag or `sha-<first 7 characters of the commit>`:
-
-```bash
-IMAGE=cs4297.skynet.ie/hackathon-2026/line-a-orders:v1.0.0 docker compose up -d --no-build
-```
-
-Use your own repository's name and tag; it needs `docker login cs4297.skynet.ie`. This is how the deploy gate runs your service: the reference machine has Git and Docker but no Java, so your handover document's deploy step must be this command with your `release` tag, never `./gradlew` or `./check`. On an Apple-silicon Mac, Docker warns that the image is `linux/amd64`: that is expected, it runs under emulation.
-
-## CI
-
-Every push to `main`, every Git tag and every pull request runs "Unit tests", then "Contract tests" as its own step (the Platform team reads it), then builds and pushes your image tagged `sha-<commit>`, and also with the tag name for a Git tag. Promotion into integration uses your Git tag.
-
-## Large files: Git LFS
-
-A binary file over 1 MB (an image, a video, a PDF, an archive) goes through Git LFS; committed directly, it multiplies your project mark by 0.75 (handover, Part E, "Penalties"). Git for Windows includes Git LFS; on macOS run `brew install git-lfs`, on Ubuntu `sudo apt install git-lfs`. Then, before you add the file:
-
-```bash
-git lfs install
-git lfs track "*.png" "*.jpg" "*.mp4" "*.pdf" "*.zip"
-git add .gitattributes
-```
-
-CI fetches the LFS files before it builds your image.
-
-## Three mistakes the go/no-go rehearsal hit
-
-- Require `Idempotency-Key` only where your OpenAPI file says it is required (the Payments desk calls), not on every call.
-- Just after the clock moves, take the time from the injected `Clock`, and allow up to 5 seconds for every service to follow it.
-- A page call can arrive before your own consumer has seen the event that creates what it asks for. Answer 404 and let the page retry, as the journey test does.
+- A secret committed at any point in the history. Secrets go in `~/.gradle/gradle.properties` or a `*.local.env` file. The `DB_PASSWORD` in `local.env` and `service.env` is the dev kit's local value and does not count.
+- A binary over 1 MB committed without Git LFS (`git lfs track "*.pdf"` and so on, before `git add`).
 
 ## When something goes wrong
 
-| You see | What to do |
-|---|---|
-| `./gradlew: Permission denied` | Git on Windows dropped the execute bit: `git update-index --chmod=+x gradlew check scripts/*.sh`, then commit |
-| `Could not resolve ie.ul.cs4297.groupbuy:contracts:1.3.0` ... `401` | Gradle has no packages token: see "Before you start", and check the token has `read:package` |
-| `Received status code 429` from Maven Central | Too many downloads at once on the venue network: wait a minute and build again |
-| A 500 where you expected 401 | A controller reads the user some other way: take `user: CurrentUser` as a parameter, never a non-null token you read by hand |
-| A redirect (302) to a login page | The security setup was replaced: keep `platform/Security.kt`, which answers 401 |
-| `Kafka listener '...' has consumer group '...', not SERVICE_NAME` at start-up | Add `idIsGroup = false` next to `id`, as the message says |
-| `Could not resolve placeholder 'DB_URL'` (or another name) | A setting is missing: `service.env` in Docker, `local.env` in the IDE |
-| `network hackathon declared as external, but could not be found` | Start the dev kit first: it creates the network |
+The full table, keyed to the literal error text, is [HANDOVER §9](docs/HANDOVER.md#9-troubleshooting). The ones you hit while building:
 
-For anything about the dev kit, the gateway or sign-in, see the dev kit README, "When something goes wrong". The rules your service follows are in spec B, "Shared conventions" and "Technical conventions".
+| You see | Do |
+|---|---|
+| `./gradlew` fails at start-up and `java -version` says 24 | Set `JAVA_HOME` to JDK 21 (Start, step 4) |
+| `Could not resolve ie.ul.cs4297.groupbuy:contracts:1.3.0` ... `401` | No packages token: see Start, step 2; it needs `read:package` |
+| `Received status code 429` from Maven Central | Venue network: wait a minute and build again |
+| `network hackathon declared as external, but could not be found` | Start the dev kit first: it creates the network |
+| `Migration checksum mismatch` | Old schema in the dev kit's `ledger` database: drop and create it (dev kit only) |
+| `./gradlew: Permission denied` | `git update-index --chmod=+x gradlew check scripts/*.sh`, then commit |
