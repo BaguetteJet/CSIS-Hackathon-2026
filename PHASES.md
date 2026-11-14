@@ -7,7 +7,7 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 | 1 Slice 1 | Fri | Hold call, top-ups, `/me` | **Done**: LED-02, 03, 04, 07 |
 | 2 Golden path | Sat 21:00 | Accounts, settlement, releases | **Done**: LED-01, 05, 06, 08, 09, 10, 22 |
 | 3 Rest of the core | Sun 12:00 | Statement, desk, refunds, cash-outs, payouts | **Done**: LED-11 to 17 |
-| 4 Production bar | Sun 16:00 | Security, bad input, outages, dashboard, handover | LED-18, 19, 20, 23, 24 done; 21 partly |
+| 4 Production bar | Sun 16:00 | Security, bad input, outages, dashboard, handover | **Done**: LED-18 to 24 |
 
 ## Done
 
@@ -28,15 +28,14 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 | 18 | 401 before 403 on `/me`, statement and desk; 503 when sign-in key is down | `LedgerCoreTest`, `StatementTest`, `DeskTest`, `SignInUnavailableTest`, live via gateway |
 | 19 | Bad hold input 422/413; zero-amount top-up, refund, cash-out and payout to `ledger.dlt` | `HoldsTest`, `ContractTest`, `PaymentsDeadLetterTest`, [evidence](docs/evidence/led-19-payments-dlt.md) |
 | 20 | Movements sum to zero and no student goes negative, after any sequence | `ZeroSumPropertyTest` (200 random runs, [evidence](docs/evidence/led-20-zero-sum.md)) |
+| 21 | Outages: Kafka paused 5 min, MySQL down (503, never 500), one instance killed, both down 10 min; each event applied once | `DatabaseUnavailableTest`, [drill evidence](docs/evidence/led-21-outages.md) |
 | 22 | 100 holds/s, also during settlement | [k6 evidence](docs/evidence/led-22-holds-k6.md) |
 | 23 | Holds, settlement, parked refunds (count, oldest; 6 h alert), dead letters on the dashboard | `LedgerMetricsTest`, alert checked on Grafana 13.0.3 (fired on a test value) |
 | 24 | Flyway with validate; recompute, settlement and crash runbooks; daily check at 02:00 (stretch) | HANDOVER §8, §9; `LedgerMetricsTest` |
 
 ## Partly done
 
-| LED | Done | Left (item) |
-|---|---|---|
-| 21 | 503 `UNAVAILABLE`, never 500, with MySQL down (`DatabaseUnavailableTest`); Kafka down and both instances down, short runs (EDGE-CASES O1, X4) | Full drills: Kafka paused 5 min, MySQL stopped, one instance killed, both down 10 min (4) |
+None: every LED item, LED-01 to LED-24, is done.
 
 ## Marked properties (20 marks)
 
@@ -51,7 +50,7 @@ Each LED item has a Forgejo issue (#7 LED-01 to #30 LED-24): closed means done, 
 
 ## Next for the lead
 
-`checkpoint-2` tagged (`6e8cce1`, the proof of concept: [POC-DEMO.md](docs/POC-DEMO.md)). Next: promote into integration; LED-21 outage drills (item 4) before Sun 12:00. Item 9 (edge cases) is a stretch.
+`checkpoint-2` tagged (`6e8cce1`, the proof of concept: [POC-DEMO.md](docs/POC-DEMO.md)). Next: merge the stacked PRs, promote into integration, tag `checkpoint-3`. Item 9 (edge cases) is a stretch.
 
 ## How we're marked
 

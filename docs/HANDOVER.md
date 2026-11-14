@@ -280,7 +280,6 @@ SELECT waits_for, event_id, parked_at FROM parked_event WHERE consumer = 'suppor
 
 ## 10 Known limitations
 
-- **Not yet run:** the full outage drills (LED-21: Kafka paused 5 min, both instances down 10 min). Owners and dates: [PHASES.md](../PHASES.md).
 - A `DealConfirmed` outside the contract (negative price, commission outside 0–10000) can't come from Deals; if one arrives anyway it moves nothing, is retried for 2.5 min, then goes to `ledger.dlt`.
 - One `orderId` listed twice with different students in a `DealConfirmed`: the second is dropped without a SettlementIssue.
 - A listed order that can't be charged keeps its money set aside until its order closes (§8 "Is money stuck?"). The alert is Platform's (PLT-11).
