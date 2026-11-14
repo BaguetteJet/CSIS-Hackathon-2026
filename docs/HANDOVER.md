@@ -74,6 +74,7 @@ About 2 minutes: 1 for the dev kit, under 1 for the Ledger (both instances were 
    mkdir -p grafana/provisioning/alerting && cp ../line-a-ledger/grafana/alerting/ledger.yml grafana/provisioning/alerting/
    docker compose --profile full up -d
    ```
+   If the dev kit was already running, also `docker compose up -d --force-recreate grafana`: Grafana reads the alert file only at start-up.
    Ready when http://localhost:8080 shows a page (about a minute).
 3. Start both Ledger instances from the image CI built for the `release` tag:
    ```bash
@@ -91,6 +92,7 @@ A fresh database is built by Flyway on first start; a restart keeps every balanc
 ## 5 Verify
 
 Run from the dev kit folder. Each step's expected output is what we saw; IDs will differ.
+New IDs come from `/proc/sys/kernel/random/uuid` (any Linux); on macOS use `uuidgen | tr A-Z a-z` instead.
 
 1. **The gateway reaches our Ledger.**
    ```bash
@@ -110,26 +112,26 @@ Run from the dev kit folder. Each step's expected output is what we saw; IDs wil
 4. **One hold, asked three times on two instances, moves money once.**
    ```bash
    S=$(curl -s -H "Authorization: Bearer $(./token student011)" localhost:8080/api/ledger/me | grep -o '"studentId":"[^"]*"' | cut -d'"' -f4)
-   B="{\"orderId\":\"$(uuidgen | tr A-Z a-z)\",\"studentId\":\"$S\",\"dealId\":\"$(uuidgen | tr A-Z a-z)\",\"cutoffAt\":\"2026-11-15T12:00:00Z\",\"amountCents\":600}"
+   B="{\"orderId\":\"$(cat /proc/sys/kernel/random/uuid)\",\"studentId\":\"$S\",\"dealId\":\"$(cat /proc/sys/kernel/random/uuid)\",\"cutoffAt\":\"2026-11-15T12:00:00Z\",\"amountCents\":600}"
    for p in 8081 8082 8081; do curl -s -X POST localhost:$p/internal/ledger/holds -H 'Content-Type: application/json' -d "$B"; echo; done
    ```
    Expected: `"result":"PLACED"` three times. `/me` (step 3) now shows 600 less available and 600 held, not 1800.
 5. **Short of money, and bad input.**
    ```bash
-   curl -s -X POST localhost:8082/internal/ledger/holds -H 'Content-Type: application/json' -d "{\"orderId\":\"$(uuidgen | tr A-Z a-z)\",\"studentId\":\"$S\",\"dealId\":\"$(uuidgen | tr A-Z a-z)\",\"cutoffAt\":\"2026-11-15T12:00:00Z\",\"amountCents\":999999}"; echo
+   curl -s -X POST localhost:8082/internal/ledger/holds -H 'Content-Type: application/json' -d "{\"orderId\":\"$(cat /proc/sys/kernel/random/uuid)\",\"studentId\":\"$S\",\"dealId\":\"$(cat /proc/sys/kernel/random/uuid)\",\"cutoffAt\":\"2026-11-15T12:00:00Z\",\"amountCents\":999999}"; echo
    curl -s -X POST localhost:8081/internal/ledger/holds -H 'Content-Type: application/json' -d '{"orderId":"nope","amountCents":0}'; echo
    ```
    Expected: `"result":"INSUFFICIENT_FUNDS","availableCents":…` (what the student has left), then a 422 with `"code":"VALIDATION_FAILED"` listing all five fields.
 6. **The golden path: 12 students join, the deal tips, the Ledger settles.**
    ```bash
    D=$(./sim deal-opens --cutoff 2 | grep -o 'Deal: [0-9a-f-]*' | cut -d' ' -f2)
-   for i in $(seq 31 42); do curl -s -X POST -H "Authorization: Bearer $(./token student0$i)" -H "Idempotency-Key: $(uuidgen)" localhost:8080/api/orders/deals/$D/orders; echo; done
+   for i in $(seq 31 42); do curl -s -X POST -H "Authorization: Bearer $(./token student0$i)" -H "Idempotency-Key: $(cat /proc/sys/kernel/random/uuid)" localhost:8080/api/orders/deals/$D/orders; echo; done
    ./clock advance 3m
    ```
    Expected: 12 lines with `"status":"CONFIRMED","heldCents":600`. About 10 s after the clock moves, the settlement query in §8 for `$D` shows 12 charged, 6000, 600: each order paid 500, 50 to the Union, 100 back.
 7. **A hold after the deal closed is refused.** With `$D` from step 6:
    ```bash
-   curl -s -X POST localhost:8081/internal/ledger/holds -H 'Content-Type: application/json' -d "{\"orderId\":\"$(uuidgen | tr A-Z a-z)\",\"studentId\":\"$S\",\"dealId\":\"$D\",\"cutoffAt\":\"2026-11-15T12:00:00Z\",\"amountCents\":600}"; echo
+   curl -s -X POST localhost:8081/internal/ledger/holds -H 'Content-Type: application/json' -d "{\"orderId\":\"$(cat /proc/sys/kernel/random/uuid)\",\"studentId\":\"$S\",\"dealId\":\"$D\",\"cutoffAt\":\"2026-11-15T12:00:00Z\",\"amountCents\":600}"; echo
    ```
    Expected: `"result":"DEAL_CLOSED"`.
 8. **The books balance.** Run "Is the whole Ledger balanced?" in §8. Expected: every row 0.
