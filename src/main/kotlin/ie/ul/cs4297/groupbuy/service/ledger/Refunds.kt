@@ -25,9 +25,11 @@ private class ChargeRow(val studentId: UUID, val dealId: UUID, val restaurantId:
  * [LED-13] - Post refunds
  * [LED-14] - Refund limits and early refunds
  * Refunds after a charge, never more than the order was charged in total (decision 0009).
- * 1. Lock the order's charge row, so two refunds of one order go one at a time.
- * 2. A refundId already decided stops here. No charge yet: the refund came early, so park it ([LED-14] - Refund limits and early refunds).
- * 3. Lock the student, then post REFUND or publish RefundRefused EXCEEDS_CHARGE.
+ * 1. Lock the order's hold row, then its charge row: a refund waits for a settlement or release in progress, and two refunds of one order go one at a time.
+ * 2. A refundId already decided stops here.
+ * 3. Charged: lock the student, then post REFUND or publish RefundRefused EXCEEDS_CHARGE.
+ * 4. Not charged: NEVER_CHARGED once it can't be (hold released, or no hold and the deal decided); until then, park it by order or deal.
+ * A wakeup decides the refund again the same way, so each one ends once: posted, EXCEEDS_CHARGE or NEVER_CHARGED.
  */
 @Component
 class Refunds(
@@ -37,15 +39,45 @@ class Refunds(
     private val outbox: Outbox,
     private val parking: ParkedEvents,
     private val clock: Clock,
-) {
+) : RefundWakeups {
 
     fun approved(envelope: Envelope<ContractEvent>, e: RefundApproved) {
+        val holdState = lockHoldState(e.orderId)
         val charge = lockCharge(e.orderId)
         if (decided(e.refundId)) return
-        if (charge == null) {
-            parking.park(SupportConsumer.CONSUMER, "order:${e.orderId}", envelope)
-            return
+        when {
+            charge != null -> post(envelope, e, charge)
+            holdState == "RELEASED" -> refuseNeverCharged(envelope, e)
+            holdState == "OPEN" -> parking.park(SupportConsumer.CONSUMER, "order:${e.orderId}", envelope)
+            isDealDecided(e.dealId) -> refuseNeverCharged(envelope, e)
+            else -> parking.park(SupportConsumer.CONSUMER, "deal:${e.dealId}", envelope)
         }
+    }
+
+    /** One query for the whole deal, not one per charged order. */
+    override fun ordersCharged(orderIds: Collection<UUID>) {
+        if (orderIds.isEmpty()) return
+        val keys = orderIds.map { "order:$it" }
+        val waiting = jdbc.queryForList(
+            "SELECT DISTINCT waits_for FROM parked_event WHERE consumer = ? AND waits_for IN (${keys.joinToString(",") { "?" }})",
+            String::class.java, SupportConsumer.CONSUMER, *keys.toTypedArray(),
+        )
+        for (key in waiting) wake(key)
+    }
+
+    override fun holdReleased(orderId: UUID) = wake("order:$orderId")
+
+    override fun dealDecided(dealId: UUID) = wake("deal:$dealId")
+
+    /** Decide each refund parked for [waitsFor] again; one still undecidable parks under its new key. */
+    private fun wake(waitsFor: String) {
+        for (parked in parking.release(SupportConsumer.CONSUMER, waitsFor)) {
+            val e = parked.payload as? RefundApproved ?: continue
+            approved(parked, e)
+        }
+    }
+
+    private fun post(envelope: Envelope<ContractEvent>, e: RefundApproved, charge: ChargeRow) {
         val before = accounts.lockStudent(charge.studentId)
         if (e.amountCents > charge.priceCents - charge.refundedCents) {
             record(e, 0, "EXCEEDS_CHARGE")
@@ -72,6 +104,22 @@ class Refunds(
         outbox.publish(RefundPosted(e.refundId, e.orderId, charge.dealId, charge.studentId, charge.restaurantId, e.amountCents,
             split.commissionReversedCents, after.availableCents, after.heldCents), envelope.eventId)
     }
+
+    private fun refuseNeverCharged(envelope: Envelope<ContractEvent>, e: RefundApproved) {
+        val balance = accounts.lockStudent(e.studentId)
+        record(e, 0, "NEVER_CHARGED")
+        outbox.publish(RefundRefused(e.refundId, e.orderId, e.dealId, e.studentId, RefundRefusedReason.NEVER_CHARGED,
+            balance.availableCents, balance.heldCents), envelope.eventId)
+    }
+
+    /** The order's hold state (OPEN, RELEASED, CHARGED), or null if no hold was placed. Locks the row, or its gap if there's none. */
+    private fun lockHoldState(orderId: UUID): String? = jdbc.queryForList(
+        "SELECT state FROM hold_decision WHERE order_id = ? FOR UPDATE", String::class.java, orderId.toString(),
+    ).singleOrNull()
+
+    /** DealConfirmed, DealFailed or DealCancelled already processed. FOR SHARE: wait for a closure in progress. */
+    private fun isDealDecided(dealId: UUID): Boolean =
+        jdbc.queryForList("SELECT 1 FROM deal_closure WHERE deal_id = ? FOR SHARE", dealId.toString()).isNotEmpty()
 
     private fun lockCharge(orderId: UUID): ChargeRow? = jdbc.query(
         "SELECT student_id, deal_id, restaurant_id, price_cents, commission_cents, refunded_cents, commission_reversed_cents " +

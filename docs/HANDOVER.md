@@ -143,7 +143,7 @@ Checked with repeats, disorder and a stopped instance. Tests that need Java are 
 |---|---|---|---|
 | Every movement sums to zero; no student balance negative | §8 "Is the whole Ledger balanced?" after §5: every row 0 | `ZeroSumPropertyTest`: 200 random runs of top-ups, holds, releases, settlements, refunds, cash-outs and payouts; after every step all postings sum to 0 and no student is below 0 ([evidence](evidence/led-20-zero-sum.md)). Why it holds: `post()` refuses a movement whose sides don't sum to 0, and a student's balance only changes by `balance_cents + ? >= 0` | Done |
 | A deal settles exactly once, through a crash | `./sim deal-confirmed --repeat` publishes DealConfirmed twice; §8 "One deal's settlement" shows one row | `SettlementTest`: a crash halfway charges nothing, the retry settles once; DealConfirmed twice settles once | Done |
-| No order refunded more than it was charged | Refund more than is left of the charge: RefundRefused `EXCEEDS_CHARGE` (`refund` row, no REFUND movement) | `RefundsTest`: over the charge refused; part refunds of 5 then 445 on 450 reverse 1 then 44 commission; a repeat posts once | Done; an early refund waits parked, its wake-up is item 6 |
+| No order refunded more than it was charged | Refund more than is left of the charge: RefundRefused `EXCEEDS_CHARGE` (`refund` row, no REFUND movement) | `RefundsTest`: over the charge refused; part refunds of 5 then 445 on 450 reverse 1 then 44 commission; a repeat posts once | Done; an early refund is parked, then posted on its charge or refused NEVER_CHARGED |
 | A hold after its order or deal closed is refused | §5 step 7: DEAL_CLOSED | `HoldsTest`: ORDER_CLOSED and DEAL_CLOSED, before and racing the closure | Done |
 
 Also checked by the test agents: every hold within 2 s, also during a 202-order settlement ([LED-22 k6](evidence/led-22-holds-k6.md): max 666 ms); each event's balance-after chains with the one before (every balance on an event is read under the student's lock).
@@ -271,7 +271,7 @@ WHERE h.state = 'OPEN' GROUP BY h.deal_id, dc.reason ORDER BY oldest;
 
 ## 10 Known limitations
 
-- **Not built:** waking early refunds and NEVER_CHARGED (LED-14), cash-outs (15, 16), payouts (17), the statement (11), the desk balance (12). An early refund waits parked, moving nothing. Owners and dates: [PHASES.md](../PHASES.md).
+- **Not built:** cash-outs (15, 16), payouts (17), the statement (11), the desk balance (12). Owners and dates: [PHASES.md](../PHASES.md).
 - A `DealConfirmed` outside the contract (negative price, commission outside 0–10000) can't come from Deals; if one arrives anyway it moves nothing, is retried for 2.5 min, then goes to `ledger.dlt`.
 - One `orderId` listed twice with different students in a `DealConfirmed`: the second is dropped without a SettlementIssue.
 - A listed order that can't be charged keeps its money set aside until its order closes (§8 "Is money stuck?"). The alert is Platform's (PLT-11).

@@ -1,8 +1,13 @@
 package ie.ul.cs4297.groupbuy.service.ledger
 
 import ie.ul.cs4297.groupbuy.contracts.api.HoldResult
+import ie.ul.cs4297.groupbuy.contracts.events.CancelReason
+import ie.ul.cs4297.groupbuy.contracts.events.DealCancelled
 import ie.ul.cs4297.groupbuy.contracts.events.DealConfirmed
+import ie.ul.cs4297.groupbuy.contracts.events.DealFailed
+import ie.ul.cs4297.groupbuy.contracts.events.OrderAbandoned
 import ie.ul.cs4297.groupbuy.contracts.events.OrderRef
+import ie.ul.cs4297.groupbuy.contracts.events.OrderWithdrawn
 import ie.ul.cs4297.groupbuy.contracts.events.RefundApproved
 import ie.ul.cs4297.groupbuy.contracts.events.RefundApprovedReason
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -108,5 +113,123 @@ class RefundsTest : LedgerFlowTest() {
         assertEquals(0, movements(MovementType.REFUND, refund.refundId))
         assertEquals(400L to 600L, balanceOf(student))
         assertEquals(0, events("RefundPosted", deal).size + events("RefundRefused", deal).size)
+    }
+
+    private fun refund(order: UUID, deal: UUID, student: UUID, cents: Long = 200) =
+        RefundApproved(UUID.randomUUID(), order, deal, student, cents, RefundApprovedReason.KITCHEN_FAILURE, "SYSTEM")
+
+    /** Refunds still parked for this refund's order or deal. */
+    private fun parked(r: RefundApproved): Int = jdbc.queryForObject(
+        "SELECT COUNT(*) FROM parked_event WHERE consumer = ? AND waits_for IN (?, ?)",
+        Int::class.java, SupportConsumer.CONSUMER, "order:${r.orderId}", "deal:${r.dealId}",
+    )!!
+
+    /** The student's events in outbox order, as (type, availableCents). */
+    private fun chain(student: UUID): List<Pair<String, Int>> = jdbc.queryForList(
+        "SELECT message_json FROM outbox_event WHERE event_key = ? ORDER BY id", String::class.java, student.toString(),
+    ).map { mapper.readTree(it) }.map { it["type"].asText() to it["payload"]["availableCents"].asInt() }
+
+    // [LED-14] - Refund limits and early refunds
+    @Test
+    fun `a parked refund is posted when its order is charged, after the settlement's own events`() {
+        val student = funded(2000)
+        val charged = UUID.randomUUID()
+        val notListed = UUID.randomUUID()
+        val deal = UUID.randomUUID()
+        assertEquals(HoldResult.PLACED, hold(charged, student, 600, deal))
+        assertEquals(HoldResult.PLACED, hold(notListed, student, 300, deal))
+        val early = refund(charged, deal, student)
+        sendAndWait(envelope(early), envelope(early), consumer = SupportConsumer.CONSUMER) // twice: decided once
+
+        sendAndWait(envelope(DealConfirmed(deal, UUID.randomUUID(), 500, 1000, listOf(OrderRef(charged, student)))))
+
+        assertEquals(0, parked(early))
+        assertEquals(1, movements(MovementType.REFUND, early.refundId))
+        assertEquals(listOf(200, 20), events("RefundPosted", deal).single().let { listOf(it["amountCents"].asInt(), it["commissionReversedCents"].asInt()) })
+        assertEquals(1700L to 0L, balanceOf(student))
+        // Each event's balance chains from the one before it, the refund last.
+        assertEquals(
+            listOf("HoldPlaced" to 1400, "HoldPlaced" to 1100, "OrderCharged" to 1200, "HoldReleased" to 1500, "RefundPosted" to 1700),
+            chain(student),
+        )
+        assertBooksBalance()
+    }
+
+    @Test
+    fun `a parked refund whose hold is released is refused NEVER_CHARGED`() {
+        val student = funded(1000)
+        val order = UUID.randomUUID()
+        val deal = UUID.randomUUID()
+        assertEquals(HoldResult.PLACED, hold(order, student, 600, deal))
+        val early = refund(order, deal, student)
+        sendAndWait(envelope(early), consumer = SupportConsumer.CONSUMER)
+
+        sendAndWait(envelope(OrderWithdrawn(order, deal, student)))
+
+        assertEquals(0, parked(early))
+        assertEquals("NEVER_CHARGED", events("RefundRefused", deal).single()["reason"].asText())
+        assertEquals(0, movements(MovementType.REFUND, early.refundId))
+        assertEquals(1000L to 0L, balanceOf(student))
+        assertBooksBalance()
+    }
+
+    @Test
+    fun `a parked refund for an order left off the deal's list is refused NEVER_CHARGED`() {
+        val student = funded(1000)
+        val order = UUID.randomUUID()
+        val deal = UUID.randomUUID()
+        assertEquals(HoldResult.PLACED, hold(order, student, 600, deal))
+        val early = refund(order, deal, student)
+        sendAndWait(envelope(early), consumer = SupportConsumer.CONSUMER)
+
+        sendAndWait(envelope(DealConfirmed(deal, UUID.randomUUID(), 500, 1000, emptyList())))
+
+        assertEquals(0, parked(early))
+        assertEquals("NEVER_CHARGED", events("RefundRefused", deal).single()["reason"].asText())
+        assertEquals(1000L to 0L, balanceOf(student))
+    }
+
+    @Test
+    fun `a refund for an order already released is refused NEVER_CHARGED at once`() {
+        val student = funded(1000)
+        val order = UUID.randomUUID()
+        val deal = UUID.randomUUID()
+        assertEquals(HoldResult.PLACED, hold(order, student, 600, deal))
+        sendAndWait(envelope(OrderAbandoned(order, deal, student)))
+
+        val late = refund(order, deal, student)
+        sendAndWait(envelope(late), consumer = SupportConsumer.CONSUMER)
+
+        assertEquals(0, parked(late))
+        assertEquals("NEVER_CHARGED", events("RefundRefused", deal).single()["reason"].asText())
+        assertEquals(1000L to 0L, balanceOf(student))
+    }
+
+    @Test
+    fun `a refund with no hold waits for its deal's outcome, then is refused NEVER_CHARGED`() {
+        val student = funded(1000)
+        val deal = UUID.randomUUID()
+        val noHold = refund(UUID.randomUUID(), deal, student)
+        sendAndWait(envelope(noHold), consumer = SupportConsumer.CONSUMER)
+        assertEquals(1, parked(noHold))
+
+        sendAndWait(envelope(DealFailed(deal, 2)))
+
+        assertEquals(0, parked(noHold))
+        assertEquals("NEVER_CHARGED", events("RefundRefused", deal).single()["reason"].asText())
+        assertEquals(1000L to 0L, balanceOf(student))
+    }
+
+    @Test
+    fun `a refund with no hold for a deal already decided is refused NEVER_CHARGED at once`() {
+        val student = funded(1000)
+        val deal = UUID.randomUUID()
+        sendAndWait(envelope(DealCancelled(deal, CancelReason.DECLINED)))
+
+        val noHold = refund(UUID.randomUUID(), deal, student)
+        sendAndWait(envelope(noHold), consumer = SupportConsumer.CONSUMER)
+
+        assertEquals(0, parked(noHold))
+        assertEquals("NEVER_CHARGED", events("RefundRefused", deal).single()["reason"].asText())
     }
 }
