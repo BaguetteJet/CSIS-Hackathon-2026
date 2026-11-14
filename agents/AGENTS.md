@@ -8,7 +8,7 @@ The Ledger service for Campus Group-Buy, line A. Read before changing anything:
 | [OWNERS.md](../OWNERS.md), [work-items/](../work-items/README.md) | Who owns what; your item's steps |
 | [docs/NEIGHBOURS.md](../docs/NEIGHBOURS.md) | What we own and don't; what each team sends us and reads from us |
 | [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md), [docs/decisions/](../docs/decisions/README.md) | The design and why |
-| [docs/schema.md](../docs/schema.md) | Every table and key, and how they fit the contracts |
+| [docs/schema.md](../docs/SCHEMA.md) | Every table and key, and how they fit the contracts |
 | [docs/HANDOVER.md](../docs/HANDOVER.md) | Deploy, runbooks, SQL checks, known limitations |
 | [GLOSSARY.md](../GLOSSARY.md) | The words, including the ones students see |
 | [docs/EDGE-CASES.md](../docs/EDGE-CASES.md) | What the Ledger does in every case; check before a PR |

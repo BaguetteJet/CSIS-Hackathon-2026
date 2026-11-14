@@ -19,7 +19,7 @@ flowchart LR
 |---|---|
 | Deploy, verify, operate, recover it | [docs/HANDOVER.md](docs/HANDOVER.md) |
 | How it works and why | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/decisions/](docs/decisions/README.md) |
-| Every table and column | [docs/schema.md](docs/schema.md) |
+| Every table and column | [docs/schema.md](docs/SCHEMA.md) |
 | The words we use | [GLOSSARY.md](GLOSSARY.md) |
 | What we own, what we need from each team, what they need from us | [docs/NEIGHBOURS.md](docs/NEIGHBOURS.md) |
 | What's done and what's left | [PHASES.md](PHASES.md) |

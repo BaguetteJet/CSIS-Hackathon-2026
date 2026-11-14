@@ -1,6 +1,6 @@
 # Edge cases
 
-Every case the Ledger must handle, and what it does. The spec for [item 9](../work-items/item9_robustness.md); each row becomes a test. Design: [ARCHITECTURE.md](ARCHITECTURE.md). Tables: [schema.md](schema.md).
+Every case the Ledger must handle, and what it does. The spec for [item 9](../work-items/item9_robustness.md); each row becomes a test. Design: [ARCHITECTURE.md](ARCHITECTURE.md). Tables: [schema.md](SCHEMA.md).
 
 **Every decision is recorded, declines included.** Only the money depends on the outcome.
 
