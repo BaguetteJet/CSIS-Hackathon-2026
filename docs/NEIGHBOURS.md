@@ -63,7 +63,7 @@ Commission comes from DealConfirmed, never from RestaurantRegistered: the deal's
 | Payments | TopUpCredited | ledger.v1 | Sat 16:30 | Desk top-ups and the reset's €50 show "waiting for the Ledger" | Yes (LED-02) | No |
 | Payments | WithdrawalDebited, WithdrawalRefused, WithdrawalPaidOut, WithdrawalReturned | ledger.v1 | Sun 12:00 | Cash-outs stay REQUESTED | No (item 8) | No |
 | Payments | OrderCharged, RefundPosted, PayoutDebited | ledger.v1 | Sun 12:00 | Restaurant payables and the payout file are wrong | OrderCharged only | No |
-| Payments | A student's available balance at the desk | `GET /api/ledger/students/{studentId}` (UNION_FINANCE) | Sun 12:00 | Desk shows the balance as unknown, still lets staff start a cash-out | No (item 7) | No |
+| Payments | A student's available balance at the desk | `GET /api/ledger/students/{studentId}` (UNION_FINANCE) | Sun 12:00 | Desk shows the balance as unknown, still lets staff start a cash-out | Yes | No |
 | Support | OrderCharged, HoldReleased, RefundPosted, RefundRefused, SettlementIssue | ledger.v1 | Sun 12:00 | Support can't see charges or answer refunds | Charges, releases, issues; refunds no | No |
 | Student experience | Balance and statement on the Account page | `GET /api/ledger/me`, `GET /api/ledger/me/entries` (STUDENT) | Sun 12:00 | The Account page has no balance or history | `/me` and entries yes | No |
 | Student experience | Charges, refunds and desk money | ledger.v1 | Sun 12:00 | Pages and emails miss money events | Charges and top-ups | No |
