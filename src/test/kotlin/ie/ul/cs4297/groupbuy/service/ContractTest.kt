@@ -1,6 +1,7 @@
 package ie.ul.cs4297.groupbuy.service
 
 import ie.ul.cs4297.groupbuy.contracts.ContractEvent
+import ie.ul.cs4297.groupbuy.contracts.Money
 import ie.ul.cs4297.groupbuy.contracts.Envelope
 import ie.ul.cs4297.groupbuy.contracts.events.DealSettled
 import ie.ul.cs4297.groupbuy.contracts.events.EventCatalogue
@@ -10,17 +11,32 @@ import ie.ul.cs4297.groupbuy.contracts.events.HoldRejectedReason
 import ie.ul.cs4297.groupbuy.contracts.events.HoldReleased
 import ie.ul.cs4297.groupbuy.contracts.events.HoldReleasedReason
 import ie.ul.cs4297.groupbuy.contracts.events.OrderCharged
+import ie.ul.cs4297.groupbuy.contracts.events.PayoutConfirmed
+import ie.ul.cs4297.groupbuy.contracts.events.PayoutDebited
+import ie.ul.cs4297.groupbuy.contracts.events.RefundPosted
+import ie.ul.cs4297.groupbuy.contracts.events.RefundRefused
+import ie.ul.cs4297.groupbuy.contracts.events.RefundRefusedReason
 import ie.ul.cs4297.groupbuy.contracts.events.SettlementIssue
 import ie.ul.cs4297.groupbuy.contracts.events.TopUpCredited
 import ie.ul.cs4297.groupbuy.contracts.events.TopUpRecorded
 import ie.ul.cs4297.groupbuy.contracts.events.Topics
+import ie.ul.cs4297.groupbuy.contracts.events.WithdrawalCompleted
+import ie.ul.cs4297.groupbuy.contracts.events.WithdrawalDebited
+import ie.ul.cs4297.groupbuy.contracts.events.WithdrawalFailed
+import ie.ul.cs4297.groupbuy.contracts.events.WithdrawalPaidOut
+import ie.ul.cs4297.groupbuy.contracts.events.WithdrawalRefused
+import ie.ul.cs4297.groupbuy.contracts.events.WithdrawalRefusedReason
+import ie.ul.cs4297.groupbuy.contracts.events.WithdrawalRequested
+import ie.ul.cs4297.groupbuy.contracts.events.WithdrawalReturned
 import ie.ul.cs4297.groupbuy.contracts.testkit.ContractSamples
 import ie.ul.cs4297.groupbuy.contracts.testkit.assertMatchesContract
 import ie.ul.cs4297.groupbuy.service.ledger.InvalidEvent
 import ie.ul.cs4297.groupbuy.service.ledger.PaymentsConsumer
+import ie.ul.cs4297.groupbuy.service.ledger.Payouts
 import ie.ul.cs4297.groupbuy.service.ledger.Releases
 import ie.ul.cs4297.groupbuy.service.ledger.TopUpPosting
 import ie.ul.cs4297.groupbuy.service.ledger.TopUpResult
+import ie.ul.cs4297.groupbuy.service.ledger.Withdrawals
 import ie.ul.cs4297.groupbuy.service.platform.EnvelopeDeserializer
 import ie.ul.cs4297.groupbuy.service.platform.EventInbox
 import ie.ul.cs4297.groupbuy.service.platform.Outbox
@@ -45,6 +61,7 @@ class ContractTest {
     private val credited = mutableMapOf<UUID, Long>()
     private val published = mutableListOf<Envelope<ContractEvent>>()
     private val seen = mutableSetOf<UUID>()
+    private val routed = mutableListOf<ContractEvent>() // what reached the cash-out and payout stubs
     private val consumer = PaymentsConsumer(
         inbox = mockk<EventInbox> {
             every { once(any(), any(), any()) } answers {
@@ -61,6 +78,14 @@ class ContractTest {
             every { publish(any<ContractEvent>(), any()) } answers {
                 Envelope.of(firstArg<ContractEvent>(), published.size + 1L, now, secondArg<UUID?>()).also { published += it }
             }
+        },
+        withdrawals = object : Withdrawals {
+            override fun requested(e: WithdrawalRequested, causationId: UUID) { routed += e }
+            override fun completed(e: WithdrawalCompleted, causationId: UUID) { routed += e }
+            override fun failed(e: WithdrawalFailed, causationId: UUID) { routed += e }
+        },
+        payouts = object : Payouts {
+            override fun confirmed(e: PayoutConfirmed, causationId: UUID) { routed += e }
         },
     )
 
@@ -97,9 +122,11 @@ class ContractTest {
 
     @Test
     fun `the service can read every event type it consumes`() {
-        // Read by PaymentsConsumer and ClosuresConsumer.
+        // Read by PaymentsConsumer and ClosuresConsumer; RefundApproved by item 6's SupportConsumer.
         for (type in listOf("UserRegistered", "UserUpdated", "RoleChanged", "UserDeleted", "TopUpRecorded",
-            "OrderWithdrawn", "OrderAbandoned", "DealConfirmed", "DealFailed", "DealCancelled")) {
+            "WithdrawalRequested", "WithdrawalCompleted", "WithdrawalFailed", "PayoutConfirmed",
+            "OrderWithdrawn", "OrderAbandoned", "DealConfirmed", "DealFailed", "DealCancelled", "RestaurantRegistered",
+            "RefundApproved")) {
             val envelope = EnvelopeDeserializer().deserialize(EventCatalogue.byType(type)!!.topic, ContractSamples.json(type).toByteArray())
             assertEquals(type, envelope!!.type)
         }
@@ -121,6 +148,68 @@ class ContractTest {
         val e = assertThrows<InvalidEvent> { send(topUp(0)) }
         assertTrue(ExceptionClassifier.defaultFatalExceptionsList().any { it.isInstance(e) })
         assertTrue(credited.isEmpty() && published.isEmpty())
+    }
+
+    @Test
+    fun `cash-outs and payouts reach item 8 once each, and replays reach it not at all`() {
+        val withdrawal = UUID.randomUUID()
+        val events = listOf(
+            WithdrawalRequested(withdrawal, student, 1000, UUID.randomUUID()),
+            WithdrawalCompleted(withdrawal, student, 0, UUID.randomUUID()), // 0 is allowed: the reserved amount is used
+            WithdrawalFailed(withdrawal, student, 1000, "Cancelled at the desk"),
+            PayoutConfirmed(UUID.randomUUID(), UUID.randomUUID(), 12960),
+        ).map { Envelope.of(it, 1, now) }
+        events.forEach { send(it); send(it) }
+
+        assertEquals(events.map { it.payload }, routed)
+        assertTrue(published.isEmpty(), "the consumer publishes nothing for them itself")
+    }
+
+    @Test
+    fun `a zero-amount cash-out or payout goes straight to the dead-letter topic`() {
+        listOf(
+            WithdrawalRequested(UUID.randomUUID(), student, 0, UUID.randomUUID()),
+            PayoutConfirmed(UUID.randomUUID(), UUID.randomUUID(), 0),
+            PayoutConfirmed(UUID.randomUUID(), UUID.randomUUID(), -500),
+        ).forEach { event ->
+            val e = assertThrows<InvalidEvent> { send(Envelope.of(event, 1, now)) }
+            assertTrue(ExceptionClassifier.defaultFatalExceptionsList().any { it.isInstance(e) }, "not retried")
+        }
+        assertTrue(routed.isEmpty() && seen.isEmpty(), "nothing reached item 8 or the inbox")
+    }
+
+    @Test
+    fun `cash-out events match the contract`() {
+        val withdrawal = UUID.randomUUID()
+        // 2400 available, 1000 out: reserved, then handed over or returned (LED-15, 16).
+        assertMatchesContract(WithdrawalDebited(withdrawal, student, 1000, availableCents = 1400, heldCents = 1000))
+        assertMatchesContract(WithdrawalDebited(withdrawal, student, 2400, availableCents = 0, heldCents = 2400)) // exactly the balance
+        assertMatchesContract(WithdrawalPaidOut(withdrawal, student, 1000, availableCents = 1400, heldCents = 0))
+        assertMatchesContract(WithdrawalReturned(withdrawal, student, 1000, availableCents = 2400, heldCents = 0))
+        assertMatchesContract(WithdrawalRefused(withdrawal, student, WithdrawalRefusedReason.INSUFFICIENT_FUNDS, availableCents = 999, heldCents = 0))
+        assertMatchesContract(WithdrawalRefused(withdrawal, student, WithdrawalRefusedReason.INSUFFICIENT_FUNDS, availableCents = 0, heldCents = 0)) // no account yet
+    }
+
+    @Test
+    fun `payout events match the contract`() {
+        val restaurant = UUID.randomUUID()
+        assertMatchesContract(PayoutDebited(UUID.randomUUID(), restaurant, 12960))
+        assertMatchesContract(PayoutDebited(UUID.randomUUID(), restaurant, 1)) // the payable may go below 0: nothing on the event shows it
+    }
+
+    @Test
+    fun `refund events match the contract`() {
+        val order = UUID.randomUUID()
+        val deal = UUID.randomUUID()
+        val restaurant = UUID.randomUUID()
+        // 5000 topped up, a 450 order with 45 commission charged, refunded 5 then 445: reverses 1 then 44 (LED-13).
+        val first = Money.refundReversal(5, 450, 45)
+        val second = Money.refundReversal(445, 450, 45, refundedBeforeCents = 5)
+        assertEquals(1L to 44L, first.commissionReversedCents to second.commissionReversedCents)
+        assertMatchesContract(RefundPosted(UUID.randomUUID(), order, deal, student, restaurant, 5, first.commissionReversedCents, availableCents = 4555, heldCents = 0))
+        assertMatchesContract(RefundPosted(UUID.randomUUID(), order, deal, student, restaurant, 445, second.commissionReversedCents, availableCents = 5000, heldCents = 0))
+        // Over the charge, or never charged (LED-14): nothing moves.
+        RefundRefusedReason.entries.forEach { assertMatchesContract(RefundRefused(UUID.randomUUID(), order, deal, student, it, availableCents = 5000, heldCents = 0)) }
     }
 
     @Test
