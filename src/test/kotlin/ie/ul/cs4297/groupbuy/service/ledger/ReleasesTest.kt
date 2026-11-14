@@ -6,6 +6,7 @@ import ie.ul.cs4297.groupbuy.contracts.events.DealCancelled
 import ie.ul.cs4297.groupbuy.contracts.events.DealFailed
 import ie.ul.cs4297.groupbuy.contracts.events.OrderAbandoned
 import ie.ul.cs4297.groupbuy.contracts.events.OrderWithdrawn
+import ie.ul.cs4297.groupbuy.service.platform.ApiProblem
 import org.awaitility.kotlin.atMost
 import org.awaitility.kotlin.await
 import org.awaitility.kotlin.untilAsserted
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.springframework.http.HttpStatus
 import java.time.Duration
 import java.util.UUID
 import java.util.concurrent.Executors
@@ -92,7 +94,7 @@ class ReleasesTest : LedgerFlowTest() {
         val futures = students.mapIndexed { i, student ->
             pool.submit<HoldResult> {
                 if (i == 10) send(envelope(DealFailed(deal, 10)))
-                hold(UUID.randomUUID(), student, 600, deal)
+                holdLikeOrders(UUID.randomUUID(), student, 600, deal)
             }
         }
         val results = futures.map { it.get(30, TimeUnit.SECONDS) }
@@ -105,5 +107,17 @@ class ReleasesTest : LedgerFlowTest() {
         assertEquals(results.count { it == HoldResult.PLACED }, events("HoldReleased", deal).size)
         students.forEach { assertEquals(1000L to 0L, balanceOf(it)) }
         assertBooksBalance()
+    }
+
+    // A hold waiting over 1 s behind the release answers 503 and saves nothing (EDGE-CASES H10); Orders retries the same orderId.
+    private fun holdLikeOrders(order: UUID, student: UUID, cents: Long, deal: UUID): HoldResult {
+        repeat(4) {
+            try {
+                return hold(order, student, cents, deal)
+            } catch (e: ApiProblem) {
+                if (e.status != HttpStatus.SERVICE_UNAVAILABLE) throw e
+            }
+        }
+        return hold(order, student, cents, deal)
     }
 }
