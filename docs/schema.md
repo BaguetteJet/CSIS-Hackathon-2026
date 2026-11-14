@@ -1,5 +1,119 @@
 # Schema
-MySQL, migrations are in ([db/migration](../src/main/resources/db/migration/)).
+
+MySQL 8, one database (`ledger`), built by Flyway from [db/migration](../src/main/resources/db/migration/). Sections 1 to 6 explain how the tables work together; the diagrams and the column reference follow. Words: [GLOSSARY.md](../GLOSSARY.md).
+
+## 1 The model in one minute
+
+Three groups of tables. Only the first holds money; the second remembers decisions so that repeats and races change nothing; the third is the starter's plumbing.
+
+| Group | Tables | Is the truth for |
+|---|---|---|
+| **Money** | `ledger_account`, `ledger_movement`, `ledger_posting` | Every balance. A movement is one change of money; its postings are its sides and sum to 0 |
+| **Decisions** | `hold_decision`, `order_closure`, `deal_closure`, `deal_settlement`, `order_charge` | What the Ledger already decided: each order's hold answer and state, which orders and deals are closed, which deals settled, what each order paid |
+| **Plumbing** (starter, `platform/`) | `outbox_event`, `key_sequence`, `outbox_lease`, `processed_event`, `parked_event`, `timer`, `idempotency_record`, `known_user` | Events out (outbox), events in once (inbox), early events (parking), timers, HTTP idempotency, users seen |
+
+There are only two foreign keys (posting → movement, posting → account). Every other link is a shared UUID: `order_id`, `deal_id`, `student_id`. IDs come from other services, so the Ledger never refuses a row because it hasn't seen the owner yet.
+
+## 2 Signs and balances
+
+`amount_cents` is signed, and the postings of one movement always sum to 0. Read the sign from the owner's side:
+
+| Account (`owner_type`, `purpose`) | Positive means | Example, 14 Nov |
+|---|---|---|
+| STUDENT AVAILABLE | Money the student can spend. Never negative | +1,805 |
+| STUDENT HELD | Money **set aside** for open orders (students never see the word "held"). Never negative | +1,600 |
+| RESTAURANT PAYABLE | What the Union owes the restaurant | +10,350 (one restaurant's deals so far) |
+| UNION COMMISSION | What the Union has earned | +3,170 |
+| UNION CASH | Negative: the cash the desk took in, mirrored by everything above | −824,000 |
+
+So `−(Union cash) = students' money + payables + commission`, and all postings sum to 0.
+
+**`balance_cents` is kept for STUDENT rows only** (decision 0005). On UNION and RESTAURANT rows it is not maintained: on 14 Nov Union cash read −8000 there while its postings summed to −824,000. For those accounts always use `SUM(ledger_posting.amount_cents)`. The Union's two rows have the zero UUID as `owner_id` and exist from the first start (V3); every other account opens on first use.
+
+## 3 Which key stops which double
+
+| Must happen once | Enforced by | How a repeat ends |
+|---|---|---|
+| A money movement (top-up, hold, charge, release...) | `ledger_movement` UNIQUE (`reference_type`, `reference_id`) | The insert fails; `post` returns false and moves nothing |
+| An account | `ledger_account` UNIQUE (`owner_type`, `owner_id`, `purpose`) | Upsert returns the existing id |
+| One hold answer per order | `hold_decision` PK `order_id` | The insert fails; the saved answer is returned |
+| A hold ends once | `UPDATE hold_decision SET state = … WHERE order_id = ? AND state = 'OPEN'` | 0 rows updated: the other side already won |
+| A deal settles once | `deal_settlement` PK `deal_id`, inserted first | The insert fails; settlement stops before anything moves |
+| An order is charged once | `order_charge` PK `order_id`, and the ORDER_CHARGE movement key | Both would fail |
+| The first closure wins | `order_closure`, `deal_closure` PKs with `ON DUPLICATE KEY` no-op | Nothing changes |
+| An event's effect, per consumer | `processed_event` PK (`consumer`, `event_id`) | `inbox.once` skips the effect |
+
+`reference_type` is the movement's kind and `reference_id` its business key:
+
+| `reference_type` | `reference_id` is | Postings |
+|---|---|---|
+| `TOP_UP` | topUpId | Student AVAILABLE +, Union CASH − |
+| `HOLD` | orderId | Student AVAILABLE −, HELD + |
+| `RELEASE` | orderId | Student HELD −, AVAILABLE + |
+| `ORDER_CHARGE` | orderId | Student HELD −hold; Restaurant PAYABLE +(price − commission); Union COMMISSION +commission; Student AVAILABLE +rest (lines that would be 0 are left out) |
+| `REFUND`, `WITHDRAWAL`, `WITHDRAWAL_PAYOUT`, `WITHDRAWAL_RETURN`, `PAYOUT` | refundId, withdrawalId, payoutId | **Not yet** (items 6, 8) |
+
+## 4 What each operation writes
+
+All in one transaction each; nothing is half-written.
+
+| Operation | Trigger | Rows |
+|---|---|---|
+| Open accounts | UserRegistered, RestaurantRegistered, or first use | `ledger_account` ×2 (student) or ×1 (payable) |
+| Top-up | TopUpRecorded | `processed_event`; `ledger_movement` TOP_UP + 2 `ledger_posting`; `outbox_event` TopUpCredited |
+| Hold placed | `POST /internal/ledger/holds` | `hold_decision` (PLACED, state OPEN); `ledger_movement` HOLD + 2 postings; `outbox_event` HoldPlaced |
+| Hold refused | same | `hold_decision` (ORDER_CLOSED, DEAL_CLOSED or INSUFFICIENT_FUNDS with `available_cents`; state NULL); `outbox_event` HoldRejected. No money moves |
+| Order closed | OrderWithdrawn, OrderAbandoned | `processed_event`; `order_closure`; if the hold is open: state → RELEASED, RELEASE movement + 2 postings, HoldReleased |
+| Deal failed or cancelled | DealFailed, DealCancelled | `processed_event`; `deal_closure`; each open hold released as above |
+| Deal settled | DealConfirmed | `processed_event`; `deal_settlement` (claimed first, totals filled last); `deal_closure` CONFIRMED; per charged order: state → CHARGED, ORDER_CHARGE movement + 2 to 4 postings, `order_charge`, OrderCharged; per unlisted open hold: a release; per problem: SettlementIssue; one DealSettled |
+
+Every event goes to `outbox_event` in the same transaction and is published from there; `key_sequence` numbers them per key. ledger.v1 events about a student are keyed by `studentId`.
+
+### One order's life, real rows (14 Nov, golden path)
+
+student031 joined deal `ea469992…` with 600 set aside; the deal confirmed at 500 with 10% commission.
+
+| Movement | Account | `amount_cents` | Statement wording (`description`) |
+|---|---|---|---|
+| HOLD `470b6f15…` | STUDENT AVAILABLE | −600 | Set aside for your order |
+| | STUDENT HELD | +600 | |
+| ORDER_CHARGE `470b6f15…` | STUDENT HELD | −600 | |
+| | RESTAURANT PAYABLE | +450 | |
+| | UNION COMMISSION | +50 | |
+| | STUDENT AVAILABLE | +100 | Paid €5.00, €1.00 back in your Account |
+
+And the decision rows beside them: `hold_decision` (600, PLACED, state CHARGED); `order_charge` (500, 50, returned 100, refunded 0); `deal_settlement` (12 charged, 6000, 600); `deal_closure` CONFIRMED; `outbox_event` HoldPlaced and OrderCharged, both keyed by the student.
+
+Statement fields (`entry_kind`, `description`, `deal_id`, `order_id`) are set only on the student's AVAILABLE side, the line the student sees.
+
+## 5 Reading it
+
+Shell: `docker exec -it devkit-mysql-1 sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" ledger'`. A student's balance and history, the books check and a deal's settlement: [HANDOVER §8](HANDOVER.md#8-runbooks). Three more:
+
+Everything about one order:
+```sql
+SELECT h.result, h.state, h.amount_cents, c.price_cents, c.commission_cents, c.returned_cents, c.refunded_cents,
+       (SELECT GROUP_CONCAT(reference_type ORDER BY posted_at) FROM ledger_movement WHERE reference_id = h.order_id) AS movements
+FROM hold_decision h LEFT JOIN order_charge c ON c.order_id = h.order_id
+WHERE h.order_id = '<orderId>';
+```
+
+A deal's holds by state (open ones still have money set aside):
+```sql
+SELECT result, state, COUNT(*), SUM(amount_cents) FROM hold_decision WHERE deal_id = '<dealId>' GROUP BY result, state;
+```
+
+Events not yet sent, and events taken in per consumer:
+```sql
+SELECT event_type, COUNT(*) FROM outbox_event WHERE published_at IS NULL GROUP BY event_type;
+SELECT consumer, COUNT(*) FROM processed_event GROUP BY consumer;
+```
+
+## 6 Changing it
+
+- A new table or column: a new migration with the next free `V` number when you merge. Never edit an applied one, not even a comment: Flyway's checksum stops the service.
+- Already there for later items: `order_charge.refunded_cents` and `commission_reversed_cents` (refunds, item 6); the statement fields on `ledger_posting` (item 7).
+- `Migration checksum mismatch` on the dev kit: drop and create the `ledger` database (HANDOVER §9).
 
 ## Diagrams
 
@@ -8,7 +122,6 @@ Dotted line: shared ID, no foreign key
 
 ### Ledger Tables
 ```mermaid
-%%{init: {"theme": "default", "themeVariables": {"lineColor": "#ffffff", "relationLabelBackground": "#1e293b", "relationLabelColor": "#ffffff"}}}%%
 erDiagram
     ledger_account {
         bigint id PK
@@ -96,7 +209,6 @@ erDiagram
 
 ### Platform Tables
 ```mermaid
-%%{init: {"theme": "default", "themeVariables": {"lineColor": "#ffffff", "relationLabelBackground": "#1e293b", "relationLabelColor": "#ffffff"}}}%%
 erDiagram
     outbox_event {
         bigint id PK
@@ -165,7 +277,7 @@ One account per owner and purpose.
 | `owner_type` | VARCHAR(20) | Unique (`owner_type`, `owner_id`, `purpose`); STUDENT, RESTAURANT, UNION |
 | `owner_id` | CHAR(36) | Unique (`owner_type`, `owner_id`, `purpose`) |
 | `purpose` | VARCHAR(20) | Unique (`owner_type`, `owner_id`, `purpose`); AVAILABLE, HELD, PAYABLE, CASH, COMMISSION |
-| `balance_cents` | BIGINT | Default 0 |
+| `balance_cents` | BIGINT | Default 0. Kept for STUDENT rows only; on UNION and RESTAURANT rows it is stale: use the sum of postings (section 2) |
 | `created_at` | DATETIME(6) | |
 
 ### `ledger_movement` (V3)
@@ -218,7 +330,7 @@ Orders the Ledger has seen closed.
 |---|---|---|
 | `order_id` | CHAR(36) | PK |
 | `deal_id` | CHAR(36) | |
-| `reason` | VARCHAR(30) | WITHDRAWN, ABANDONED, CONFIRMED, FAILED, CANCELLED |
+| `reason` | VARCHAR(30) | WITHDRAWN, ABANDONED (the V5 comment lists all five; the code writes these two) |
 | `closed_at` | DATETIME(6) | |
 
 ### `deal_closure` (V5)
@@ -228,7 +340,7 @@ Deals the Ledger has seen closed.
 | Field | Type | Attributes |
 |---|---|---|
 | `deal_id` | CHAR(36) | PK |
-| `reason` | VARCHAR(30) | WITHDRAWN, ABANDONED, CONFIRMED, FAILED, CANCELLED |
+| `reason` | VARCHAR(30) | CONFIRMED, FAILED, CANCELLED |
 | `closed_at` | DATETIME(6) | |
 
 ### `order_charge` (V7)
