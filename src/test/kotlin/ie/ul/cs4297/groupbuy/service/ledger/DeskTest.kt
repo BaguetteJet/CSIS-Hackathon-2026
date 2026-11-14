@@ -10,6 +10,7 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.time.Duration
 import java.util.UUID
 
 // [LED-12] - Desk balance; [LED-18] - Security: Union finance reads any student's balance at the desk (item 7).
@@ -66,11 +67,12 @@ class DeskTest : LedgerFlowTest() {
     }
 
     @Test
-    fun `no token is 401, then any role but finance is 403 with no data`() {
+    fun `no or expired token is 401, then any role but finance is 403 with no data`() {
         val student = funded(1000)
         val path = "/api/ledger/students/$student"
 
         assertEquals(401, call(path, null).statusCode())
+        assertEquals(401, call(path, TestTokens.token(UUID.randomUUID(), Role.UNION_FINANCE, expiresIn = Duration.ofMinutes(-5))).statusCode())
 
         for (token in listOf(TestTokens.student(student), TestTokens.restaurantStaff(UUID.randomUUID()))) {
             val response = call(path, token)

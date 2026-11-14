@@ -65,6 +65,23 @@ podman compose down
 
 `./check` needs Docker and `docker compose --progress`; on Podman run its steps manually: `./gradlew test`, `./gradlew bootJar`, `podman compose up -d --build --force-recreate`, then the health checks above.
 
+for socket
+
+```bash
+curl --unix-socket "${DOCKER_HOST#unix://}" http://d/v1.40/version
+```
+
+```bash
+export DOCKER_HOST="unix:///run/user/$(id -u)/podman/podman.sock"
+export TESTCONTAINERS_RYUK_DISABLED=true
+export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE="/run/user/$(id -u)/podman/podman.sock"
+```
+
+check OK
+```bash
+curl --unix-socket "${DOCKER_HOST#unix://}" http://d/v1.40/version
+```
+
 ## Docker
 
 ```bash

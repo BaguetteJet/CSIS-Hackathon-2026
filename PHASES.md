@@ -27,7 +27,7 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 | 17 | Payouts, once per payoutId | `WithdrawalsTest`, `ContractTest` |
 | 18 | 401 before 403 on `/me`, statement and desk; 503 when sign-in key is down | `LedgerCoreTest`, `StatementTest`, `DeskTest`, `SignInUnavailableTest`, live via gateway |
 | 19 | Bad hold input 422/413; zero-amount top-up, refund, cash-out and payout to `ledger.dlt` | `HoldsTest`, `ContractTest`, `PaymentsDeadLetterTest`, [evidence](docs/evidence/led-19-payments-dlt.md) |
-| 20 | Movements sum to zero, no negatives, balances chain | `ZeroSumPropertyTest` (15 random runs of up to 120 steps), `RefundsTest` chain check |
+| 20 | Movements sum to zero and no student goes negative, after any sequence | `ZeroSumPropertyTest` (200 random runs, [evidence](docs/evidence/led-20-zero-sum.md)) |
 | 22 | 100 holds/s, also during settlement | [k6 evidence](docs/evidence/led-22-holds-k6.md) |
 | 23 | Holds, settlement, parked refunds (count, oldest; 6 h alert), dead letters on the dashboard | `LedgerMetricsTest`, alert checked on Grafana 13.0.3 (fired on a test value) |
 | 24 | Flyway with validate; recompute, settlement and crash runbooks; daily check at 02:00 (stretch) | HANDOVER §8, §9; `LedgerMetricsTest` |
@@ -42,7 +42,7 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 
 | Property | Status |
 |---|---|
-| Movements sum to zero, no negative balance | Done (`ZeroSumPropertyTest`: random top-ups, holds, releases, settlements, refunds and cash-outs, checked after every step) |
+| Movements sum to zero, no negative balance | Done (`ZeroSumPropertyTest`: 200 random runs of every money operation) |
 | A deal settles exactly once, through a crash | Done (`SettlementTest`) |
 | No order refunded more than charged | Done (`RefundsTest`: over the charge refused, part refunds round on the total; early refunds woken by the charge or refused NEVER_CHARGED) |
 | A hold after its deal or order closed is refused | Done (`HoldsTest`) |
