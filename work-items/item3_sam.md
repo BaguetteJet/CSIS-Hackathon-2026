@@ -1,6 +1,6 @@
 # Item 3: Payments events and contracts
 
-**Owner:** Sam · **Backup:** Member 6 · **LED:** 02, 19, contract tests
+**Owner:** Sam · **Backup:** Md Hossain · **LED:** 02, 19, contract tests
 
 **Slice 1:** yes: top-ups.
 

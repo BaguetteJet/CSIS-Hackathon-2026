@@ -6,8 +6,11 @@ The Ledger service for Campus Group-Buy, line A. Read before changing anything:
 |---|---|
 | [PHASES.md](../PHASES.md) | What's done and what's left |
 | [OWNERS.md](../OWNERS.md), [work-items/](../work-items/README.md) | Who owns what; your item's steps |
+| [docs/NEIGHBOURS.md](../docs/NEIGHBOURS.md) | What we own and don't; what each team sends us and reads from us |
 | [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md), [docs/decisions/](../docs/decisions/README.md) | The design and why |
-| [docs/HANDOVER.md](../docs/HANDOVER.md) | Runbooks and SQL checks |
+| [docs/schema.md](../docs/schema.md) | Every table and key, and how they fit the contracts |
+| [docs/HANDOVER.md](../docs/HANDOVER.md) | Deploy, runbooks, SQL checks, known limitations |
+| [GLOSSARY.md](../GLOSSARY.md) | The words, including the ones students see |
 
 Every story is an LED item from the team spec (Ledger §5, LED-01 to LED-24). Issue tracker: Forgejo issues on `hackathon-2026/line-a-ledger`, one per LED item, assigned to its owner; the steps live in `work-items/`.
 
@@ -36,11 +39,18 @@ Dev kit: in `dev-kit/.env` set `LEDGER_URL=http://ledger:8080` and `FAKE_EXCLUDE
 - Migrations: take the next free `V` number when you merge; never edit an applied one, not even a comment.
 - Secrets only in `~/.gradle/gradle.properties` or `*.local.env`; binaries over 1 MB through Git LFS. Either mistake costs the team ×0.75.
 
+## Boundaries
+
+- The Ledger owns the books only. Orders, deals, the desk, refund approval, users and alerts belong to other teams ([NEIGHBOURS §1](../docs/NEIGHBOURS.md#1-what-we-own-what-we-dont)). Don't build their logic here; take the values in their events (price, commission rate, amounts) as given.
+- Event and API shapes come from the `contracts` library, 1.3.0. Never change or copy them. To read one: `unzip -p "$(find ~/.gradle/caches -name 'contracts-1.3.0-sources.jar' | head -1)" contracts/schemas/<topic>/<Event>.schema.json`. `contracts/openapi/` has the APIs; `EventCatalogue.kt` has each event's producer and key.
+- A new input or output: add its row to NEIGHBOURS §2 or §3, and a contract test for each new event.
+
 ## Working
 
 - Stay in your area's files ([work-items/README.md](../work-items/README.md)); others' only through the shared interfaces.
 - Branch `item-<n>/<topic>` from `main`. Small PRs, merged with a merge commit, never squashed.
 - Commit messages: one plain subject line, no body.
+- Several sessions may share one checkout: work in your own `git worktree`, and never edit another session's uncommitted files.
 - **Done** means:
   - all three test suites are green and `./check` says Ready;
   - the behaviour is checked live on the dev kit;
@@ -50,8 +60,25 @@ Dev kit: in `dev-kit/.env` set `LEDGER_URL=http://ledger:8080` and `FAKE_EXCLUDE
 ## Style
 
 - Comments: the decision and its reason, one line. Plain Kotlin: `if` and `for` over clever chains.
-- Docs: short, tables, each fact in one place.
+- Docs: short, tables, each fact in one place (below). Numbers come from a real run in `docs/evidence/`, or are marked **Not yet** or **Planned**.
 - Student-facing text says "set aside" and "Account", never "hold" or "wallet".
+
+## Docs: where each fact lives
+
+Change the file that owns a fact in the same PR as the behaviour; elsewhere, link to it.
+
+| Fact | Lives in |
+|---|---|
+| Status of each LED item | PHASES.md |
+| Owner and backup | OWNERS.md |
+| An item's steps, and what it dropped and why (its Out of scope table) | work-items/ |
+| Ownership, inputs and outputs, event keys | docs/NEIGHBOURS.md |
+| Invariants, flows, failures | docs/ARCHITECTURE.md |
+| Why, and the options rejected | docs/decisions/ |
+| Tables, columns, keys, contract fit, planned tables | docs/schema.md |
+| Deploy, verify, runbooks, known limitations | docs/HANDOVER.md |
+| Words | GLOSSARY.md |
+| Measured results, with date and commit | docs/evidence/: never rewritten; add a follow-up line instead |
 
 ## Skills
 
