@@ -11,9 +11,9 @@
 
 ### Steps
 
-1. [ ] **Statement (LED-11):** `GET /api/ledger/me/entries`. AVAILABLE postings with an entry kind, newest first, at most 100.
+1. [x] **Statement (LED-11):** `GET /api/ledger/me/entries`. AVAILABLE postings with an entry kind, newest first, at most 100.
    *Done when:* credits minus debits equal availableCents.
-2. [ ] **Wording.** Student words only ("set aside", "Account").
+2. [x] **Wording.** Student words only ("set aside", "Account").
    *Done when:* a test fails on "hold" or "wallet".
 3. [ ] **Desk balance (LED-12):** `GET /api/ledger/students/{id}`. UNION_FINANCE only; malformed is 404; unknown gives zeros.
 4. [ ] **Security (LED-18).** 401 before 403 on statement and desk.
