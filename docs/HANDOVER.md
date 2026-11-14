@@ -141,7 +141,7 @@ Checked with repeats, disorder and a stopped instance. Tests that need Java are 
 
 | Marked property | Show it live | Recorded proof | Status |
 |---|---|---|---|
-| Every movement sums to zero; no student balance negative | §8 "Is the whole Ledger balanced?" after §5: every row 0 | Zero-sum assertions after every flow test; `ZeroSumPropertyTest` | Holds everywhere; **Not yet:** the random property test (item 7) |
+| Every movement sums to zero; no student balance negative | §8 "Is the whole Ledger balanced?" after §5: every row 0 | `ZeroSumPropertyTest`: 200 random runs of top-ups, holds, releases, settlements, refunds, cash-outs and payouts; after every step all postings sum to 0 and no student is below 0 ([evidence](evidence/led-20-zero-sum.md)). Why it holds: `post()` refuses a movement whose sides don't sum to 0, and a student's balance only changes by `balance_cents + ? >= 0` | Done |
 | A deal settles exactly once, through a crash | `./sim deal-confirmed --repeat` publishes DealConfirmed twice; §8 "One deal's settlement" shows one row | `SettlementTest`: a crash halfway charges nothing, the retry settles once; DealConfirmed twice settles once | Done |
 | No order refunded more than it was charged | Refund more than is left of the charge: RefundRefused `EXCEEDS_CHARGE` (`refund` row, no REFUND movement) | `RefundsTest`: over the charge refused; part refunds of 5 then 445 on 450 reverse 1 then 44 commission; a repeat posts once | Done; an early refund waits parked, its wake-up is item 6 |
 | A hold after its order or deal closed is refused | §5 step 7: DEAL_CLOSED | `HoldsTest`: ORDER_CLOSED and DEAL_CLOSED, before and racing the closure | Done |

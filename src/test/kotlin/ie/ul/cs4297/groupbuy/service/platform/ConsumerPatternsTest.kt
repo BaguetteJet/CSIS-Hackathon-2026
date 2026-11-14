@@ -76,9 +76,10 @@ class ConsumerPatternsTest : ContainersTest() {
         send(registered(id, "Ciarán Walsh", Role.STUDENT)) // the prerequisite arrives
 
         await atMost Duration.ofSeconds(30) untilAsserted {
-            val user = users.findById(id.toString()).orElseThrow()
-            assertEquals("RESTAURANT_STAFF", user.role) // the parked RoleChanged was applied after UserRegistered
-            assertEquals(restaurant.toString(), user.restaurantId)
+            val user = users.findById(id.toString())
+            assertTrue(user.isPresent, "UserRegistered not applied yet") // an assertion, so untilAsserted polls again
+            assertEquals("RESTAURANT_STAFF", user.get().role) // the parked RoleChanged was applied after UserRegistered
+            assertEquals(restaurant.toString(), user.get().restaurantId)
         }
         assertEquals(0L, parking.count(KnownUsersConsumer.CONSUMER))
     }
