@@ -91,7 +91,7 @@ class LedgerTopUpTest : ContainersTest() {
         assertEquals(5_000L, credited.single().availableCents)
         assertEquals(0L, credited.single().heldCents)
 
-        assertEquals(0L, jdbc.queryForObject("SELECT COALESCE(SUM(balance_cents), 0) FROM ledger_account", Long::class.java)!!)
+        assertEquals(0L, jdbc.queryForObject("SELECT COALESCE(SUM(amount_cents), 0) FROM ledger_posting", Long::class.java)!!)
     }
 
     @Test

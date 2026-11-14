@@ -2,6 +2,8 @@
 
 **Owner:** Sam · **Backup:** Member 6 · **LED:** 02, 19, contract tests
 
+**Slice 1:** yes: top-ups.
+
 - Every desk top-up is credited once, at its first amount.
 - Broken events go straight to the dead-letter topic; every event we publish matches the contracts, in CI.
 
@@ -11,7 +13,7 @@
 
 1. [x] **Top-ups (LED-02).** `PaymentsConsumer`: TopUpRecorded, then TopUpCredited.
    *Done when:* a replayed envelope and a new envelope with the same topUpId give one credit.
-2. [ ] **Reset at full size.** `./sim money-in --students 204`.
+2. [x] **Reset at full size.** `./sim money-in --students 204`.
    *Done when:* 204 credited once, postings sum to 0.
 3. [ ] **Room for item 8.** Route Withdrawal* and PayoutConfirmed to `Withdrawals` / `Payouts` stubs.
    *Done when:* item 8 fills them without touching `PaymentsConsumer.kt`.

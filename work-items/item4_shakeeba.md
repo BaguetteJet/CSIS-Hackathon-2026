@@ -2,6 +2,8 @@
 
 **Owner:** Shakeeba · **Backup:** Sam · **LED:** 21, 22 (k6), 23, 24 (handover)
 
+**Slice 1:** yes: the demo and its evidence.
+
 - Two instances anyone can deploy from the handover document alone.
 - Health visible on Grafana; proof the service survives the faults testers inject.
 
@@ -9,8 +11,8 @@
 
 ### Steps
 
-1. [ ] **Slice-1 bench and evidence.** `docs/evidence/slice-1-demo.md`.
-2. [ ] **k6 (LED-22).** 100 holds/s for 20 s, alone and during a cap-sized settlement; commit the output.
+1. [x] **Slice-1 bench and evidence.** `docs/evidence/slice-1-demo.md`.
+2. [x] **k6 (LED-22).** `scripts/k6/holds.js`, alone and during settlement ([evidence](../docs/evidence/led-22-holds-k6.md)).
 3. [ ] **Dev kit on every laptop.** `LEDGER_URL=http://ledger:8080`, `FAKE_EXCLUDE=ledger` in `dev-kit/.env`.
    *Done when:* `/api/ledger/hello` answers from `ledger-1` or `ledger-2` everywhere.
 4. [ ] **Tags.** `checkpoint-1` (Sat 11:00), `checkpoint-2` (15:50), `checkpoint-3`, `release` (Sun 16:00).

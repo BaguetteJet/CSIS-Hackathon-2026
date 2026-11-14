@@ -2,6 +2,8 @@
 
 **Owner:** Igor · **Backup:** Member 7 · **LED:** 07, 20 (posting rules), 24 (migrations)
 
+**Slice 1:** yes: schema, posting, `/me`.
+
 - One posting service moves all money: movements sum to zero, students never go negative.
 - `/me` shows the committed balance; restarts keep every balance.
 
@@ -11,7 +13,7 @@
 
 1. [x] **Schema, posting, `/me` (LED-07).** V3, `LedgerPostingService`, `LedgerAccounts`, `TopUpStore`, `LedgerCoreTest`.
    *Done when:* fresh migration, duplicate key, rollback and `/me` 401/403/zeros all pass.
-2. [ ] **`lockStudents`, `openRestaurant`.**
+2. [x] **`lockStudents`, `openRestaurant`.**
    *Done when:* 300 students lock in one call.
 3. [ ] **Zero-sum support (LED-20).** Expose what item 7's property test needs.
    *Done when:* the test runs against the real posting service.

@@ -2,6 +2,8 @@
 
 **Owner:** Member 7 · **Backup:** Shakeeba · **LED:** 11, 12, 18 (page routes), 20 (property test)
 
+**Slice 1:** no: phases 3 and 4.
+
 - Students see every change to their balance in their own words; the desk sees any student's balance.
 - One property test proves the books always balance.
 

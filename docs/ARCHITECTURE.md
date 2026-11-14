@@ -1,6 +1,6 @@
 # Ledger architecture
 
-The Ledger decides one thing: whether a student's money is available. Every movement of money is a set of postings that sum to zero. Structured by the module's seven steps; decisions in [decisions/](decisions/README.md).
+The Ledger decides one thing: whether a student's money is available. Every movement of money is a set of postings that sum to zero. Structured by the module's seven steps; decisions in [decisions/](decisions/README.md), progress in [PHASES.md](../PHASES.md).
 
 ## 1. Requirements
 
@@ -98,7 +98,7 @@ Union and restaurant accounts have no running balance, so they're never locked (
 **Settlement** (decision 0007): one local transaction, not a saga, because every row is ours (`lecture12a-the-on-sale-1.pdf` pp. 6–11).
 - The inbox catches a repeated envelope; `deal_settlement` catches a new envelope for the same deal.
 - A crash rolls everything back, and redelivery settles once.
-- Budget: commit in under 1 s, so holds for those students still answer within 2 s.
+- Measured: 300 orders in about 0.8 s, so holds for those students still answer within 2 s.
 
 **Chaining** (LED-20): every balance on an event is read under the student lock. The outbox numbers events per key in commit order: per-key FIFO, not total order (`lecture10c_2.pdf` pp. 3–9).
 

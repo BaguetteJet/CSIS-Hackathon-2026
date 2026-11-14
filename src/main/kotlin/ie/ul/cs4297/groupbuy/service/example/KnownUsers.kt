@@ -2,11 +2,13 @@ package ie.ul.cs4297.groupbuy.service.example
 
 import ie.ul.cs4297.groupbuy.contracts.ContractEvent
 import ie.ul.cs4297.groupbuy.contracts.Envelope
+import ie.ul.cs4297.groupbuy.contracts.events.Role
 import ie.ul.cs4297.groupbuy.contracts.events.RoleChanged
 import ie.ul.cs4297.groupbuy.contracts.events.Topics
 import ie.ul.cs4297.groupbuy.contracts.events.UserDeleted
 import ie.ul.cs4297.groupbuy.contracts.events.UserRegistered
 import ie.ul.cs4297.groupbuy.contracts.events.UserUpdated
+import ie.ul.cs4297.groupbuy.service.ledger.LedgerAccounts
 import ie.ul.cs4297.groupbuy.service.platform.EventInbox
 import ie.ul.cs4297.groupbuy.service.platform.ParkedEvents
 import jakarta.persistence.Column
@@ -50,6 +52,7 @@ class KnownUsersConsumer(
     private val parking: ParkedEvents,
     private val users: KnownUserRepository,
     private val clock: Clock,
+    private val accounts: LedgerAccounts,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -72,6 +75,8 @@ class KnownUsersConsumer(
         when (val e = envelope.payload) {
             is UserRegistered -> {
                 users.save(KnownUser(e.userId.toString(), e.name, e.email, e.role.name, e.restaurantId?.toString(), clock.instant()))
+                // Ledger (LED-01): open the student's account here, since this is the one users.v1 listener.
+                if (e.role == Role.STUDENT) accounts.openStudent(e.userId)
                 // Anything that arrived early for this user can be applied now.
                 parking.release(CONSUMER, "user:${e.userId}").forEach { apply(it) }
             }
