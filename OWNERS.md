@@ -28,12 +28,12 @@ We split the Ledger **by money flow**: each area owns one way money enters or le
 **Hersh** (team lead)
 - Owns: holds (item 1), settlement and releases (item 5). Backs up: cash-outs (item 8).
 - Done: the hold call (LED-03, 04), accounts on registration (01), releases and settlement (05, 06, 08, 09, 10), the load test (22), the sign-in 503 fix (18), the recompute SQL (24).
-- Next: get the PRs reviewed and merged (Sat 11:00); promote into integration (Sat 16:30).
+- Next: promote into integration (Sat 16:30); confirm [NEIGHBOURS.md](docs/NEIGHBOURS.md) with each team lead.
 
 **Igor**
 - Owns: core and data (item 2). Backs up: holds (item 1) and edge cases (item 9).
 - Done: the schema, the posting service and `/me` (LED-07).
-- Next: help item 7 with the zero-sum test (LED-20, by Sun 12:00); the daily check is a stretch goal.
+- Next: help item 7 with the zero-sum test (LED-20, by Sun 12:00); the daily check waits until LED-11 to 17 are done (bonus counts only then).
 
 **Sam**
 - Owns: payments events and contract tests (item 3). Backs up: operations (item 4).
@@ -43,11 +43,11 @@ We split the Ledger **by money flow**: each area owns one way money enters or le
 **Shakeeba**
 - Owns: operations (item 4). Backs up: statement and testing (item 7).
 - Done: the slice-1 demo bench and its evidence.
-- Next: tag `checkpoint-1` (Sat 11:00); dashboard (23); outage drills (21); the handover document (24, by Sun 16:00).
+- Next: tag `checkpoint-2` (Sat 15:50); dashboard (23); outage drills (21); the handover document (24, by Sun 16:00).
 
 **Cian**
 - Owns: cash-outs and payouts (item 8), edge cases and robustness (item 9). Backs up: settlement (item 5) and refunds (item 6).
-- Next: cash-outs (LED-15, 16) and payouts (17), by Sun 12:00; item 9 steps 1, 2 and 4 alongside.
+- Next: cash-outs (LED-15, 16) and payouts (17), by Sun 12:00; then item 9, steps 1 and 2 first.
 
 **Md Hossain**
 - Owns: refunds (item 6). Backs up: payments events (item 3).
@@ -67,4 +67,3 @@ We split the Ledger **by money flow**: each area owns one way money enters or le
 
 **Work items completed:** item 5 in full. Items 1–4 are partly done: their slice-1 steps are ticked; see each item's checkboxes.
 
-**Still to set up:** one Forgejo issue per LED item, assigned to its owner above.

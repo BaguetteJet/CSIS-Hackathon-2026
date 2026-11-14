@@ -143,7 +143,7 @@ Checked with repeats, disorder and a stopped instance. Tests that need Java are 
 | No order refunded more than it was charged | | | **Not yet** (item 6) |
 | A hold after its order or deal closed is refused | §5 step 7: DEAL_CLOSED | `HoldsTest`: ORDER_CLOSED and DEAL_CLOSED, before and racing the closure | Done |
 
-Also checked by the test agents: every hold within 2 s, also during a 300-order settlement ([LED-22 k6](evidence/led-22-holds-k6.md): max 666 ms); each event's balance-after chains with the one before (every balance on an event is read under the student's lock).
+Also checked by the test agents: every hold within 2 s, also during a 202-order settlement ([LED-22 k6](evidence/led-22-holds-k6.md): max 666 ms); each event's balance-after chains with the one before (every balance on an event is read under the student's lock).
 
 ## 7 Dashboard tour
 
@@ -152,7 +152,7 @@ Also checked by the test agents: every hold within 2 s, also during a 300-order 
 | Measure | What normal looks like |
 |---|---|
 | `ledger_holds_seconds{result}`: hold rate, latency, answer | Mostly PLACED; every answer well under 2 s (k6 max 666 ms at 100/s) |
-| `ledger_settlement_seconds` | One per confirmed deal; about 0.1 s for 12 orders, under 1 s for 300 |
+| `ledger_settlement_seconds` | One per confirmed deal; about 0.1 s for 12 orders, 0.79 s for 202 (k6) |
 | `ledger_settlement_issues_total` | 0. Anything else is a listed order we couldn't charge: §8 |
 | Dead letters on `ledger.dlt` | 0 new during a run (§8, K4) |
 
@@ -227,6 +227,16 @@ WHERE c.deal_id = '<dealId>' GROUP BY a.owner_type, a.purpose;
 
 Example: 11 orders at 500 with 10% commission and 600 set aside gives RESTAURANT 4950, STUDENT AVAILABLE 1100, STUDENT HELD −6600, UNION COMMISSION 550.
 
+### Is money stuck?
+
+Open holds on a closed deal: money still set aside that nothing will charge. Normally no rows. A CONFIRMED row is an order listed but not charged (a SettlementIssue): its money comes back when its order closes. A FAILED or CANCELLED row is a bug. Platform's stuck-hold alert (PLT-11) watches the same thing from our events.
+
+```sql
+SELECT h.deal_id, dc.reason, COUNT(*) AS open_holds, SUM(h.amount_cents) AS set_aside_cents, MIN(h.decided_at) AS oldest
+FROM hold_decision h JOIN deal_closure dc ON dc.deal_id = h.deal_id
+WHERE h.state = 'OPEN' GROUP BY h.deal_id, dc.reason ORDER BY oldest;
+```
+
 ### Failures (reference, Scenarios K)
 
 | Failure | Symptom | Confirm | Fix |
@@ -239,7 +249,7 @@ Example: 11 orders at 500 with 10% commission and 600 set aside gives RESTAURANT
 | **K4** An event we can't process | It retried 5 times over about 2.5 min, then went to `ledger.dlt` | `docker exec devkit-kafka-1 kafka-get-offsets --bootstrap-server localhost:9092 --topic ledger.dlt` (any partition above 0) and the `Dead letter:` line in the log | Fix the cause; the platform team replays it, and anything parked behind it then applies |
 | **K5** Rebuild | The Ledger is a source of truth, not a view: never dropped | §8 "Is the whole Ledger balanced?" | Balances recompute from postings (§8) |
 | **K7** Clock | Settlement or releases seem late after `./clock advance` | `./clock` | Wait 5 s: services read the clock every 5 s. The Ledger never refuses for time |
-| **K8** Popular deal | One deal's events all on one partition | `docker exec devkit-kafka-1 kafka-consumer-groups --bootstrap-server localhost:9092 --describe --group ledger` (LAG) | Expected: keeps each deal in order. A 300-order deal settles in one transaction in about a second |
+| **K8** Popular deal | One deal's events all on one partition | `docker exec devkit-kafka-1 kafka-consumer-groups --bootstrap-server localhost:9092 --describe --group ledger` (LAG) | Expected: keeps each deal in order. A 200-order deal settles in one transaction in under a second |
 
 ## 9 Troubleshooting
 
@@ -259,10 +269,10 @@ Example: 11 orders at 500 with 10% commission and 600 set aside gives RESTAURANT
 ## 10 Known limitations
 
 - **Not built:** refunds (LED-13, 14), cash-outs (15, 16), payouts (17), the statement (11), the desk balance (12). Owners and dates: [PHASES.md](../PHASES.md).
-- A `DealConfirmed` outside the contract (negative price, commission outside 0–10000) moves nothing but is retried for 2.5 min before `ledger.dlt` ([item 9](../work-items/item9_robustness.md), step 2).
-- One `orderId` listed twice with different students in a `DealConfirmed`: the second is dropped without a SettlementIssue (item 9, step 2).
-- A listed order that can't be charged keeps its money set aside until its order or deal closes; there is no alert for it yet (item 9, step 8).
-- The 300-order settlement measured 0.8 s, but 1.1–1.2 s on a busy laptop on 14 Nov (item 9, step 9).
+- A `DealConfirmed` outside the contract (negative price, commission outside 0–10000) can't come from Deals; if one arrives anyway it moves nothing, is retried for 2.5 min, then goes to `ledger.dlt`.
+- One `orderId` listed twice with different students in a `DealConfirmed`: the second is dropped without a SettlementIssue.
+- A listed order that can't be charged keeps its money set aside until its order closes (§8 "Is money stuck?"). The alert is Platform's (PLT-11).
+- All three were left out on purpose: [item 9, Out of scope](../work-items/item9_robustness.md#out-of-scope).
 - No API for the Ledger's own totals (Union cash, commission, payables): use §8.
 
 ## 11 Stop and reset

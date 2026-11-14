@@ -9,7 +9,7 @@ flowchart LR
   Orders -- "POST /internal/ledger/holds" --> L[Ledger x2]
   Pages["Account page, desk page"] -- "/api/ledger/*" --> L
   In["deals.v1, orders.v1, payments.v1, users.v1"] --> L
-  L -- "ledger.v1: HoldPlaced, OrderCharged, TopUpCredited..." --> Out[Orders, Payments, Support, Experience]
+  L -- "ledger.v1: HoldPlaced, OrderCharged, TopUpCredited..." --> Out[Orders, Payments, Support, Experience, Platform]
   L --- DB[(MySQL: accounts, movements, postings)]
 ```
 
@@ -21,7 +21,7 @@ flowchart LR
 | How it works and why | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/decisions/](docs/decisions/README.md) |
 | Every table and column | [docs/schema.md](docs/schema.md) |
 | The words we use | [GLOSSARY.md](GLOSSARY.md) |
-| Who needs what from us | [docs/NEIGHBOURS.md](docs/NEIGHBOURS.md) |
+| What we own, what we need from each team, what they need from us | [docs/NEIGHBOURS.md](docs/NEIGHBOURS.md) |
 | What's done and what's left | [PHASES.md](PHASES.md) |
 | Who owns what; each item's steps | [OWNERS.md](OWNERS.md), [work-items/](work-items/README.md) |
 | Proof from live runs | [docs/evidence/](docs/evidence/) |

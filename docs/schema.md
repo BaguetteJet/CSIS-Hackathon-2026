@@ -21,7 +21,7 @@ There are only two foreign keys (posting → movement, posting → account). Eve
 | Account (`owner_type`, `purpose`) | Positive means | Example, 14 Nov |
 |---|---|---|
 | STUDENT AVAILABLE | Money the student can spend. Never negative | +1,805 |
-| STUDENT HELD | Money **set aside** for open orders (students never see the word "held"). Never negative | +1,600 |
+| STUDENT HELD | Money **set aside** for open orders, and (item 8, planned) cash-outs reserved at the desk. Students never see the word "held". Never negative | +1,600 |
 | RESTAURANT PAYABLE | What the Union owes the restaurant | +10,350 (one restaurant's deals so far) |
 | UNION COMMISSION | What the Union has earned | +3,170 |
 | UNION CASH | Negative: the cash the desk took in, mirrored by everything above | −824,000 |
@@ -51,7 +51,11 @@ So `−(Union cash) = students' money + payables + commission`, and all postings
 | `HOLD` | orderId | Student AVAILABLE −, HELD + |
 | `RELEASE` | orderId | Student HELD −, AVAILABLE + |
 | `ORDER_CHARGE` | orderId | Student HELD −hold; Restaurant PAYABLE +(price − commission); Union COMMISSION +commission; Student AVAILABLE +rest (lines that would be 0 are left out) |
-| `REFUND`, `WITHDRAWAL`, `WITHDRAWAL_PAYOUT`, `WITHDRAWAL_RETURN`, `PAYOUT` | refundId, withdrawalId, payoutId | **Not yet** (items 6, 8) |
+| `REFUND` | refundId | Student AVAILABLE +amount; Union COMMISSION −reversed; Restaurant PAYABLE −(amount − reversed). **Planned** (item 6) |
+| `WITHDRAWAL` | withdrawalId | Student AVAILABLE −, HELD +. **Planned** (item 8) |
+| `WITHDRAWAL_PAYOUT` | withdrawalId | Student HELD −, Union CASH +. **Planned** (item 8) |
+| `WITHDRAWAL_RETURN` | withdrawalId | Student HELD −, AVAILABLE +. **Planned** (item 8) |
+| `PAYOUT` | payoutId | Restaurant PAYABLE −, Union CASH +. **Planned** (item 8) |
 
 ## 4 What each operation writes
 
@@ -67,7 +71,7 @@ All in one transaction each; nothing is half-written.
 | Deal failed or cancelled | DealFailed, DealCancelled | `processed_event`; `deal_closure`; each open hold released as above |
 | Deal settled | DealConfirmed | `processed_event`; `deal_settlement` (claimed first, totals filled last); `deal_closure` CONFIRMED; per charged order: state → CHARGED, ORDER_CHARGE movement + 2 to 4 postings, `order_charge`, OrderCharged; per unlisted open hold: a release; per problem: SettlementIssue; one DealSettled |
 
-Every event goes to `outbox_event` in the same transaction and is published from there; `key_sequence` numbers them per key. ledger.v1 events about a student are keyed by `studentId`.
+Every event goes to `outbox_event` in the same transaction and is published from there; `key_sequence` numbers them per key: `studentId` for a student's events, `restaurantId` for DealSettled and PayoutDebited, `dealId` for SettlementIssue ([NEIGHBOURS §4](NEIGHBOURS.md#4-event-keys)).
 
 ### One order's life, real rows (14 Nov, golden path)
 
@@ -113,7 +117,39 @@ SELECT consumer, COUNT(*) FROM processed_event GROUP BY consumer;
 
 - A new table or column: a new migration with the next free `V` number when you merge. Never edit an applied one, not even a comment: Flyway's checksum stops the service.
 - Already there for later items: `order_charge.refunded_cents` and `commission_reversed_cents` (refunds, item 6); the statement fields on `ledger_posting` (item 7).
+- Still to add: the `refund` and `withdrawal` tables (section 7).
 - `Migration checksum mismatch` on the dev kit: drop and create the `ledger` database (HANDOVER §9).
+
+## 7 Fit with the contracts
+
+Checked against contracts 1.3.0 on Sat 14 Nov: every shape another service sends us or reads from us, and the column it comes from.
+
+| Contract shape | Stored in | Fits |
+|---|---|---|
+| HoldRequest: `orderId`, `studentId`, `dealId`, `cutoffAt`, `amountCents` ≥ 1 | `hold_decision` | Yes. `cutoffAt` is validated, not stored: the Ledger never refuses for time |
+| HoldResponse: `availableCents` only for INSUFFICIENT_FUNDS | `hold_decision.available_cents` | Yes |
+| Balance (`availableCents`, `heldCents` ≥ 0) on `/me`, `/students/{id}` and every student event | `ledger_account.balance_cents`, STUDENT rows, read under the lock | Yes: never negative. An unknown student reads zeros |
+| LedgerEntry `kind`: TOP_UP, HOLD, RELEASE, RETURNED, REFUND, WITHDRAWAL, WITHDRAWAL_RETURNED | `ledger_posting.entry_kind`, on the AVAILABLE side | Yes: one kind per movement that changes available. A charge gives RETURNED only if something comes back; WITHDRAWAL_PAYOUT and PAYOUT never touch available, so no line |
+| HoldReleased `reason`: WITHDRAWN, ABANDONED, DEAL_FAILED, DEAL_CANCELLED, NOT_ON_LIST | The closing event | Yes: NOT_ON_LIST is a release at settlement |
+| DealCancelled `reason`: WITHDRAWN, DECLINED, NO_ANSWER | Not stored | `deal_closure.reason` says CANCELLED; nothing decides on why |
+| OrderCharged, DealSettled | `order_charge`, `deal_settlement` | Yes |
+| RefundPosted needs `restaurantId`, `commissionReversedCents` | `order_charge.restaurant_id`; the refund row | Planned (item 6) |
+| RefundRefused needs `dealId`, `studentId`, also for NEVER_CHARGED, when no `order_charge` row exists | RefundApproved's own fields | Planned: the refund row keeps them (below) |
+| WithdrawalRefused `reason`: INSUFFICIENT_FUNDS only; Payments shows RESERVED or REFUSED | The withdrawal row | Planned: REFUSED is kept, so a repeat gets the same answer |
+| WithdrawalCompleted, WithdrawalFailed: `amountCents` ≥ 0 | `withdrawal.amount_cents`, from WithdrawalRequested | Planned: the reserved amount wins (item 8) |
+| PayoutConfirmed: `payoutId`, `restaurantId`, `amountCents` ≥ 1 | The PAYOUT movement, keyed by `payoutId` | Planned: no table, the movement key makes it once. A payable may go negative after a refund |
+| DealConfirmed `orders`: no maximum | | The 200 orders in `SettlementTest` is the load test's deal (PLT-14), not a contract limit |
+
+**Planned tables** (the owning item takes the next free `V` number when it merges):
+
+| Table | Columns | Why these |
+|---|---|---|
+| `refund` (item 6) | `refund_id` PK, `order_id`, `deal_id`, `student_id`, `amount_cents`, `commission_reversed_cents`, `reason` (COMPLAINT, KITCHEN_FAILURE), `outcome` (POSTED, EXCEEDS_CHARGE, NEVER_CHARGED), `decided_at` | RefundRefused needs the deal and student even with no charge. A parked refund has no row yet: it waits in `parked_event` |
+| `withdrawal` (item 8) | `withdrawal_id` PK, `student_id`, `amount_cents`, `state` (RESERVED, REFUSED, PAID_OUT, RETURNED), `decided_at` | Paid out or returned is `UPDATE ... WHERE state = 'RESERVED'`, like a hold (decision 0008) |
+
+**Open, for the owning item:**
+- RefundApproved's `studentId` differs from the charged order's student: pay the charged student, or refuse? RefundRefused allows only EXCEEDS_CHARGE and NEVER_CHARGED (item 6).
+- WithdrawalCompleted or WithdrawalFailed for a refused or unknown cash-out: nothing moves; which event, if any? (item 8).
 
 ## Diagrams
 

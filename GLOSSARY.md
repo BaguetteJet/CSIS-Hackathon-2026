@@ -12,7 +12,7 @@ _Avoid_: wallet, balance (for the place itself)
 The part of a student's money they can spend, set aside or cash out.
 
 **Set aside**:
-The part of a student's money held for orders whose deals are not yet decided. The word students see.
+The part of a student's money held for orders whose deals are not yet decided, and (item 8) for a cash-out reserved at the desk. The word students see.
 _Avoid_: hold, held, reserved (in anything a student reads)
 
 **Payable**:
@@ -84,3 +84,17 @@ _Avoid_: withdrawal (in anything a student reads; the events use it)
 
 **Payout**:
 The Union paying a restaurant what it is owed, taken from its payable once.
+
+## Around the Ledger
+
+**Neighbour**:
+Another team's service that sends us events or reads ours. What each owns: [NEIGHBOURS.md](docs/NEIGHBOURS.md).
+
+**Contracts**:
+The organisers' library (1.3.0) that fixes every event's and API's shape. We code against it and never change it.
+
+**Dead letter**:
+An event the Ledger can't process, sent to `ledger.dlt`: at once if it breaks the contract (a zero top-up), otherwise after about 2.5 min of retries. Platform replays it once fixed.
+
+**Envelope**:
+The wrapper around every event: `eventId` (the inbox skips a repeat), `key` and `sequence` (order per key), `causationId` (the event that caused it).
