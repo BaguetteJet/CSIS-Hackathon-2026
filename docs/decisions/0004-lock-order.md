@@ -13,7 +13,7 @@ Check a balance only after step 2, with that locked read. A plain SELECT can ret
 
 **Rejected.**
 - Lock rows as needed and rely on retrying deadlocks: deadlocks become routine under load, and a settlement rolled back redoes up to 0.8 s of work. The hold call still retries a deadlock within 1 s, but only as a backstop.
-- Optimistic locking (retry when someone else changed the row): one top-up to any student in a 300-order deal makes the whole settlement start again.
+- Optimistic locking (retry when someone else changed the row): one top-up to any student in a 200-order deal makes the whole settlement start again.
 - One lock for everything: every hold waits up to 0.8 s whenever any deal settles.
 
 **Cost.** A release must lock the hold before it writes the closure row.

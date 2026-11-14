@@ -61,7 +61,7 @@ UNION ALL SELECT 'student balances not matching postings', COUNT(*) FROM (
   HAVING a.balance_cents <> COALESCE(SUM(p.amount_cents), 0)) y;
 ```
 
-Union and restaurant balances are the sum of their postings (decision 0005):
+Union and restaurant balances are the sum of their postings (decision 0005). Their `balance_cents` stays 0: never read it.
 
 ```sql
 SELECT COALESCE(SUM(p.amount_cents), 0) FROM ledger_posting p JOIN ledger_account a ON a.id = p.account_id
