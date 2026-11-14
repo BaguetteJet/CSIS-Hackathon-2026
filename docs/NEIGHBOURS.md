@@ -65,7 +65,7 @@ Commission comes from DealConfirmed, never from RestaurantRegistered: the deal's
 | Payments | OrderCharged, RefundPosted, PayoutDebited | ledger.v1 | Sun 12:00 | Restaurant payables and the payout file are wrong | OrderCharged, RefundPosted | No |
 | Payments | A student's available balance at the desk | `GET /api/ledger/students/{studentId}` (UNION_FINANCE) | Sun 12:00 | Desk shows the balance as unknown, still lets staff start a cash-out | No (item 7) | No |
 | Support | OrderCharged, HoldReleased, RefundPosted, RefundRefused, SettlementIssue | ledger.v1 | Sun 12:00 | Support can't see charges or answer refunds | Yes; NEVER_CHARGED not yet (item 6) | No |
-| Student experience | Balance and statement on the Account page | `GET /api/ledger/me`, `GET /api/ledger/me/entries` (STUDENT) | Sun 12:00 | The Account page has no balance or history | `/me` yes; entries no (item 7) | No |
+| Student experience | Balance and statement on the Account page | `GET /api/ledger/me`, `GET /api/ledger/me/entries` (STUDENT) | Sun 12:00 | The Account page has no balance or history | `/me` and entries yes | No |
 | Student experience | Charges, refunds and desk money | ledger.v1 | Sun 12:00 | Pages and emails miss money events | Charges, refunds and top-ups | No |
 | Platform and reliability | Every ledger.v1 event, `ledger.dlt`, metrics; one alert per SettlementIssue (PLT-12) | Kafka, `/actuator/prometheus` | Now | Their alerts and stuck-hold timer are blind | Yes | No |
 | Deals, Restaurant operations | Nothing: they never wait for settlement | | | | | Their docs |
