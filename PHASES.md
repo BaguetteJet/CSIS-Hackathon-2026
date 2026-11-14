@@ -25,9 +25,9 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 | 14 | Early refunds parked, then posted on the charge or refused NEVER_CHARGED | `RefundsTest` (6 more), `ContractTest` |
 | 15, 16 | Cash-outs: reserved, then paid out or returned, never both | `WithdrawalsTest` (8), `ContractTest`, live on the fake line |
 | 17 | Payouts, once per payoutId | `WithdrawalsTest`, `ContractTest` |
-| 20 | Movements sum to zero, no negatives, balances chain | `ZeroSumPropertyTest` (15 random runs of up to 120 steps), `RefundsTest` chain check |
 | 18 | 401 before 403 on `/me`, statement and desk; 503 when sign-in key is down | `LedgerCoreTest`, `StatementTest`, `DeskTest`, `SignInUnavailableTest`, live via gateway |
 | 19 | Bad hold input 422/413; zero-amount top-up, refund, cash-out and payout to `ledger.dlt` | `HoldsTest`, `ContractTest`, `PaymentsDeadLetterTest`, [evidence](docs/evidence/led-19-payments-dlt.md) |
+| 20 | Movements sum to zero and no student goes negative, after any sequence | `ZeroSumPropertyTest` (200 random runs, [evidence](docs/evidence/led-20-zero-sum.md)) |
 | 22 | 100 holds/s, also during settlement | [k6 evidence](docs/evidence/led-22-holds-k6.md) |
 
 ## Partly done
@@ -47,7 +47,7 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 
 | Property | Status |
 |---|---|
-| Movements sum to zero, no negative balance | Done (`ZeroSumPropertyTest`: random top-ups, holds, releases, settlements, refunds and cash-outs, checked after every step) |
+| Movements sum to zero, no negative balance | Done (`ZeroSumPropertyTest`: 200 random runs of every money operation) |
 | A deal settles exactly once, through a crash | Done (`SettlementTest`) |
 | No order refunded more than charged | Done (`RefundsTest`: over the charge refused, part refunds round on the total; early refunds woken by the charge or refused NEVER_CHARGED) |
 | A hold after its deal or order closed is refused | Done (`HoldsTest`) |
