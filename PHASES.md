@@ -41,7 +41,7 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 
 | LED | What | Item |
 |---|---|---|
-| 21 | Outage drills | 4 |
+| 21 | Outage drills (503 instead of 500 with MySQL down: done) | 4 |
 
 ## Marked properties (20 marks)
 
