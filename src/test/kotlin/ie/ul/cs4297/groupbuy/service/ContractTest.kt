@@ -147,7 +147,7 @@ class ContractTest {
     }
 
     @Test
-    fun `refund events match the contract`() {
+    fun `refunds as Refunds publishes them match the contract`() {
         val order = UUID.randomUUID()
         val deal = UUID.randomUUID()
         val restaurant = UUID.randomUUID()
