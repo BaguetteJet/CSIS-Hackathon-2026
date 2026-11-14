@@ -2,9 +2,13 @@ package ie.ul.cs4297.groupbuy.service.ledger
 
 import ie.ul.cs4297.groupbuy.contracts.ContractEvent
 import ie.ul.cs4297.groupbuy.contracts.Envelope
+import ie.ul.cs4297.groupbuy.contracts.events.PayoutConfirmed
 import ie.ul.cs4297.groupbuy.contracts.events.TopUpCredited
 import ie.ul.cs4297.groupbuy.contracts.events.TopUpRecorded
 import ie.ul.cs4297.groupbuy.contracts.events.Topics
+import ie.ul.cs4297.groupbuy.contracts.events.WithdrawalCompleted
+import ie.ul.cs4297.groupbuy.contracts.events.WithdrawalFailed
+import ie.ul.cs4297.groupbuy.contracts.events.WithdrawalRequested
 import ie.ul.cs4297.groupbuy.service.platform.EventInbox
 import ie.ul.cs4297.groupbuy.service.platform.Outbox
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -16,12 +20,14 @@ import org.springframework.stereotype.Component
 /** An event that breaks the contract (e.g. zero amount): never retried, goes straight to ledger.dlt (LED-19). */
 class InvalidEvent(message: String) : MessageConversionException(message)
 
-/** The only payments.v1 listener: a second one would split the partitions. Add cash-outs and payouts here. */
+/** The only payments.v1 listener: a second one would split the partitions (decision 0006). Cash-outs and payouts: item 8. */
 @Component
 class PaymentsConsumer(
     private val inbox: EventInbox,
     private val topUps: TopUpPosting,
     private val outbox: Outbox,
+    private val withdrawals: Withdrawals,
+    private val payouts: Payouts,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -31,16 +37,33 @@ class PaymentsConsumer(
 
     @KafkaListener(id = CONSUMER, idIsGroup = false, topics = [Topics.PAYMENTS_V1])
     fun on(record: ConsumerRecord<String, Envelope<ContractEvent>?>) {
-        val envelope = record.value() ?: return 
+        val envelope = record.value() ?: return
+        val cause = envelope.eventId
         when (val e = envelope.payload) {
             is TopUpRecorded -> topUp(envelope, e)
-            else -> {} // cash-outs and payouts (LED-15 to 17)
+            is WithdrawalRequested -> {
+                atLeastOneCent(envelope, e.amountCents)
+                inbox.once(CONSUMER, envelope) { withdrawals.requested(e, cause) }
+            }
+            // No amount check: the reserved amount is used, whatever this one says (LED-16).
+            is WithdrawalCompleted -> inbox.once(CONSUMER, envelope) { withdrawals.completed(e, cause) }
+            is WithdrawalFailed -> inbox.once(CONSUMER, envelope) { withdrawals.failed(e, cause) }
+            is PayoutConfirmed -> {
+                atLeastOneCent(envelope, e.amountCents)
+                inbox.once(CONSUMER, envelope) { payouts.confirmed(e, cause) }
+            }
+            else -> {}
         }
+    }
+
+    /** Checked before the inbox, so a bad event is never recorded as processed. */
+    private fun atLeastOneCent(envelope: Envelope<ContractEvent>, amountCents: Long) {
+        if (amountCents < 1) throw InvalidEvent("${envelope.type} ${envelope.eventId}: amountCents must be 1 or more")
     }
 
     /** LED-02: credit any sequence (reset is 0), amount or student. Limits and blocks: Payments' job (D-A4). */
     private fun topUp(envelope: Envelope<ContractEvent>, e: TopUpRecorded) {
-        if (e.amountCents < 1) throw InvalidEvent("TopUpRecorded ${envelope.eventId}: amountCents must be 1 or more")
+        atLeastOneCent(envelope, e.amountCents)
         inbox.once(CONSUMER, envelope) {
             val after = topUps.creditTopUp(e.topUpId, e.studentId, e.amountCents)
             if (after.newlyApplied) {

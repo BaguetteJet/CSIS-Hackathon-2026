@@ -11,6 +11,7 @@ The Ledger service for Campus Group-Buy, line A. Read before changing anything:
 | [docs/schema.md](../docs/schema.md) | Every table and key, and how they fit the contracts |
 | [docs/HANDOVER.md](../docs/HANDOVER.md) | Deploy, runbooks, SQL checks, known limitations |
 | [GLOSSARY.md](../GLOSSARY.md) | The words, including the ones students see |
+| [docs/EDGE-CASES.md](../docs/EDGE-CASES.md) | What the Ledger does in every case; check before a PR |
 
 Every story is an LED item from the team spec (Ledger §5, LED-01 to LED-24). Issue tracker: Forgejo issues on `hackathon-2026/line-a-ledger`, one per LED item, assigned to its owner; the steps live in `work-items/`.
 
@@ -55,6 +56,7 @@ Dev kit: in `dev-kit/.env` set `LEDGER_URL=http://ledger:8080` and `FAKE_EXCLUDE
   - all three test suites are green and `./check` says Ready;
   - the behaviour is checked live on the dev kit;
   - there's a contract test for each new event;
+  - every case in [docs/EDGE-CASES.md](../docs/EDGE-CASES.md) your change touches behaves as its row says, and new cases have a row;
   - your item's checkbox and PHASES.md are updated.
 
 ## Style
