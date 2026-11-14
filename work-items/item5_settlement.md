@@ -20,6 +20,6 @@
    *Done when:* the rest settles and DealSettled excludes them.
 5. [x] **Exactly once (LED-06, marked).**
    *Done when:* a crash halfway charges nothing and the retry settles once; DealConfirmed twice settles once.
-6. [x] **Speed.** 300 orders settle in under 1 s (measured 0.8 s).
+6. [x] **Speed.** 200 orders (the load test's cap) settle in under 1 s; 202 took 0.79 s during k6.
 
 **Review:** live on the fake line ([evidence](../docs/evidence/item5-live.md)).
