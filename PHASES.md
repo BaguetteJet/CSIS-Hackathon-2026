@@ -7,7 +7,7 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 | 1 Slice 1 | Fri | Hold call, top-ups, `/me` | **Done**: LED-02, 03, 04, 07 |
 | 2 Golden path | Sat 21:00 | Accounts, settlement, releases | **Done**: LED-01, 05, 06, 08, 09, 10, 22 |
 | 3 Rest of the core | Sun 12:00 | Statement, desk, refunds, cash-outs, payouts | **Done**: LED-11 to 17 |
-| 4 Production bar | Sun 16:00 | Security, bad input, outages, dashboard, handover | LED-18, 19 done; 20, 23, 24 partly; 21 to do |
+| 4 Production bar | Sun 16:00 | Security, bad input, outages, dashboard, handover | LED-18, 19, 20 done; 23, 24 partly; 21 to do |
 
 ## Done
 
@@ -25,6 +25,7 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 | 14 | Early refunds parked, then posted on the charge or refused NEVER_CHARGED | `RefundsTest` (6 more), `ContractTest` |
 | 15, 16 | Cash-outs: reserved, then paid out or returned, never both | `WithdrawalsTest` (8), `ContractTest`, live on the fake line |
 | 17 | Payouts, once per payoutId | `WithdrawalsTest`, `ContractTest` |
+| 20 | Movements sum to zero, no negatives, balances chain | `ZeroSumPropertyTest` (15 random runs of up to 120 steps), `RefundsTest` chain check |
 | 18 | 401 before 403 on `/me`, statement and desk; 503 when sign-in key is down | `LedgerCoreTest`, `StatementTest`, `DeskTest`, `SignInUnavailableTest`, live via gateway |
 | 19 | Bad hold input 422/413; zero-amount top-up, refund, cash-out and payout to `ledger.dlt` | `HoldsTest`, `ContractTest`, `PaymentsDeadLetterTest`, [evidence](docs/evidence/led-19-payments-dlt.md) |
 | 22 | 100 holds/s, also during settlement | [k6 evidence](docs/evidence/led-22-holds-k6.md) |
@@ -33,7 +34,6 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 
 | LED | Done | Left (item) |
 |---|---|---|
-| 20 | Movements sum to zero, no negatives, chaining | Zero-sum property test, marked (7) |
 | 23 | Hold and settlement metrics; Grafana dashboard live on the dev kit | Refund and DLT metrics, 6 h alert (4, 6) |
 | 24 | Migrations, recompute and settlement SQL | Rest of the handover document (4) |
 
@@ -47,7 +47,7 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 
 | Property | Status |
 |---|---|
-| Movements sum to zero, no negative balance | Holds everywhere; property test still to write (item 7) |
+| Movements sum to zero, no negative balance | Done (`ZeroSumPropertyTest`: random top-ups, holds, releases, settlements, refunds and cash-outs, checked after every step) |
 | A deal settles exactly once, through a crash | Done (`SettlementTest`) |
 | No order refunded more than charged | Done (`RefundsTest`: over the charge refused, part refunds round on the total; early refunds woken by the charge or refused NEVER_CHARGED) |
 | A hold after its deal or order closed is refused | Done (`HoldsTest`) |
@@ -56,7 +56,7 @@ Each LED item has a Forgejo issue (#7 LED-01 to #30 LED-24): closed means done, 
 
 ## Next for the lead
 
-`checkpoint-2` tagged (`6e8cce1`, the proof of concept: [POC-DEMO.md](docs/POC-DEMO.md)). Next: promote into integration; LED-20 property test (item 7), LED-21 outage drills (item 4) before Sun 12:00. Item 9 (edge cases) is a stretch.
+`checkpoint-2` tagged (`6e8cce1`, the proof of concept: [POC-DEMO.md](docs/POC-DEMO.md)). Next: promote into integration; LED-21 outage drills (item 4) before Sun 12:00. Item 9 (edge cases) is a stretch.
 
 ## How we're marked
 
@@ -67,7 +67,7 @@ Handover §20. The project is 40% of the module, out of 100, over four checkpoin
 | Design | Sat 11:00 | 15 | Work split; data model; how we keep the properties; decisions with the options rejected | Tagged `checkpoint-1` |
 | Proof of concept | Sat 15:50 | 15 | Slice and more on the fake line; CI passing; dashboard live | Slice and settlement done; dashboard to do |
 | Integration | Sun 14:00 | 15 | Running in integration; our part of the journey end to end; failure handling | Promote by Sat 16:30 |
-| Final | Sun 16:00 | 55 | Deploy gate, then handover document 10, marked properties 20, end to end and known limitations 15, individual 10 | Handover document, refunds, property test to do |
+| Final | Sun 16:00 | 55 | Deploy gate, then handover document 10, marked properties 20, end to end and known limitations 15, individual 10 | Handover document to do |
 
 Each checkpoint is 10 team marks and 5 individual (from your own merged, reviewed work and issues, and your answers).
 
