@@ -42,7 +42,8 @@ data class PostingLine(
 /**
  * The only way money moves.
  * Same [MovementRef] twice: returns false and moves nothing.
- * Locks accounts in ascending id order: no deadlocks.
+ * Only student accounts keep a running balance: they are locked in ascending id order, so no deadlocks.
+ * Union and restaurant accounts are just their postings: no row to lock, so no hot row for top-ups or settlement.
  * Students never go negative: callers check first, this only catches bugs. Payables and Union can (LED-13, LED-17).
  * Joins the caller's transaction: the event commits with the money.
  */
@@ -77,30 +78,27 @@ class LedgerPostingService(
             return false
         }
 
-        // Open accounts in a fixed order, then lock by ascending id.
+        // Open accounts in a fixed order, then lock the student ones by ascending id.
         val distinctAccounts = lines.map { it.account }.distinct()
         val idByAccount = distinctAccounts
             .sortedBy { "${it.owner.name}|${it.ownerId}|${it.purpose.name}" }
             .associateWith { accounts.ensure(it) }
-        val deltaById = lines
+        val studentDeltaById = lines
+            .filter { it.account.owner == AccountOwner.STUDENT }
             .groupingBy { idByAccount.getValue(it.account) }
             .fold(0L) { sum, line -> Math.addExact(sum, line.amountCents) }
-        val ids = deltaById.keys.sorted()
+        val studentIds = studentDeltaById.keys.sorted()
         val accountById = idByAccount.entries.associate { (account, id) -> id to account }
 
-        val afterById = LinkedHashMap<Long, Long>(ids.size)
-        for (id in ids) {
+        val afterById = LinkedHashMap<Long, Long>(studentIds.size)
+        for (id in studentIds) {
             val before = jdbc.queryForObject(
                 "SELECT balance_cents FROM ledger_account WHERE id = ? FOR UPDATE",
                 Long::class.java, id,
             )!!
-            afterById[id] = Math.addExact(before, deltaById.getValue(id))
-        }
-        for ((id, after) in afterById) {
-            val account = accountById.getValue(id)
-            if (account.owner == AccountOwner.STUDENT && after < 0) {
-                error("posting ${reference.type} ${reference.id} would make $account negative: $after cents")
-            }
+            val after = Math.addExact(before, studentDeltaById.getValue(id))
+            if (after < 0) error("posting ${reference.type} ${reference.id} would make ${accountById.getValue(id)} negative: $after cents")
+            afterById[id] = after
         }
 
         val postingSql =
@@ -120,7 +118,7 @@ class LedgerPostingService(
                 line.entry?.orderId?.toString(),
             )
         }
-        for (id in ids) {
+        for (id in studentIds) {
             jdbc.update(
                 "UPDATE ledger_account SET balance_cents = ? WHERE id = ?",
                 afterById.getValue(id), id,

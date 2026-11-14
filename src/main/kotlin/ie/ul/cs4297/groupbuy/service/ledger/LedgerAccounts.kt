@@ -36,7 +36,10 @@ data class AccountRef(
     }
 }
 
-/** Read accounts and open them on first use. Balances only change through [LedgerPostingService]. */
+/**
+ * Read accounts and open them on first use. Balances only change through [LedgerPostingService].
+ * balance_cents is kept for student accounts only: Union and restaurant balances are the sum of their postings.
+ */
 @Component
 class LedgerAccounts(
     private val jdbc: JdbcTemplate,
@@ -108,8 +111,15 @@ class LedgerAccounts(
         ref.owner.name, ref.ownerId, ref.purpose.name,
     ).firstOrNull()
 
-    /** Always zero under double entry (LED-20). */
+    /** Always zero under double entry (LED-20): every posting ever made, summed. */
     fun sumOfAllAccounts(): Long = jdbc.queryForObject(
-        "SELECT COALESCE(SUM(balance_cents), 0) FROM ledger_account", Long::class.java,
+        "SELECT COALESCE(SUM(amount_cents), 0) FROM ledger_posting", Long::class.java,
+    )!!
+
+    /** A Union or restaurant balance: the sum of its postings, since no running balance is kept for them. */
+    fun postedBalance(ref: AccountRef): Long = jdbc.queryForObject(
+        "SELECT COALESCE(SUM(p.amount_cents), 0) FROM ledger_posting p JOIN ledger_account a ON a.id = p.account_id " +
+            "WHERE a.owner_type = ? AND a.owner_id = ? AND a.purpose = ?",
+        Long::class.java, ref.owner.name, ref.ownerId, ref.purpose.name,
     )!!
 }

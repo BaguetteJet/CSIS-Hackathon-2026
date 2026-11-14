@@ -73,6 +73,7 @@ class HoldsTest : ContainersTest() {
         assertEquals(200, answer.statusCode())
         assertEquals(mapOf("orderId" to order.toString(), "result" to "PLACED"), fields(answer))
         assertEquals(0L to 1000L, balanceOf(student))
+        assertEquals("OPEN", stateOf(order))
         val event = holdEvents(student).single()
         assertMatchesContract(event)
         assertEquals("HoldPlaced", tree(event)["type"].asText())
@@ -89,6 +90,7 @@ class HoldsTest : ContainersTest() {
         assertEquals(mapOf("orderId" to order.toString(), "result" to "INSUFFICIENT_FUNDS", "availableCents" to "1000"), fields(answer))
         assertEquals(1000L to 0L, balanceOf(student))
         assertEquals(0, movementsFor(order))
+        assertEquals(null, stateOf(order))
         val event = holdEvents(student).single()
         assertMatchesContract(event)
         assertEquals("HoldRejected", tree(event)["type"].asText())
@@ -333,6 +335,9 @@ class HoldsTest : ContainersTest() {
     private fun tree(json: String): JsonNode = mapper.readTree(json)
 
     private fun balanceOf(student: UUID): Pair<Long, Long> = accounts.balance(student).let { it.availableCents to it.heldCents }
+
+    private fun stateOf(order: UUID): String? =
+        jdbc.queryForObject("SELECT state FROM hold_decision WHERE order_id = ?", String::class.java, order.toString())
 
     private fun movementsFor(reference: UUID): Int =
         jdbc.queryForObject("SELECT COUNT(*) FROM ledger_movement WHERE reference_id = ?", Int::class.java, reference.toString())!!

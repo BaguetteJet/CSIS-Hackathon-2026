@@ -191,9 +191,11 @@ class Holds(
 
     /** 3. Save the answer for repeats and queue the event. */
     private fun answer(r: HoldRequest, response: HoldResponse, event: ContractEvent): HoldResponse {
+        // A placed hold starts OPEN; releases and settlement move it on (V6__hold_state.sql).
         jdbc.update(
-            "UPDATE hold_decision SET result = ?, available_cents = ? WHERE order_id = ?",
-            response.result.name, response.availableCents, r.orderId.toString(),
+            "UPDATE hold_decision SET result = ?, available_cents = ?, state = ? WHERE order_id = ?",
+            response.result.name, response.availableCents,
+            "OPEN".takeIf { response.result == HoldResult.PLACED }, r.orderId.toString(),
         )
         outbox.publish(event)
         return response

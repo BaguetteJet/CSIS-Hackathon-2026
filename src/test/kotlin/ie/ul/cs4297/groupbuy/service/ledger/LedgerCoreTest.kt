@@ -14,6 +14,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
 import java.net.URI
 import java.net.http.HttpClient
@@ -21,6 +22,9 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 /** Item 2 review: migration, business-key dedupe, rollback, /me rules. Holds are in HoldsTest. */
 class LedgerCoreTest : ContainersTest() {
@@ -32,6 +36,7 @@ class LedgerCoreTest : ContainersTest() {
     @Autowired lateinit var jdbc: JdbcTemplate
     @Autowired lateinit var tx: TransactionTemplate
     @Autowired lateinit var mapper: ObjectMapper
+    @Autowired lateinit var transactions: PlatformTransactionManager
 
     private val http = HttpClient.newHttpClient()
 
@@ -51,7 +56,7 @@ class LedgerCoreTest : ContainersTest() {
             "SELECT version FROM flyway_schema_history WHERE success = 1 ORDER BY installed_rank",
             String::class.java,
         )
-        assertTrue(versions.containsAll(listOf("1", "2", "3", "4", "5")), versions.toString())
+        assertTrue(versions.containsAll(listOf("1", "2", "3", "4", "5", "6")), versions.toString())
         assertEquals(2, count("SELECT COUNT(*) FROM ledger_account WHERE owner_type = 'UNION'"))
         assertEquals(0L, accounts.sumOfAllAccounts())
     }
@@ -131,5 +136,31 @@ class LedgerCoreTest : ContainersTest() {
         assertEquals(200, funded.statusCode(), funded.body())
         assertEquals(2_000L, mapper.readTree(funded.body())["availableCents"].asLong())
         assertEquals(0L, mapper.readTree(funded.body())["heldCents"].asLong())
+    }
+
+    @Test
+    fun `top-ups for different students never wait on the Union cash account`() {
+        // One top-up keeps its transaction open; another student's top-up must not queue behind it.
+        val credited = CountDownLatch(1)
+        val finish = CountDownLatch(1)
+        val slow = Executors.newSingleThreadExecutor().submit {
+            tx.executeWithoutResult {
+                topUpStore.creditTopUp(UUID.randomUUID(), UUID.randomUUID(), 1_000)
+                credited.countDown()
+                finish.await(10, TimeUnit.SECONDS)
+            }
+        }
+        try {
+            assertTrue(credited.await(10, TimeUnit.SECONDS))
+            val quick = TransactionTemplate(transactions).apply { timeout = 2 }
+            val started = System.nanoTime()
+            assertTrue(quick.execute { topUpStore.creditTopUp(UUID.randomUUID(), UUID.randomUUID(), 2_000) }!!.newlyApplied)
+            val millis = (System.nanoTime() - started) / 1_000_000
+            assertTrue(millis < 1_000, "the second top-up waited $millis ms")
+        } finally {
+            finish.countDown()
+            slow.get(10, TimeUnit.SECONDS)
+        }
+        assertEquals(0L, accounts.sumOfAllAccounts())
     }
 }
