@@ -55,6 +55,11 @@ class LedgerAccounts(
         }
     }
 
+    /** Open a restaurant's payable at zero. Safe to call twice (LED-01). */
+    fun openRestaurant(restaurantId: UUID) {
+        ensure(AccountRef.restaurantPayable(restaurantId))
+    }
+
     /** No accounts yet: zeros (LED-07). */
     fun balance(studentId: UUID): Balance {
         val balances = jdbc.query(

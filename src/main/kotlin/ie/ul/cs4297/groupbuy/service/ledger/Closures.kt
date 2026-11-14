@@ -7,6 +7,7 @@ import ie.ul.cs4297.groupbuy.contracts.events.DealConfirmed
 import ie.ul.cs4297.groupbuy.contracts.events.DealFailed
 import ie.ul.cs4297.groupbuy.contracts.events.OrderAbandoned
 import ie.ul.cs4297.groupbuy.contracts.events.OrderWithdrawn
+import ie.ul.cs4297.groupbuy.contracts.events.RestaurantRegistered
 import ie.ul.cs4297.groupbuy.contracts.events.Topics
 import ie.ul.cs4297.groupbuy.service.platform.EventInbox
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -23,7 +24,12 @@ import java.util.UUID
  * The hold reads these rows FOR SHARE: a closure and a hold for the same order never overlap.
  */
 @Component
-class ClosuresConsumer(private val inbox: EventInbox, private val jdbc: JdbcTemplate, private val clock: Clock) {
+class ClosuresConsumer(
+    private val inbox: EventInbox,
+    private val jdbc: JdbcTemplate,
+    private val clock: Clock,
+    private val accounts: LedgerAccounts,
+) {
 
     companion object {
         const val CONSUMER = "closures"
@@ -38,6 +44,7 @@ class ClosuresConsumer(private val inbox: EventInbox, private val jdbc: JdbcTemp
             is DealConfirmed -> inbox.once(CONSUMER, envelope) { closeDeal(e.dealId, "CONFIRMED") }
             is DealFailed -> inbox.once(CONSUMER, envelope) { closeDeal(e.dealId, "FAILED") }
             is DealCancelled -> inbox.once(CONSUMER, envelope) { closeDeal(e.dealId, "CANCELLED") }
+            is RestaurantRegistered -> inbox.once(CONSUMER, envelope) { accounts.openRestaurant(e.restaurantId) } // LED-01
             else -> {}
         }
     }
