@@ -50,7 +50,7 @@ Every change of money starts from one of these. A field not listed is in the con
 | Pay a restaurant | Payments | PayoutConfirmed (payments.v1) | `payoutId`, `restaurantId`, `amountCents` ≥ 1 | `payoutId` | Built (LED-17) |
 | Every timestamp | Platform | The clock (`CLOCK_URL`) | Now | | Built |
 
-Commission comes from DealConfirmed, never from RestaurantRegistered: the deal's rate is the one charged. How each change is written: [schema §4](schema.md#4-what-each-operation-writes).
+Commission comes from DealConfirmed, never from RestaurantRegistered: the deal's rate is the one charged. How each change is written: [schema §4](SCHEMA.md#4-what-each-operation-writes).
 
 ## 3 What they need from us
 
