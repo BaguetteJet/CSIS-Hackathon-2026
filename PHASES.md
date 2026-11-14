@@ -1,6 +1,6 @@
 # Phases
 
-Where the Ledger stands against the brief's build order. LED stories: per-team spec, Ledger §5.
+Where the Ledger stands against the brief's build order. LED items: per-team spec, Ledger §5.
 
 | Phase | Due | Scope | Status |
 |---|---|---|---|
@@ -55,7 +55,7 @@ Each LED item has a Forgejo issue (#7 LED-01 to #30 LED-24): closed means done, 
 
 ## Next for the lead
 
-Before Sat 11:00: a "Rejected:" line in decisions 0002–0009, then tag `checkpoint-1`. Promote by 16:30.
+`checkpoint-1` tagged. Merge `docs` into `main`; promote by 16:30.
 
 ## How we're marked
 
@@ -63,7 +63,7 @@ Handover §20. The project is 40% of the module, out of 100, over four checkpoin
 
 | Checkpoint | When | Marks | Earned by | Where we are |
 |---|---|---|---|---|
-| Design | Sat 11:00 | 15 | Work split; data model; how we keep the properties; decisions with the options rejected | Docs on `main`; "Rejected:" lines and the tag to do |
+| Design | Sat 11:00 | 15 | Work split; data model; how we keep the properties; decisions with the options rejected | Tagged `checkpoint-1` |
 | Proof of concept | Sat 15:50 | 15 | Slice and more on the fake line; CI passing; dashboard live | Slice and settlement done; dashboard to do |
 | Integration | Sun 14:00 | 15 | Running in integration; our part of the journey end to end; failure handling | Promote by Sat 16:30 |
 | Final | Sun 16:00 | 55 | Deploy gate, then handover document 10, marked properties 20, end to end and known limitations 15, individual 10 | Handover document, refunds, property test to do |
