@@ -10,6 +10,11 @@
 
 It's not a saga: every row is ours (`lecture12a-the-on-sale-1.pdf` pp. 6–11). The inbox stops a repeated envelope; `deal_settlement` stops a new envelope for the same deal.
 
+**Rejected.**
+- Saga: for cross-service steps; half-settled states visible.
+- Transaction per order: a crash leaves a half-settled deal.
+- Background job: harder to prove exactly once.
+
 **Cost.** The deal's students are locked until commit. The budget is under 1 s; measured about 0.8 s for 300 orders.
 
 **Check.** `SettlementTest`: crash halfway charges nothing and the retry settles once; DealConfirmed twice settles once.

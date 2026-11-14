@@ -1,6 +1,6 @@
 # Decision records
 
-Written before the code they govern. Format: context, decision, cost, check.
+Written before the code they govern. Format: context, decision, rejected, cost, check.
 
 | # | Decision |
 |---|---|

@@ -9,6 +9,11 @@
 
 Decide only after step 2. Read every balance an event carries under that lock. A plain SELECT under REPEATABLE READ can be stale.
 
+**Rejected.**
+- Lock as needed, retry deadlocks: retries pile up under load; the 2 s budget breaks.
+- Optimistic locking: unbounded retries on a busy student.
+- One coarse lock: every hold waits on every settlement.
+
 **Cost.** A release must lock the hold row before writing its closure row.
 
 **Check.** `HoldsTest` and `ReleasesTest` races; k6 during settlement.

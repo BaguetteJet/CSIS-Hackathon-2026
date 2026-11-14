@@ -15,6 +15,6 @@
 | 7 Statement, desk, testing | Page API, property tests |
 | 8 Cash-outs, payouts | Branches in the payments listener |
 
-**Why not by layer.** A story would then cross three people; by flow, it stays with one.
+**Rejected.** Split by layer: each LED item would need three people.
 
 **Cost.** Area 2 is everyone's dependency, so its interface is fixed first. Pairs that share a listener (1+5, 3+8) or a hook (5+6) agree it up front.

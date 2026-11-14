@@ -1,6 +1,6 @@
 # Work items
 
-One area per person (decision [0001](../docs/decisions/0001-work-split.md)). Every LED story has one owner. Progress: [PHASES.md](../PHASES.md).
+One area per person (decision [0001](../docs/decisions/0001-work-split.md)). Every LED item has one owner. Progress: [PHASES.md](../PHASES.md).
 
 | Item | Area | Owner · Backup | LED |
 |---|---|---|---|

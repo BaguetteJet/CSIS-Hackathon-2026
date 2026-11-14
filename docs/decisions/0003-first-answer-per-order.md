@@ -4,6 +4,12 @@
 
 **Decision.** Claim the orderId first by inserting `hold_decision` (primary key), in the same transaction as the money and the event. A second call waits on the key, then returns the stored answer. Refusals are stored too; a 503 stores nothing.
 
+**Rejected.**
+- Redis: answer and money can't commit together.
+- Trusting Orders not to retry: a retry after a hidden commit holds twice.
+- Answer in a second transaction: a crash between leaves money moved, no answer.
+- Storing only PLACED: a retried refusal could flip after a top-up.
+
 **Cost.** One row per order.
 
 **Check.** `HoldsTest`: repeats, 8-way race on two instances, 503 within 2 s.
