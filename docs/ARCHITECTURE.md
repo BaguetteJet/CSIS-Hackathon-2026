@@ -64,6 +64,8 @@ A timeout after commit is safe: Orders retries the same orderId and gets the sto
 | `order_charge`, `deal_settlement` | order_id, deal_id | What was charged; that a deal settled |
 | starter inbox, outbox, parking | event id | Once-only consumption, publishing, early events |
 
+Every column, and which accounts each movement posts to: [SCHEMA.md](SCHEMA.md).
+
 ## 5. Design
 
 ```mermaid
