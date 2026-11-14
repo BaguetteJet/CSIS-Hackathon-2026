@@ -9,7 +9,7 @@
 
 ### Steps
 
-1. [ ] **Stub.** `RefundWakeups.kt` with a no-op, so item 5 compiles from the start.
+1. [x] **Stub.** `RefundWakeups.kt` with no-op `NoParkedRefunds` (added by item 5); replace it.
 2. [ ] **Migration:** `refund(refund_id PK, order_id, amount, commission_reversed, outcome, reason)`.
 3. [ ] **`SupportConsumer`** on support.v1: claim the refundId inside `inbox.once`.
    *Done when:* the same refundId twice posts once.
