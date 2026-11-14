@@ -30,7 +30,7 @@ Code against these from day one; a stub comes first. Change one only with both s
 
 ```kotlin
 // Item 6 implements; item 5 calls them in its transaction.
-interface RefundWakeups { fun orderCharged(orderId: UUID); fun holdReleased(orderId: UUID); fun dealDecided(dealId: UUID) }
+interface RefundWakeups { fun ordersCharged(orderIds: Collection<UUID>); fun holdReleased(orderId: UUID); fun dealDecided(dealId: UUID) }
 // Item 2 provides.
 fun lockStudents(studentIds: Collection<UUID>): MutableMap<UUID, Balance>   // one query, ascending id
 fun openRestaurant(restaurantId: UUID)

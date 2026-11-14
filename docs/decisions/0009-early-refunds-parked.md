@@ -13,4 +13,4 @@
 
 **Cost.** One function shared by settlement and refunds (`RefundWakeups`); an alert if a refund waits over 6 hours.
 
-**Proof.** `RefundsTest`: refunds over the charge refused, part refunds rounded on the running total, a refund before its charge parked. Still to write (item 6, step 5): a parked refund posted when the order is charged, refused NEVER_CHARGED when it is released.
+**Proof.** `RefundsTest`: refunds over the charge refused, part refunds rounded on the running total, a refund before its charge parked, then posted when the order is charged or refused NEVER_CHARGED when it is released; with no hold, refused once the deal is decided. Settlement wakes refunds after its own events, so each student's balances still chain.

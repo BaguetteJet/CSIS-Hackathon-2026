@@ -6,7 +6,7 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 |---|---|---|---|
 | 1 Slice 1 | Fri | Hold call, top-ups, `/me` | **Done**: LED-02, 03, 04, 07 |
 | 2 Golden path | Sat 21:00 | Accounts, settlement, releases | **Done**: LED-01, 05, 06, 08, 09, 10, 22 |
-| 3 Rest of the core | Sun 12:00 | Statement, desk, refunds, cash-outs, payouts | LED-11, 12, 13, 15, 16, 17 done; 14 partly |
+| 3 Rest of the core | Sun 12:00 | Statement, desk, refunds, cash-outs, payouts | **Done**: LED-11 to 17 |
 | 4 Production bar | Sun 16:00 | Security, bad input, outages, dashboard, handover | LED-18, 19 done; 20, 23, 24 partly; 21 to do |
 
 ## Done
@@ -22,6 +22,7 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 | 11 | Statement | `StatementTest` (9), live via gateway |
 | 12 | Desk balance | `DeskTest` (4), live via gateway |
 | 13 | Refunds, never over the charge | `RefundsTest` (5), `ContractTest`, live refund on the fake line |
+| 14 | Early refunds parked, then posted on the charge or refused NEVER_CHARGED | `RefundsTest` (6 more), `ContractTest` |
 | 15, 16 | Cash-outs: reserved, then paid out or returned, never both | `WithdrawalsTest` (8), `ContractTest`, live on the fake line |
 | 17 | Payouts, once per payoutId | `WithdrawalsTest`, `ContractTest` |
 | 18 | 401 before 403 on `/me`, statement and desk; 503 when sign-in key is down | `LedgerCoreTest`, `StatementTest`, `DeskTest`, `SignInUnavailableTest`, live via gateway |
@@ -32,7 +33,6 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 
 | LED | Done | Left (item) |
 |---|---|---|
-| 14 | Early refunds parked | Wake on charge or release; NEVER_CHARGED (6) |
 | 20 | Movements sum to zero, no negatives, chaining | Zero-sum property test, marked (7) |
 | 23 | Hold and settlement metrics; Grafana dashboard live on the dev kit | Refund and DLT metrics, 6 h alert (4, 6) |
 | 24 | Migrations, recompute and settlement SQL | Rest of the handover document (4) |
@@ -49,14 +49,14 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 |---|---|
 | Movements sum to zero, no negative balance | Holds everywhere; property test still to write (item 7) |
 | A deal settles exactly once, through a crash | Done (`SettlementTest`) |
-| No order refunded more than charged | Done (`RefundsTest`: over the charge refused, part refunds round on the total); parked refunds still need waking (item 6) |
+| No order refunded more than charged | Done (`RefundsTest`: over the charge refused, part refunds round on the total; early refunds woken by the charge or refused NEVER_CHARGED) |
 | A hold after its deal or order closed is refused | Done (`HoldsTest`) |
 
 Each LED item has a Forgejo issue (#7 LED-01 to #30 LED-24): closed means done, open means work left. A PR that finishes one says `Closes #NN`.
 
 ## Next for the lead
 
-`checkpoint-2` tagged (`6e8cce1`, the proof of concept: [POC-DEMO.md](docs/POC-DEMO.md)). Next: promote into integration; LED-14 (item 6), LED-20 property test (item 7), LED-21 outage drills (item 4) before Sun 12:00. Item 9 (edge cases) is a stretch.
+`checkpoint-2` tagged (`6e8cce1`, the proof of concept: [POC-DEMO.md](docs/POC-DEMO.md)). Next: promote into integration; LED-20 property test (item 7), LED-21 outage drills (item 4) before Sun 12:00. Item 9 (edge cases) is a stretch.
 
 ## How we're marked
 

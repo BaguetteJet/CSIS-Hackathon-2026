@@ -70,7 +70,7 @@ All in one transaction each; nothing is half-written.
 | Order closed | OrderWithdrawn, OrderAbandoned | `processed_event`; `order_closure`; if the hold is open: state → RELEASED, RELEASE movement + 2 postings, HoldReleased |
 | Deal failed or cancelled | DealFailed, DealCancelled | `processed_event`; `deal_closure`; each open hold released as above |
 | Deal settled | DealConfirmed | `processed_event`; `deal_settlement` (claimed first, totals filled last); `deal_closure` CONFIRMED; per charged order: state → CHARGED, ORDER_CHARGE movement + 2 to 4 postings, `order_charge`, OrderCharged; per unlisted open hold: a release; per problem: SettlementIssue; one DealSettled |
-| Refund | RefundApproved | `processed_event`; `order_charge` locked; `refund` (POSTED or EXCEEDS_CHARGE); if posted: REFUND movement + 2 or 3 postings, `order_charge` refunded totals up, RefundPosted; otherwise RefundRefused. No charge yet: only `parked_event` |
+| Refund | RefundApproved | `processed_event`; `order_charge` locked; `refund` (POSTED, EXCEEDS_CHARGE or NEVER_CHARGED); if posted: REFUND movement + 2 or 3 postings, `order_charge` refunded totals up, RefundPosted; otherwise RefundRefused. No charge yet: only `parked_event`, keyed `order:<id>` (hold open) or `deal:<id>` (no hold, deal undecided) |
 
 Every event goes to `outbox_event` in the same transaction and is published from there; `key_sequence` numbers them per key: `studentId` for a student's events, `restaurantId` for DealSettled and PayoutDebited, `dealId` for SettlementIssue ([NEIGHBOURS §4](NEIGHBOURS.md#4-event-keys)).
 
