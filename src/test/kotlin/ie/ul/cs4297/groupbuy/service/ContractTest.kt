@@ -10,6 +10,11 @@ import ie.ul.cs4297.groupbuy.contracts.events.HoldRejectedReason
 import ie.ul.cs4297.groupbuy.contracts.events.HoldReleased
 import ie.ul.cs4297.groupbuy.contracts.events.HoldReleasedReason
 import ie.ul.cs4297.groupbuy.contracts.events.OrderCharged
+import ie.ul.cs4297.groupbuy.contracts.events.RefundApproved
+import ie.ul.cs4297.groupbuy.contracts.events.RefundApprovedReason
+import ie.ul.cs4297.groupbuy.contracts.events.RefundPosted
+import ie.ul.cs4297.groupbuy.contracts.events.RefundRefused
+import ie.ul.cs4297.groupbuy.contracts.events.RefundRefusedReason
 import ie.ul.cs4297.groupbuy.contracts.events.SettlementIssue
 import ie.ul.cs4297.groupbuy.contracts.events.TopUpCredited
 import ie.ul.cs4297.groupbuy.contracts.events.TopUpRecorded
@@ -18,7 +23,9 @@ import ie.ul.cs4297.groupbuy.contracts.testkit.ContractSamples
 import ie.ul.cs4297.groupbuy.contracts.testkit.assertMatchesContract
 import ie.ul.cs4297.groupbuy.service.ledger.InvalidEvent
 import ie.ul.cs4297.groupbuy.service.ledger.PaymentsConsumer
+import ie.ul.cs4297.groupbuy.service.ledger.Refunds
 import ie.ul.cs4297.groupbuy.service.ledger.Releases
+import ie.ul.cs4297.groupbuy.service.ledger.SupportConsumer
 import ie.ul.cs4297.groupbuy.service.ledger.TopUpPosting
 import ie.ul.cs4297.groupbuy.service.ledger.TopUpResult
 import ie.ul.cs4297.groupbuy.service.platform.EnvelopeDeserializer
@@ -97,9 +104,9 @@ class ContractTest {
 
     @Test
     fun `the service can read every event type it consumes`() {
-        // Read by PaymentsConsumer and ClosuresConsumer.
+        // Read by PaymentsConsumer, ClosuresConsumer and SupportConsumer.
         for (type in listOf("UserRegistered", "UserUpdated", "RoleChanged", "UserDeleted", "TopUpRecorded",
-            "OrderWithdrawn", "OrderAbandoned", "DealConfirmed", "DealFailed", "DealCancelled")) {
+            "OrderWithdrawn", "OrderAbandoned", "DealConfirmed", "DealFailed", "DealCancelled", "RefundApproved")) {
             val envelope = EnvelopeDeserializer().deserialize(EventCatalogue.byType(type)!!.topic, ContractSamples.json(type).toByteArray())
             assertEquals(type, envelope!!.type)
         }
@@ -137,5 +144,28 @@ class ContractTest {
         assertMatchesContract(DealSettled(deal, restaurant, 0, 0, 0)) // nothing chargeable
         assertMatchesContract(SettlementIssue(deal, order, "The money set aside is for another student"))
         assertTrue(HoldReleasedReason.entries.none { Releases.wording(it).contains("hold", ignoreCase = true) })
+    }
+
+    @Test
+    fun `refund events match the contract`() {
+        val order = UUID.randomUUID()
+        val deal = UUID.randomUUID()
+        val restaurant = UUID.randomUUID()
+        val refund = UUID.randomUUID()
+        // The €2.00 of €5.00 example (Refunds.approved), and a refund that reverses no commission.
+        assertMatchesContract(RefundPosted(refund, order, deal, student, restaurant, 200, 20, availableCents = 700, heldCents = 0))
+        assertMatchesContract(RefundPosted(refund, order, deal, student, restaurant, 1, 0, availableCents = 1, heldCents = 600))
+        RefundRefusedReason.entries.forEach { assertMatchesContract(RefundRefused(refund, order, deal, student, it, availableCents = 500, heldCents = 0)) }
+    }
+
+    @Test
+    fun `a zero-amount refund goes straight to the dead-letter topic`() {
+        val refunds = mockk<Refunds>(relaxed = true)
+        val support = SupportConsumer(mockk<EventInbox>(relaxed = true), refunds)
+        val zero = Envelope.of(RefundApproved(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), student, 0,
+            RefundApprovedReason.COMPLAINT, "support001"), 1, now)
+
+        val e = assertThrows<InvalidEvent> { support.on(ConsumerRecord(Topics.SUPPORT_V1, 0, 0L, zero.key, zero)) }
+        assertTrue(ExceptionClassifier.defaultFatalExceptionsList().any { it.isInstance(e) })
     }
 }
