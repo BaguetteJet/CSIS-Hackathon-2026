@@ -185,7 +185,7 @@ class ContractTest {
     @Test
     fun `cash-out events match the contract`() {
         val withdrawal = UUID.randomUUID()
-        // 2400 available, 1000 out: reserved, then handed over or returned (LED-15, 16).
+        // [LED-15] - Reserve a cash-out; [LED-16] - Pay out or return a cash-out: 2400 available, 1000 out: reserved, then handed over or returned.
         assertMatchesContract(WithdrawalDebited(withdrawal, student, 1000, availableCents = 1400, heldCents = 1000))
         assertMatchesContract(WithdrawalDebited(withdrawal, student, 2400, availableCents = 0, heldCents = 2400)) // exactly the balance
         assertMatchesContract(WithdrawalPaidOut(withdrawal, student, 1000, availableCents = 1400, heldCents = 0))
@@ -206,13 +206,13 @@ class ContractTest {
         val order = UUID.randomUUID()
         val deal = UUID.randomUUID()
         val restaurant = UUID.randomUUID()
-        // 5000 topped up, a 450 order with 45 commission charged, refunded 5 then 445: reverses 1 then 44 (LED-13).
+        // [LED-13] - Post refunds: 5000 topped up, a 450 order with 45 commission charged, refunded 5 then 445: reverses 1 then 44.
         val first = Money.refundReversal(5, 450, 45)
         val second = Money.refundReversal(445, 450, 45, refundedBeforeCents = 5)
         assertEquals(1L to 44L, first.commissionReversedCents to second.commissionReversedCents)
         assertMatchesContract(RefundPosted(UUID.randomUUID(), order, deal, student, restaurant, 5, first.commissionReversedCents, availableCents = 4555, heldCents = 0))
         assertMatchesContract(RefundPosted(UUID.randomUUID(), order, deal, student, restaurant, 445, second.commissionReversedCents, availableCents = 5000, heldCents = 0))
-        // Over the charge, or never charged (LED-14): nothing moves.
+        // [LED-14] - Refund limits and early refunds: over the charge, or never charged, nothing moves.
         RefundRefusedReason.entries.forEach { assertMatchesContract(RefundRefused(UUID.randomUUID(), order, deal, student, it, availableCents = 5000, heldCents = 0)) }
     }
 

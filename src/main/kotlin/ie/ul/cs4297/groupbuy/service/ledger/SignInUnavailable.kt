@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
 
 /**
- * Sign-in key unreachable with none cached: answer 503 UNAVAILABLE, not 500 (LED-18, DEC E10).
+ * [LED-18] - Security: sign-in key unreachable with none cached, answer 503 UNAVAILABLE, not 500 (DEC E10).
  * Runs before Spring Security, which throws AuthenticationServiceException out of the chain and the starter leaves it as a 500.
  */
 @Component

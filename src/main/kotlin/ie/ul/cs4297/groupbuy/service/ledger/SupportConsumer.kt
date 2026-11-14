@@ -24,6 +24,7 @@ class SupportConsumer(
         val envelope = record.value() ?: return
         when (val e = envelope.payload) {
             is RefundApproved -> {
+                // [LED-19] - Bad input: a zero-amount refund goes straight to ledger.dlt
                 if (e.amountCents < 1) throw InvalidEvent("RefundApproved ${envelope.eventId}: amountCents must be 1 or more")
                 inbox.once(CONSUMER, envelope) { refunds.approved(envelope, e) }
             }

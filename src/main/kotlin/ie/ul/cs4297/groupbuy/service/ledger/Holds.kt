@@ -40,7 +40,10 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 /**
- * POST /internal/ledger/holds (LED-03, LED-04). Internal only: no token.
+ * [LED-03] - Place a hold
+ * [LED-04] - Hold repeats and refusals
+ * [LED-19] - Bad input
+ * POST /internal/ledger/holds. Internal only: no token.
  * Body read by hand: the contract wants 422 with errors[] (not Spring's 415) and 413 over 64 KB.
  */
 @RestController
@@ -176,7 +179,7 @@ class Holds(
             result = response.result.name
             return response
         } finally {
-            // ledger_holds_seconds{result} for Grafana (LED-23)
+            // [LED-23] - Observability: ledger_holds_seconds{result} for Grafana
             meters.timer("ledger.holds", "result", result).record(System.nanoTime() - started, TimeUnit.NANOSECONDS)
         }
     }
@@ -201,7 +204,7 @@ class Holds(
         if (!claim(r)) return storedAnswer(r.orderId)
 
         val closed = closedReason(r)
-        // Every answer's event carries this balance (LED-20). A student we've never seen starts at 0.
+        // [LED-20] - Two instances, one truth: every answer's event carries this balance. A student we've never seen starts at 0.
         val balance = accounts.lockStudent(r.studentId)
 
         if (closed != null) return refuse(r, closed, balance)

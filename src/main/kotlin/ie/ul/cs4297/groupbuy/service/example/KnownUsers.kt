@@ -75,7 +75,7 @@ class KnownUsersConsumer(
         when (val e = envelope.payload) {
             is UserRegistered -> {
                 users.save(KnownUser(e.userId.toString(), e.name, e.email, e.role.name, e.restaurantId?.toString(), clock.instant()))
-                // Ledger (LED-01): open the student's account here, since this is the one users.v1 listener.
+                // [LED-01] - Open accounts: open the student's account here, since this is the one users.v1 listener.
                 if (e.role == Role.STUDENT) accounts.openStudent(e.userId)
                 // Anything that arrived early for this user can be applied now.
                 parking.release(CONSUMER, "user:${e.userId}").forEach { apply(it) }

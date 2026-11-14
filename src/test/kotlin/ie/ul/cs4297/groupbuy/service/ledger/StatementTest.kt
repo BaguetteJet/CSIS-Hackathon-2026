@@ -20,7 +20,7 @@ import java.net.http.HttpResponse
 import java.time.Duration
 import java.util.UUID
 
-// Item 7, LED-11 and LED-18: the student's own statement, newest first, netting to availableCents.
+// [LED-11] - My statement; [LED-18] - Security: the student's own statement, newest first, netting to availableCents (item 7).
 class StatementTest : LedgerFlowTest() {
 
     @LocalServerPort var port = 0

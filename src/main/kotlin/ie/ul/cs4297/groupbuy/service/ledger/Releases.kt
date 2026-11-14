@@ -24,7 +24,9 @@ data class HoldRow(
 }
 
 /**
- * Gives set-aside money back when an order or deal won't go ahead (LED-08, LED-09).
+ * [LED-08] - Release a withdrawn or abandoned order
+ * [LED-09] - Release a failed or cancelled deal
+ * Gives set-aside money back when an order or deal won't go ahead.
  *
  * Lock order (decision 0004): hold rows, then the closure row, then students.
  * Order closed: the hold row first, so a hold racing the closure waits for it and is refused, or finishes first and is released.
@@ -58,7 +60,7 @@ class Releases(
 
     /**
      * Move each open hold back to available and publish HoldReleased.
-     * [balances]: the students' locked balances, kept current as we go so each event chains (LED-20).
+     * [LED-20] - Two instances, one truth: [balances] are the students' locked balances, kept current as we go so each event chains.
      */
     fun release(holds: List<HoldRow>, reason: HoldReleasedReason, causationId: UUID, balances: MutableMap<UUID, Balance>) {
         for (h in holds) {

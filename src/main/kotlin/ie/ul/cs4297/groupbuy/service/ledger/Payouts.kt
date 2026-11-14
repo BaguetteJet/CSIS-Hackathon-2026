@@ -8,8 +8,9 @@ import org.springframework.stereotype.Component
 import java.util.UUID
 
 /**
- * Restaurant payouts (LED-17). PaymentsConsumer calls this inside the inbox transaction, amount already
- * checked (LED-19); the implementation posts and publishes: [PayoutStore].
+ * [LED-17] - Restaurant payouts
+ * Restaurant payouts. PaymentsConsumer calls this inside the inbox transaction, amount already
+ * checked ([LED-19] - Bad input); the implementation posts and publishes: [PayoutStore].
  */
 interface Payouts {
     /** Payable to Union cash once per payoutId, even below 0, then PayoutDebited. */

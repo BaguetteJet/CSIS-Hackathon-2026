@@ -19,8 +19,10 @@ import java.time.Clock
 import java.util.UUID
 
 /**
- * Cash-outs (LED-15, 16). PaymentsConsumer calls these inside the inbox transaction, amounts already
- * checked (LED-19); the implementation posts and publishes: [WithdrawalStore].
+ * [LED-15] - Reserve a cash-out
+ * [LED-16] - Pay out or return a cash-out
+ * Cash-outs. PaymentsConsumer calls these inside the inbox transaction, amounts already
+ * checked ([LED-19] - Bad input); the implementation posts and publishes: [WithdrawalStore].
  */
 interface Withdrawals {
     /** Reserve: available to held, then WithdrawalDebited; not enough, WithdrawalRefused. */

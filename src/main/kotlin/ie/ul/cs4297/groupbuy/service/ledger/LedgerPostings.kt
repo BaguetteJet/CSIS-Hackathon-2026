@@ -24,7 +24,7 @@ enum class MovementType {
 
 data class MovementRef(val type: MovementType, val id: UUID)
 
-/** Statement line (LED-11). `credit` comes from the posting's sign. */
+/** [LED-11] - My statement: statement line. `credit` comes from the posting's sign. */
 data class EntryDetails(
     val kind: LedgerEntryKind,
     val description: String,
@@ -44,7 +44,7 @@ data class PostingLine(
  * Same [MovementRef] twice: returns false and moves nothing.
  * Only student accounts keep a running balance: they are locked in ascending id order, so no deadlocks.
  * Union and restaurant accounts are just their postings: no row to lock, so no hot row for top-ups or settlement.
- * Students never go negative: callers check first, this only catches bugs. Payables and Union can (LED-13, LED-17).
+ * Students never go negative: callers check first, this only catches bugs. Payables and Union can ([LED-13] - Post refunds; [LED-17] - Restaurant payouts).
  * Joins the caller's transaction: the event commits with the money.
  */
 @Component

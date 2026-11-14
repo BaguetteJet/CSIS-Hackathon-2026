@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import java.sql.Timestamp
 import java.util.UUID
 
-// Item 5 review, LED-05, LED-06 and LED-10: each listed order pays the tier price once, the rest comes back, problems are reported.
+// [LED-05] - Settle a confirmed deal; [LED-06] - Settle exactly once; [LED-10] - Settlement problems: each listed order pays the tier price once, the rest comes back, problems are reported (item 5 review).
 class SettlementTest : LedgerFlowTest() {
 
     @Autowired lateinit var settlement: Settlement

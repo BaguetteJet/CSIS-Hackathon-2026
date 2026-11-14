@@ -6,7 +6,7 @@ import ie.ul.cs4297.groupbuy.service.platform.CurrentUser
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
 
-/** The signed-in student's own balance (LED-07). Read live: a new hold shows at once (D-J2). */
+/** [LED-07] - My balance: the signed-in student's own balance. Read live: a new hold shows at once (D-J2). */
 @RestController
 class LedgerController(private val accounts: LedgerAccounts) {
 

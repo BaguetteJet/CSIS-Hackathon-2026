@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.util.UUID
 
-// Item 6 review, LED-13: a refund goes back to the student, never more than the order was charged (marked property).
+// [LED-13] - Post refunds: a refund goes back to the student, never more than the order was charged (marked property; item 6 review).
 class RefundsTest : LedgerFlowTest() {
 
     private class Charged(val student: UUID, val order: UUID, val deal: UUID, val restaurant: UUID)

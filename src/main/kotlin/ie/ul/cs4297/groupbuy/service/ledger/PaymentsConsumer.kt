@@ -17,7 +17,7 @@ import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.messaging.converter.MessageConversionException
 import org.springframework.stereotype.Component
 
-/** An event that breaks the contract (e.g. zero amount): never retried, goes straight to ledger.dlt (LED-19). */
+/** [LED-19] - Bad input: an event that breaks the contract (e.g. zero amount) is never retried, goes straight to ledger.dlt. */
 class InvalidEvent(message: String) : MessageConversionException(message)
 
 /** The only payments.v1 listener: a second one would split the partitions (decision 0006). Cash-outs and payouts: item 8. */
@@ -45,7 +45,7 @@ class PaymentsConsumer(
                 atLeastOneCent(envelope, e.amountCents)
                 inbox.once(CONSUMER, envelope) { withdrawals.requested(e, cause) }
             }
-            // No amount check: the reserved amount is used, whatever this one says (LED-16).
+            // [LED-16] - Pay out or return a cash-out: no amount check, the reserved amount is used, whatever this one says.
             is WithdrawalCompleted -> inbox.once(CONSUMER, envelope) { withdrawals.completed(e, cause) }
             is WithdrawalFailed -> inbox.once(CONSUMER, envelope) { withdrawals.failed(e, cause) }
             is PayoutConfirmed -> {
@@ -61,7 +61,7 @@ class PaymentsConsumer(
         if (amountCents < 1) throw InvalidEvent("${envelope.type} ${envelope.eventId}: amountCents must be 1 or more")
     }
 
-    /** LED-02: credit any sequence (reset is 0), amount or student. Limits and blocks: Payments' job (D-A4). */
+    /** [LED-02] - Credit top-ups: credit any sequence (reset is 0), amount or student. Limits and blocks: Payments' job (D-A4). */
     private fun topUp(envelope: Envelope<ContractEvent>, e: TopUpRecorded) {
         atLeastOneCent(envelope, e.amountCents)
         inbox.once(CONSUMER, envelope) {

@@ -4,7 +4,7 @@ import org.springframework.stereotype.Component
 import java.util.UUID
 
 /**
- * Settlement and releases wake refunds parked for an order or deal (LED-14, decision 0009).
+ * [LED-14] - Refund limits and early refunds: settlement and releases wake refunds parked for an order or deal (decision 0009).
  * Called in the same transaction as the charge or release. Item 6 replaces [NoParkedRefunds].
  */
 interface RefundWakeups {

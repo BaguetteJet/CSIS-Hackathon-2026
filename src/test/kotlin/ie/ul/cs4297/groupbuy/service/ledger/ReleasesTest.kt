@@ -18,7 +18,7 @@ import java.util.UUID
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-// Item 5 review, LED-08 and LED-09: set-aside money comes back in full, once.
+// [LED-08] - Release a withdrawn or abandoned order; [LED-09] - Release a failed or cancelled deal: set-aside money comes back in full, once (item 5 review).
 class ReleasesTest : LedgerFlowTest() {
 
     @Test
