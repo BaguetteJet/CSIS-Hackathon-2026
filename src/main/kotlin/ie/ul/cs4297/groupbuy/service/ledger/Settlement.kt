@@ -90,6 +90,8 @@ class Settlement(
         )
         issues.forEach { (orderId, problem) -> outbox.publish(SettlementIssue(e.dealId, orderId, problem), causationId) }
         outbox.publish(DealSettled(e.dealId, e.restaurantId, charges.size, chargedTotal, commissionTotal), causationId)
+        // Refunds wake last: one posted mid-settlement would leave [balances] behind its credit, breaking the chain.
+        wakeups.ordersCharged(charges.map { it.orderId })
         wakeups.dealDecided(e.dealId)
 
         // [LED-23] - Observability: settlement count, duration and SettlementIssue count
@@ -139,7 +141,6 @@ class Settlement(
             OrderCharged(hold.orderId, e.dealId, hold.studentId, e.restaurantId, price, commission, returned, after.availableCents, after.heldCents),
             causationId,
         )
-        wakeups.orderCharged(hold.orderId)
         return listOf(hold.orderId.toString(), e.dealId.toString(), hold.studentId.toString(), e.restaurantId.toString(),
             price, commission, returned, Timestamp.from(clock.instant()))
     }
