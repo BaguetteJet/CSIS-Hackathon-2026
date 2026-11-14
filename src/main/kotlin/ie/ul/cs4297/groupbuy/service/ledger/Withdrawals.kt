@@ -77,6 +77,7 @@ class WithdrawalStore(
 
     override fun completed(e: WithdrawalCompleted, causationId: UUID) {
         val reserved = finish(e.withdrawalId, "PAID_OUT") ?: return
+        logDifference("WithdrawalCompleted", e.withdrawalId, e.amountCents, reserved.amountCents)
         val balance = accounts.lockStudent(reserved.studentId)
         postings.post(MovementRef(MovementType.WITHDRAWAL_PAYOUT, e.withdrawalId), listOf(
             PostingLine(AccountRef.studentHeld(reserved.studentId), -reserved.amountCents),
@@ -90,6 +91,7 @@ class WithdrawalStore(
 
     override fun failed(e: WithdrawalFailed, causationId: UUID) {
         val reserved = finish(e.withdrawalId, "RETURNED") ?: return
+        logDifference("WithdrawalFailed", e.withdrawalId, e.amountCents, reserved.amountCents)
         val balance = accounts.lockStudent(reserved.studentId)
         postings.post(MovementRef(MovementType.WITHDRAWAL_RETURN, e.withdrawalId), listOf(
             PostingLine(AccountRef.studentHeld(reserved.studentId), -reserved.amountCents),
@@ -115,6 +117,12 @@ class WithdrawalStore(
 
     private fun setState(withdrawalId: UUID, state: String) =
         jdbc.update("UPDATE withdrawal SET state = ? WHERE withdrawal_id = ?", state, withdrawalId.toString())
+
+    /** [LED-16] - Pay out or return a cash-out: the reserved amount is used; a different one on the event is logged for reconciliation. */
+    private fun logDifference(type: String, withdrawalId: UUID, eventCents: Long, reservedCents: Long) {
+        if (eventCents == reservedCents) return
+        log.warn("Cash-out {}: {} says {} cents, {} were reserved; the reserved amount is used", withdrawalId, type, eventCents, reservedCents)
+    }
 
     private data class Reserved(val studentId: UUID, val amountCents: Long)
 

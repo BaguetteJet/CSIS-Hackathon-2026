@@ -15,7 +15,10 @@ import org.awaitility.kotlin.untilAsserted
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.system.CapturedOutput
+import org.springframework.boot.test.system.OutputCaptureExtension
 import java.time.Duration
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
@@ -134,6 +137,22 @@ class WithdrawalsTest : LedgerFlowTest() {
         val paid = published("WithdrawalPaidOut", "withdrawalId", withdrawal).single()
         assertEquals(listOf(1000, 400, 600), listOf("amountCents", "availableCents", "heldCents").map { paid[it].asInt() })
         assertEquals(listOf("WithdrawalDebited", "WithdrawalPaidOut"), cashOutEvents(withdrawal))
+        assertBooksBalance()
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension::class)
+    fun `an amount on completed or failed that differs from the reserved one is logged, and the reserved amount is used`(output: CapturedOutput) {
+        val paidOut = UUID.randomUUID()
+        val returned = UUID.randomUUID()
+        val student = funded(5000)
+        pay(requested(paidOut, student, 1000), requested(returned, student, 1000))
+
+        pay(envelope(WithdrawalCompleted(paidOut, student, 2000, staff)), envelope(WithdrawalFailed(returned, student, 700, "Explained in a few words")))
+
+        assertEquals(4000L to 0L, balanceOf(student))
+        assertTrue(output.out.contains("Cash-out $paidOut: WithdrawalCompleted says 2000 cents, 1000 were reserved; the reserved amount is used"), "completed difference logged")
+        assertTrue(output.out.contains("Cash-out $returned: WithdrawalFailed says 700 cents, 1000 were reserved; the reserved amount is used"), "failed difference logged")
         assertBooksBalance()
     }
 
