@@ -1,6 +1,6 @@
 # Ledger architecture
 
-The Ledger decides one thing: whether a student's money is available. Every movement of money is a set of postings that sum to zero. Structured by the module's seven steps; decisions in [decisions/](decisions/README.md), progress in [PHASES.md](../PHASES.md).
+The Ledger decides one thing: whether a student's money is available. Every movement of money is a set of postings that sum to zero. Structured by the module's seven steps; decisions in [decisions/](decisions/README.md), progress in [PHASES.md](../PHASES.md). Words: [GLOSSARY.md](../GLOSSARY.md). What we own, what we need from each team and what they need from us: [NEIGHBOURS.md](NEIGHBOURS.md).
 
 ## 1. Requirements
 
@@ -11,6 +11,7 @@ The Ledger decides one thing: whether a student's money is available. Every move
 | Deals | Confirmed / failed / cancelled | Settle exactly once, even through a crash |
 | Support | Refunds | Never exceed the charge; wait if early |
 | Student, Union finance | `/me`, entries, desk balance | Show the committed balance |
+| Platform | UserRegistered; metrics and events for its alerts | Open each student's accounts once; publish every event once |
 
 **Invariants** (each one a test can break):
 1. Every movement sums to zero.
@@ -27,7 +28,7 @@ The Ledger decides one thing: whether a student's money is available. Every move
 | Load | Number |
 |---|---|
 | Hold calls at peak | 100/s for 20 s (LED-22) |
-| Largest deal | about 300 orders, about 2,100 rows in one transaction |
+| Largest deal | 200 orders in the load test (PLT-14), about 1,400 rows in one transaction |
 | Students funded in integration | 204 |
 | Memory per instance | 512 MB limit, about 330 MB used |
 
@@ -48,9 +49,9 @@ A timeout after commit is safe: Orders retries the same orderId and gets the sto
 |---|---|---|
 | payments.v1 | `PaymentsConsumer` | Credit top-ups; later cash-outs, payouts |
 | orders.v1, deals.v1 | `ClosuresConsumer` | Close; release; settle; open payables |
-| users.v1 | `KnownUsersConsumer` (starter) | Open student accounts |
-| support.v1 | `SupportConsumer` (planned) | Refunds |
-| ledger.v1 | Outbox relay (starter) | Every Ledger event, balance after it |
+| users.v1 | `KnownUsersConsumer` (starter, `example/`) | Open student accounts |
+| support.v1 | `SupportConsumer` (planned, item 6) | Refunds; the rest of support.v1 is ignored |
+| ledger.v1 | Outbox relay (starter) | Every Ledger event, balance after it; keyed by student, restaurant or deal ([NEIGHBOURS §4](NEIGHBOURS.md#4-event-keys)) |
 
 ## 4. Data
 
@@ -62,6 +63,7 @@ A timeout after commit is safe: Orders retries the same orderId and gets the sto
 | `hold_decision` | order_id | First hold answer; `state` OPEN → RELEASED or CHARGED |
 | `order_closure`, `deal_closure` | order_id, deal_id | Refusing late holds |
 | `order_charge`, `deal_settlement` | order_id, deal_id | What was charged; that a deal settled |
+| `refund`, `withdrawal` (planned) | refund_id, withdrawal_id | Each refund's and cash-out's outcome (items 6, 8; [schema §7](schema.md#7-fit-with-the-contracts)) |
 | starter inbox, outbox, parking | event id | Once-only consumption, publishing, early events |
 
 ## 5. Design
@@ -98,7 +100,7 @@ Union and restaurant accounts have no running balance, so they're never locked (
 **Settlement** (decision 0007): one local transaction, not a saga, because every row is ours (`lecture12a-the-on-sale-1.pdf` pp. 6–11).
 - The inbox catches a repeated envelope; `deal_settlement` catches a new envelope for the same deal.
 - A crash rolls everything back, and redelivery settles once.
-- Measured: 300 orders in about 0.8 s, so holds for those students still answer within 2 s.
+- Measured: 202 orders in 0.79 s during k6, so holds for those students still answer within 2 s ([evidence](evidence/led-22-holds-k6.md)).
 
 **Chaining** (LED-20): every balance on an event is read under the student lock. The outbox numbers events per key in commit order: per-key FIFO, not total order (`lecture10c_2.pdf` pp. 3–9).
 
