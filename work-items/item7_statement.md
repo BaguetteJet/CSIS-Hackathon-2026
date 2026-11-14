@@ -17,6 +17,6 @@
    *Done when:* a test fails on "hold" or "wallet".
 3. [x] **Desk balance (LED-12):** `GET /api/ledger/students/{id}`. UNION_FINANCE only; malformed is 404; unknown gives zeros.
 4. [x] **Security (LED-18).** 401 before 403 on statement and desk.
-5. [ ] **Zero-sum property test (LED-20, marked).** `ZeroSumPropertyTest` over the real services, with random operations.
+5. [x] **Zero-sum property test (LED-20, marked).** `ZeroSumPropertyTest` over the real services, with random operations.
    *Done when:* 200 runs pass and a failure prints its seed.
-6. [ ] **Marked-property map** in `docs/HANDOVER.md` §6.
+6. [x] **Marked-property map** in `docs/HANDOVER.md` §6.
