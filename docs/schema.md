@@ -134,7 +134,7 @@ Checked against contracts 1.3.0 on Sat 14 Nov: every shape another service sends
 | HoldReleased `reason`: WITHDRAWN, ABANDONED, DEAL_FAILED, DEAL_CANCELLED, NOT_ON_LIST | The closing event | Yes: NOT_ON_LIST is a release at settlement |
 | DealCancelled `reason`: WITHDRAWN, DECLINED, NO_ANSWER | Not stored | `deal_closure.reason` says CANCELLED; nothing decides on why |
 | OrderCharged, DealSettled | `order_charge`, `deal_settlement` | Yes |
-| RefundPosted needs `restaurantId`, `commissionReversedCents` | `order_charge.restaurant_id`; the refund row | Yes (V8) |
+| RefundPosted needs `restaurantId`, `commissionReversedCents` | `order_charge.restaurant_id`; the refund row | Yes (V9) |
 | RefundRefused needs `dealId`, `studentId`, also for NEVER_CHARGED, when no `order_charge` row exists | RefundApproved's own fields | Yes: the refund row keeps them |
 | WithdrawalRefused `reason`: INSUFFICIENT_FUNDS only; Payments shows RESERVED or REFUSED | The withdrawal row | Planned: REFUSED is kept, so a repeat gets the same answer |
 | WithdrawalCompleted, WithdrawalFailed: `amountCents` ≥ 0 | `withdrawal.amount_cents`, from WithdrawalRequested | Planned: the reserved amount wins (item 8) |
@@ -409,7 +409,7 @@ One row per settled deal.
 | `total_charged_cents` | BIGINT | Default 0 |
 | `total_commission_cents` | BIGINT | Default 0 |
 
-### `refund` (V8)
+### `refund` (V9)
 
 One row per decided refund. A refund waiting for its charge has no row: it is parked.
 
