@@ -1,13 +1,19 @@
 {
   "uid": "ledger",
   "title": "Ledger",
-  "description": "LED-23. Holds (rate, result, latency) and settlement (time, SettlementIssue count). Latency is mean and max: the timers have no histogram buckets, so no percentiles. Scrape job: Prometheus scrapes each container twice in the dev kit (services, and in-your-ide via the published ports 8081/8082), so every query is limited to one job. Still to add: parked refunds, dead letters and the 6 h parked-refund alert (need item 6's metrics).",
-  "tags": ["ledger", "led-23"],
+  "description": "LED-23. Holds (rate, result, latency), settlement (time, SettlementIssue count), parked refunds (count, oldest; alert 'Ledger: refund parked over 6 h' from grafana/alerting/ledger.yml), dead letters and the daily check. Latency is mean and max: the timers have no histogram buckets, so no percentiles. Scrape job: Prometheus scrapes each container twice in the dev kit (services, and in-your-ide via the published ports 8081/8082), so every query is limited to one job. Parked refunds, dead letters and the daily check read the database or the topic, so both instances report the same value: those panels take the max, not the sum.",
+  "tags": [
+    "ledger",
+    "led-23"
+  ],
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "editable": true,
   "refresh": "10s",
-  "time": { "from": "now-30m", "to": "now" },
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
   "templating": {
     "list": [
       {
@@ -15,11 +21,17 @@
         "label": "Scrape job",
         "description": "services: the two containers. in-your-ide: instances run from IntelliJ on 8081/8082. Pick one, or every number counts twice.",
         "type": "query",
-        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "query": "label_values(ledger_holds_seconds_count{service=\"ledger\", job=\"$job\"}, job)",
         "includeAll": false,
         "multi": false,
-        "current": { "text": "services", "value": "services" },
+        "current": {
+          "text": "services",
+          "value": "services"
+        },
         "refresh": 1
       }
     ]
@@ -30,7 +42,12 @@
       "type": "row",
       "title": "Holds (LED-03, 04, 22)",
       "collapsed": false,
-      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
       "panels": []
     },
     {
@@ -38,12 +55,41 @@
       "type": "stat",
       "title": "Holds per second",
       "description": "Hold calls answered per second, both instances together (1 min rate).",
-      "gridPos": { "x": 0, "y": 1, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "reqps", "decimals": 1, "noValue": "0" }, "overrides": [] },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "none", "graphMode": "area" },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "decimals": 1,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "area"
+      },
       "targets": [
-        { "refId": "A", "expr": "sum(rate(ledger_holds_seconds_count{service=\"ledger\", job=\"$job\"}[1m]))", "legendFormat": "holds/s" }
+        {
+          "refId": "A",
+          "expr": "sum(rate(ledger_holds_seconds_count{service=\"ledger\", job=\"$job\"}[1m]))",
+          "legendFormat": "holds/s"
+        }
       ]
     },
     {
@@ -51,18 +97,55 @@
       "type": "stat",
       "title": "Holds not answered (UNAVAILABLE)",
       "description": "Hold calls answered 503 instead of a result, over the dashboard's time range. Should be 0 outside outage drills. Exact count: value now minus value at the start of the range, or the whole value for a counter first seen inside the range (increase() reads 0 for those). After a replica restart inside the range, only that replica's calls since the restart count.",
-      "gridPos": { "x": 6, "y": 1, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "x": 6,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
-          "unit": "short", "decimals": 0, "noValue": "0",
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
         },
         "overrides": []
       },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "background", "graphMode": "none" },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
       "targets": [
-        { "refId": "A", "expr": "sum(((ledger_holds_seconds_count{service=\"ledger\", job=\"$job\", result=\"UNAVAILABLE\"} - ledger_holds_seconds_count{service=\"ledger\", job=\"$job\", result=\"UNAVAILABLE\"} offset $__range) >= 0) or on(job, instance, result) ledger_holds_seconds_count{service=\"ledger\", job=\"$job\", result=\"UNAVAILABLE\"})", "instant": true, "legendFormat": "unavailable" }
+        {
+          "refId": "A",
+          "expr": "sum(((ledger_holds_seconds_count{service=\"ledger\", job=\"$job\", result=\"UNAVAILABLE\"} - ledger_holds_seconds_count{service=\"ledger\", job=\"$job\", result=\"UNAVAILABLE\"} offset $__range) >= 0) or on(job, instance, result) ledger_holds_seconds_count{service=\"ledger\", job=\"$job\", result=\"UNAVAILABLE\"})",
+          "instant": true,
+          "legendFormat": "unavailable"
+        }
       ]
     },
     {
@@ -70,11 +153,34 @@
       "type": "timeseries",
       "title": "Holds per second by result",
       "description": "PLACED, INSUFFICIENT_FUNDS, ORDER_CLOSED, DEAL_CLOSED, and UNAVAILABLE (an error, no answer).",
-      "gridPos": { "x": 12, "y": 1, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "stacking": { "mode": "normal" }, "fillOpacity": 30 } }, "overrides": [] },
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "stacking": {
+              "mode": "normal"
+            },
+            "fillOpacity": 30
+          }
+        },
+        "overrides": []
+      },
       "targets": [
-        { "refId": "A", "expr": "sum by (result) (rate(ledger_holds_seconds_count{service=\"ledger\", job=\"$job\"}[1m]))", "legendFormat": "{{result}}" }
+        {
+          "refId": "A",
+          "expr": "sum by (result) (rate(ledger_holds_seconds_count{service=\"ledger\", job=\"$job\"}[1m]))",
+          "legendFormat": "{{result}}"
+        }
       ]
     },
     {
@@ -82,11 +188,28 @@
       "type": "timeseries",
       "title": "Holds per second by instance",
       "description": "Shows both replicas taking traffic.",
-      "gridPos": { "x": 0, "y": 5, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
       "targets": [
-        { "refId": "A", "expr": "sum by (instance) (rate(ledger_holds_seconds_count{service=\"ledger\", job=\"$job\"}[1m]))", "legendFormat": "{{instance}}" }
+        {
+          "refId": "A",
+          "expr": "sum by (instance) (rate(ledger_holds_seconds_count{service=\"ledger\", job=\"$job\"}[1m]))",
+          "legendFormat": "{{instance}}"
+        }
       ]
     },
     {
@@ -94,12 +217,33 @@
       "type": "timeseries",
       "title": "Hold latency (mean and max)",
       "description": "Mean over 1 min across both instances, and the slowest single call per instance.",
-      "gridPos": { "x": 12, "y": 9, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": {
+        "x": 12,
+        "y": 9,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
       "targets": [
-        { "refId": "A", "expr": "sum(rate(ledger_holds_seconds_sum{service=\"ledger\", job=\"$job\"}[1m])) / sum(rate(ledger_holds_seconds_count{service=\"ledger\", job=\"$job\"}[1m]))", "legendFormat": "mean" },
-        { "refId": "B", "expr": "max by (instance) (ledger_holds_seconds_max{service=\"ledger\", job=\"$job\"})", "legendFormat": "max {{instance}}" }
+        {
+          "refId": "A",
+          "expr": "sum(rate(ledger_holds_seconds_sum{service=\"ledger\", job=\"$job\"}[1m])) / sum(rate(ledger_holds_seconds_count{service=\"ledger\", job=\"$job\"}[1m]))",
+          "legendFormat": "mean"
+        },
+        {
+          "refId": "B",
+          "expr": "max by (instance) (ledger_holds_seconds_max{service=\"ledger\", job=\"$job\"})",
+          "legendFormat": "max {{instance}}"
+        }
       ]
     },
     {
@@ -107,7 +251,12 @@
       "type": "row",
       "title": "Settlement (LED-05, 06, 10)",
       "collapsed": false,
-      "gridPos": { "x": 0, "y": 17, "w": 24, "h": 1 },
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 24,
+        "h": 1
+      },
       "panels": []
     },
     {
@@ -115,12 +264,42 @@
       "type": "stat",
       "title": "Settlements",
       "description": "Deals settled over the dashboard's time range. Exact count, same method as the UNAVAILABLE stat.",
-      "gridPos": { "x": 0, "y": 18, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0, "noValue": "0" }, "overrides": [] },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "none", "graphMode": "none" },
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none"
+      },
       "targets": [
-        { "refId": "A", "expr": "sum(((ledger_settlement_seconds_count{service=\"ledger\", job=\"$job\"} - ledger_settlement_seconds_count{service=\"ledger\", job=\"$job\"} offset $__range) >= 0) or on(job, instance) ledger_settlement_seconds_count{service=\"ledger\", job=\"$job\"})", "instant": true, "legendFormat": "settlements" }
+        {
+          "refId": "A",
+          "expr": "sum(((ledger_settlement_seconds_count{service=\"ledger\", job=\"$job\"} - ledger_settlement_seconds_count{service=\"ledger\", job=\"$job\"} offset $__range) >= 0) or on(job, instance) ledger_settlement_seconds_count{service=\"ledger\", job=\"$job\"})",
+          "instant": true,
+          "legendFormat": "settlements"
+        }
       ]
     },
     {
@@ -128,18 +307,55 @@
       "type": "stat",
       "title": "SettlementIssue count",
       "description": "SettlementIssue events raised over the dashboard's time range (LED-10). Anything above 0 needs a look. Exact count, same method as the UNAVAILABLE stat.",
-      "gridPos": { "x": 6, "y": 18, "w": 6, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "x": 6,
+        "y": 18,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
-          "unit": "short", "decimals": 0, "noValue": "0",
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 1 } ] }
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
         },
         "overrides": []
       },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "background", "graphMode": "none" },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
       "targets": [
-        { "refId": "A", "expr": "sum(((ledger_settlement_issues_total{service=\"ledger\", job=\"$job\"} - ledger_settlement_issues_total{service=\"ledger\", job=\"$job\"} offset $__range) >= 0) or on(job, instance) ledger_settlement_issues_total{service=\"ledger\", job=\"$job\"})", "instant": true, "legendFormat": "issues" }
+        {
+          "refId": "A",
+          "expr": "sum(((ledger_settlement_issues_total{service=\"ledger\", job=\"$job\"} - ledger_settlement_issues_total{service=\"ledger\", job=\"$job\"} offset $__range) >= 0) or on(job, instance) ledger_settlement_issues_total{service=\"ledger\", job=\"$job\"})",
+          "instant": true,
+          "legendFormat": "issues"
+        }
       ]
     },
     {
@@ -147,12 +363,262 @@
       "type": "timeseries",
       "title": "Settlement time (mean and max)",
       "description": "How long settling one deal takes. Mean over 5 min, and the slowest per instance.",
-      "gridPos": { "x": 12, "y": 18, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": {
+        "x": 12,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
       "targets": [
-        { "refId": "A", "expr": "sum(rate(ledger_settlement_seconds_sum{service=\"ledger\", job=\"$job\"}[5m])) / sum(rate(ledger_settlement_seconds_count{service=\"ledger\", job=\"$job\"}[5m]))", "legendFormat": "mean" },
-        { "refId": "B", "expr": "max by (instance) (ledger_settlement_seconds_max{service=\"ledger\", job=\"$job\"})", "legendFormat": "max {{instance}}" }
+        {
+          "refId": "A",
+          "expr": "sum(rate(ledger_settlement_seconds_sum{service=\"ledger\", job=\"$job\"}[5m])) / sum(rate(ledger_settlement_seconds_count{service=\"ledger\", job=\"$job\"}[5m]))",
+          "legendFormat": "mean"
+        },
+        {
+          "refId": "B",
+          "expr": "max by (instance) (ledger_settlement_seconds_max{service=\"ledger\", job=\"$job\"})",
+          "legendFormat": "max {{instance}}"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "row",
+      "title": "Refunds and data (LED-14, 23, 24)",
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "Parked refunds",
+      "description": "Refunds waiting for their order's charge or their deal's outcome (LED-14). A few for a moment is normal.",
+      "gridPos": {
+        "x": 0,
+        "y": 27,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(ledger_refunds_parked{service=\"ledger\", job=\"$job\"})",
+          "legendFormat": "Parked refunds"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "Oldest parked refund",
+      "description": "How long the oldest parked refund has waited. Red from 6 h: the alert 'Ledger: refund parked over 6 h' fires (HANDOVER §8 'Is money stuck?').",
+      "gridPos": {
+        "x": 6,
+        "y": 27,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 21600
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(ledger_refunds_parked_oldest_seconds{service=\"ledger\", job=\"$job\"})",
+          "legendFormat": "Oldest parked refund"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "stat",
+      "title": "Dead letters",
+      "description": "Messages on ledger.dlt (HANDOVER §9, K4). Anything above 0 needs a look.",
+      "gridPos": {
+        "x": 12,
+        "y": 27,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(ledger_dead_letters{service=\"ledger\", job=\"$job\"})",
+          "legendFormat": "Dead letters"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "type": "stat",
+      "title": "Daily check problems",
+      "description": "Problems the 02:00 check found in the books at its last run (LED-24): 0 is good. The log line 'Daily check' names them.",
+      "gridPos": {
+        "x": 18,
+        "y": 27,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(ledger_daily_check_problems{service=\"ledger\", job=\"$job\"})",
+          "legendFormat": "Daily check problems"
+        }
       ]
     }
   ]

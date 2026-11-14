@@ -1,0 +1,45 @@
+# [LED-23] - Observability: a refund parked over 6 hours raises the Ledger's own alert (DEC team documents).
+# Copied to the dev kit's grafana/provisioning/alerting/ (HANDOVER §4 step 2); Grafana reads it at start-up.
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: ledger
+    folder: Ledger
+    interval: 1m
+    rules:
+      - uid: ledger-refund-parked-6h
+        title: "Ledger: refund parked over 6 h"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              expr: max(ledger_refunds_parked_oldest_seconds{service="ledger", job="services"})
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: math
+              expression: "$B > 21600"
+        dashboardUid: ledger
+        panelId: 13
+        noDataState: OK
+        execErrState: Error
+        for: 1m
+        annotations:
+          summary: A refund has waited over 6 hours for its order's charge or its deal's outcome
+          description: "HANDOVER §8 'Is money stuck?': find the order or deal it waits for in parked_event (consumer support-v1)."
+        labels:
+          service: ledger
