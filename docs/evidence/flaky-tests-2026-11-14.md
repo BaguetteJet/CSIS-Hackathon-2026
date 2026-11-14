@@ -13,7 +13,7 @@ Two full `./gradlew containerTest --rerun` runs on `ffeefa5` (the LED-14 to LED-
 | Test | What happened | Cause | Done |
 |---|---|---|---|
 | `ReleasesTest` race | A hold threw `ApiProblem` 503 `UNAVAILABLE` | A hold waiting over 1 s behind the deal's release answers 503 and saves nothing, by design (EDGE-CASES H10, X11). The test took a 503 as a failure; Orders retries the same `orderId` | The test retries a 503 with the same `orderId`, up to 5 calls, as Orders does. Every other assertion is unchanged. 3 of 3 passed with 8 busy CPU loops running (branch `item-1/flaky-tests`); no 503 came up in those runs, so the retry itself is checked by reading only |
-| `ConsumerPatternsTest` parking | `NoSuchElementException` at line 79 | `findById(...).orElseThrow()` inside `untilAsserted`: Awaitility retries only `AssertionError`, so a user row not yet written fails at once instead of waiting. A test bug; the parking it checks works | Not changed: `platform/` is the starter's and stays as it is (AGENTS.md). Rerun it |
+| `ConsumerPatternsTest` parking | `NoSuchElementException` at line 79 | `findById(...).orElseThrow()` inside `untilAsserted`: Awaitility retries only `AssertionError`, so a user row not yet written fails at once instead of waiting. A test bug; the parking it checks works | Fixed on `main` in `09869a8` (Sam): the missing row is now an assertion, so Awaitility polls again |
 
 ## Load-sensitive by design
 

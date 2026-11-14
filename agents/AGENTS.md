@@ -100,4 +100,4 @@ In `.claude/skills/`, read by both Claude Code and OpenCode. What each is for, a
 
 - `Migration checksum mismatch` at start-up: the dev kit's `ledger` database has an old schema. Drop and create it, on a dev kit only.
 - The 200-order settlement test has a 1 s limit and can fail on a busy laptop. Rerun it before blaming the code.
-- `ConsumerPatternsTest` "parked, then applied" can fail with `NoSuchElementException` under load: a test bug in `platform/`, which we leave as it is. Rerun it. The others that can fail under load: [evidence/flaky-tests-2026-11-14.md](../docs/evidence/flaky-tests-2026-11-14.md).
+- Other tests with a time limit that a busy laptop can fail: [evidence/flaky-tests-2026-11-14.md](../docs/evidence/flaky-tests-2026-11-14.md).
