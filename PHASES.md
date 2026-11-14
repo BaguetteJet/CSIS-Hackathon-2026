@@ -1,12 +1,12 @@
 # Phases
 
-Where the Ledger stands against the brief's build order. LED stories: per-team spec, Ledger §5.
+Where the Ledger stands against the brief's build order. LED items: per-team spec, Ledger §5.
 
 | Phase | Due | Scope | Status |
 |---|---|---|---|
 | 1 Slice 1 | Fri | Hold call, top-ups, `/me` | **Done**: LED-02, 03, 04, 07 |
 | 2 Golden path | Sat 21:00 | Accounts, settlement, releases | **Done**: LED-01, 05, 06, 08, 09, 10, 22 |
-| 3 Rest of the core | Sun 12:00 | Statement, desk, refunds, cash-outs, payouts | To do: LED-11, 12, 13, 14, 15, 16, 17 |
+| 3 Rest of the core | Sun 12:00 | Statement, desk, refunds, cash-outs, payouts | Partly: LED-11 done; to do 12, 13, 14, 15, 16, 17 |
 | 4 Production bar | Sun 16:00 | Security, bad input, outages, dashboard, handover | Partly: LED-18, 19, 20, 21, 23, 24 |
 
 ## Done
@@ -19,13 +19,14 @@ Where the Ledger stands against the brief's build order. LED stories: per-team s
 | 05, 06, 10 | Settlement exactly once, problems reported | `SettlementTest` (6), live golden path |
 | 07 | `/me` | `LedgerCoreTest`, live via gateway |
 | 08, 09 | Releases | `ReleasesTest` (4), live failed deal |
+| 11 | Statement | `StatementTest` (9), live via gateway |
 | 22 | 100 holds/s, also during settlement | [k6 evidence](docs/evidence/led-22-holds-k6.md) |
 
 ## Partly done
 
 | LED | Done | Left (item) |
 |---|---|---|
-| 18 | `/me` 401/403; 503 when sign-in key is down | Statement and desk routes (7) |
+| 18 | `/me` and statement 401/403; 503 when sign-in key is down | Desk route (7) |
 | 19 | Hold input 422/413; zero top-up to DLT | Zero-amount cash-out, refund, payout (3, 6) |
 | 20 | Movements sum to zero, no negatives, chaining | Zero-sum property test, marked (7) |
 | 23 | Hold and settlement metrics | Refund and DLT metrics, dashboard, 6 h alert (4, 6) |
@@ -35,7 +36,6 @@ Where the Ledger stands against the brief's build order. LED stories: per-team s
 
 | LED | What | Item |
 |---|---|---|
-| 11 | Statement | 7 |
 | 12 | Desk balance | 7 |
 | 13, 14 | Refunds, limits, parking (marked: no over-refund) | 6 |
 | 15, 16 | Cash-outs | 8 |
@@ -55,7 +55,7 @@ Each LED item has a Forgejo issue (#7 LED-01 to #30 LED-24): closed means done, 
 
 ## Next for the lead
 
-Before Sat 11:00: a "Rejected:" line in decisions 0002–0009, then tag `checkpoint-1`. Promote by 16:30.
+`checkpoint-1` tagged and on `main`. Promote by 16:30. Confirm [NEIGHBOURS.md](docs/NEIGHBOURS.md) with each team lead.
 
 ## How we're marked
 
@@ -63,7 +63,7 @@ Handover §20. The project is 40% of the module, out of 100, over four checkpoin
 
 | Checkpoint | When | Marks | Earned by | Where we are |
 |---|---|---|---|---|
-| Design | Sat 11:00 | 15 | Work split; data model; how we keep the properties; decisions with the options rejected | Docs on `main`; "Rejected:" lines and the tag to do |
+| Design | Sat 11:00 | 15 | Work split; data model; how we keep the properties; decisions with the options rejected | Tagged `checkpoint-1` |
 | Proof of concept | Sat 15:50 | 15 | Slice and more on the fake line; CI passing; dashboard live | Slice and settlement done; dashboard to do |
 | Integration | Sun 14:00 | 15 | Running in integration; our part of the journey end to end; failure handling | Promote by Sat 16:30 |
 | Final | Sun 16:00 | 55 | Deploy gate, then handover document 10, marked properties 20, end to end and known limitations 15, individual 10 | Handover document, refunds, property test to do |

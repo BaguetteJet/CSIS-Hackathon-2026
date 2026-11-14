@@ -1,14 +1,21 @@
 # 0004 One lock order for every money change
 
-**Context.** Holds, top-ups, releases and settlement can hit one student at once on two instances. No balance may go negative (LED-20).
+**Protects.** No balance goes below zero (marked, LED-20). No deadlocks.
 
-**Decision.** Lock in this order:
-1. business rows (holds by order_id, then closure and claim rows);
-2. student accounts, all at once, ascending id;
-3. the outbox counter, by publishing last.
+**Problem.** A hold, a top-up, a release and a settlement can hit the same student at once on our two instances. Two transactions that lock the same rows in opposite orders wait for each other, and MySQL rolls one back (a deadlock).
 
-Decide only after step 2. Read every balance an event carries under that lock. A plain SELECT under REPEATABLE READ can be stale.
+**Decision.** Every money change locks in this order:
+1. the hold, closure and settlement rows it needs;
+2. the students' accounts, all at once, lowest id first;
+3. the outbox (events waiting to be sent), by publishing last.
 
-**Cost.** A release must lock the hold row before writing its closure row.
+Check a balance only after step 2, with that locked read. A plain SELECT can return an old balance.
 
-**Check.** `HoldsTest` and `ReleasesTest` races; k6 during settlement.
+**Rejected.**
+- Lock rows as needed and rely on retrying deadlocks: deadlocks become routine under load, and a settlement rolled back redoes up to 0.8 s of work. The hold call still retries a deadlock within 1 s, but only as a backstop.
+- Optimistic locking (retry when someone else changed the row): one top-up to any student in a 200-order deal makes the whole settlement start again.
+- One lock for everything: every hold waits up to 0.8 s whenever any deal settles.
+
+**Cost.** A release must lock the hold before it writes the closure row.
+
+**Proof.** `HoldsTest`: two €6 orders racing for €10 on both instances, one placed and one refused. `ReleasesTest`: holds racing a failing deal. The k6 load test during a settlement.
