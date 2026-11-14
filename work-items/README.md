@@ -12,6 +12,7 @@ One area per person (decision [0001](../docs/decisions/0001-work-split.md)). Eve
 | [6](item6_refunds.md) | Refunds | Member 6 · Cian | 13, 14 |
 | [7](item7_statement.md) | Statement, desk, testing | Pierce · Shakeeba | 11, 12, 18 (pages), 20 (property test) |
 | [8](item8_cashouts.md) | Cash-outs, payouts | Cian · Hersh | 15, 16, 17 |
+| [9](item9_robustness.md) | Edge cases, robustness | Cian · Igor | 06, 19, 20, 21 (with 4); marked properties |
 
 ## Dependencies
 
@@ -20,7 +21,7 @@ flowchart LR
   I2[2 Core] --> I1[1 Holds] & I3[3 Payments] & I5[5 Settlement] & I7[7 Statement]
   I1 --> I5 --> I6[6 Refunds]
   I3 --> I8[8 Cash-outs]
-  I1 & I3 & I5 & I6 & I8 --> I4[4 Ops] & I7
+  I1 & I3 & I5 & I6 & I8 --> I4[4 Ops] & I7 & I9[9 Edge cases]
 ```
 
 ## Shared interfaces
@@ -64,6 +65,7 @@ If short of time: drop payouts, then cash-out returns, before refunds.
 | `Refunds.kt`, `SupportConsumer.kt` | 6 |
 | `StatementController.kt`, `DeskController.kt`, `ZeroSumPropertyTest.kt` | 7 |
 | `Withdrawals.kt`, `Payouts.kt` | 8 |
+| `EdgeCasesTest.kt`, `LedgerInvariants.kt`; fixes elsewhere reviewed by that area's owner | 9 |
 
 **Rules for every change:**
 - Money moves only through `post`.

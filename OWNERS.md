@@ -21,6 +21,7 @@ We split the Ledger **by money flow**: each area owns one way money enters or le
 | Refunds | Member 6 | Cian | 13, 14 | No | [6](work-items/item6_refunds.md) |
 | Statement, desk, testing | Pierce | Shakeeba | 11, 12, 18 (pages), 20 (property test) | No | [7](work-items/item7_statement.md) |
 | Cash-outs, payouts | Cian | Hersh | 15, 16, 17 | No | [8](work-items/item8_cashouts.md) |
+| Edge cases, robustness | Cian | Igor | 06, 19, 20, 21 (with item 4); every marked property | No | [9](work-items/item9_robustness.md) |
 
 ## Each person
 
@@ -30,7 +31,7 @@ We split the Ledger **by money flow**: each area owns one way money enters or le
 - Next: get the PRs reviewed and merged (Sat 11:00); promote into integration (Sat 16:30).
 
 **Igor**
-- Owns: core and data (item 2). Backs up: holds (item 1).
+- Owns: core and data (item 2). Backs up: holds (item 1) and edge cases (item 9).
 - Done: the schema, the posting service and `/me` (LED-07).
 - Next: help item 7 with the zero-sum test (LED-20, by Sun 12:00); the daily check is a stretch goal.
 
@@ -45,8 +46,8 @@ We split the Ledger **by money flow**: each area owns one way money enters or le
 - Next: tag `checkpoint-1` (Sat 11:00); dashboard (23); outage drills (21); the handover document (24, by Sun 16:00).
 
 **Cian**
-- Owns: cash-outs and payouts (item 8). Backs up: settlement (item 5) and refunds (item 6).
-- Next: cash-outs (LED-15, 16) and payouts (17), by Sun 12:00.
+- Owns: cash-outs and payouts (item 8), edge cases and robustness (item 9). Backs up: settlement (item 5) and refunds (item 6).
+- Next: cash-outs (LED-15, 16) and payouts (17), by Sun 12:00; item 9 steps 1, 2 and 4 alongside.
 
 **Member 6**
 - Owns: refunds (item 6). Backs up: payments events (item 3).
