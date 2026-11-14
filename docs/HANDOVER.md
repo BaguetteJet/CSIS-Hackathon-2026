@@ -242,6 +242,8 @@ WHERE h.state = 'OPEN' GROUP BY h.deal_id, dc.reason ORDER BY oldest;
 
 ### Failures (reference, Scenarios K)
 
+K1, K2 and K3 were drilled on the dev kit (LED-21): [procedure](DRILLS.md), [results](evidence/led-21-outage-drills.md).
+
 | Failure | Symptom | Confirm | Fix |
 |---|---|---|---|
 | **K1** Kafka down | Holds still answer; events stop appearing on ledger.v1; top-ups and settlements wait | `SELECT COUNT(*) FROM outbox_event WHERE published_at IS NULL;` grows | Nothing: when Kafka returns, the outbox sends them in order and consumers catch up. Check the count falls to 0 |

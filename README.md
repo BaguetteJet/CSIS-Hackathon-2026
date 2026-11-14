@@ -51,6 +51,7 @@ Podman instead of Docker: [SETUP.md](SETUP.md).
 | `./check` | Tests, image, two instances healthy within 512 MB. Run before every PR | Docker, dev kit |
 | `./gradlew bootJar && docker compose up -d --build` | Two instances: `ledger-1` on 8081, `ledger-2` on 8082 | Dev kit |
 | `scripts/run-local.sh [port]` | One instance from the IDE settings in `local.env` | Dev kit |
+| `scripts/drills/check.sh`, `scripts/drills/holds.sh N` | Outage drills (LED-21): a before/after snapshot, and N hold calls: [docs/DRILLS.md](docs/DRILLS.md) | Dev kit, both instances |
 
 Add `--rerun-tasks` to a Gradle test command to run the tests again instead of reusing the last results.
 
