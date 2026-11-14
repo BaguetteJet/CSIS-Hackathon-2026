@@ -25,6 +25,7 @@ flowchart LR
 | What's done and what's left | [PHASES.md](PHASES.md) |
 | Who owns what; each item's steps | [OWNERS.md](OWNERS.md), [work-items/](work-items/README.md) |
 | Proof from live runs | [docs/evidence/](docs/evidence/) |
+| Show the proof of concept | [docs/POC-DEMO.md](docs/POC-DEMO.md) |
 | Rules for changing the code | [agents/AGENTS.md](agents/AGENTS.md) (read by Claude Code and OpenCode too) |
 
 ## Start
