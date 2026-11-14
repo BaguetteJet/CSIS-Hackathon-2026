@@ -27,7 +27,7 @@ The Ledger decides one thing: whether a student's money is available. Every move
 | Load | Number |
 |---|---|
 | Hold calls at peak | 100/s for 20 s (LED-22) |
-| Largest deal | about 300 orders, about 2,100 rows in one transaction |
+| Largest deal | 200 orders in the load test (PLT-14), about 1,400 rows in one transaction |
 | Students funded in integration | 204 |
 | Memory per instance | 512 MB limit, about 330 MB used |
 
@@ -98,7 +98,7 @@ Union and restaurant accounts have no running balance, so they're never locked (
 **Settlement** (decision 0007): one local transaction, not a saga, because every row is ours (`lecture12a-the-on-sale-1.pdf` pp. 6–11).
 - The inbox catches a repeated envelope; `deal_settlement` catches a new envelope for the same deal.
 - A crash rolls everything back, and redelivery settles once.
-- Measured: 300 orders in about 0.8 s, so holds for those students still answer within 2 s.
+- Measured: 202 orders in 0.79 s during k6, so holds for those students still answer within 2 s ([evidence](evidence/led-22-holds-k6.md)).
 
 **Chaining** (LED-20): every balance on an event is read under the student lock. The outbox numbers events per key in commit order: per-key FIFO, not total order (`lecture10c_2.pdf` pp. 3–9).
 

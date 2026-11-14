@@ -70,4 +70,4 @@ In `.claude/skills/`, read by both Claude Code and OpenCode. What each is for, a
 ## Gotchas
 
 - `Migration checksum mismatch` at start-up: the dev kit's `ledger` database has an old schema. Drop and create it, on a dev kit only.
-- The 300-order settlement test has a 1 s limit and can fail on a busy laptop. Rerun it before blaming the code.
+- The 200-order settlement test has a 1 s limit and can fail on a busy laptop. Rerun it before blaming the code.

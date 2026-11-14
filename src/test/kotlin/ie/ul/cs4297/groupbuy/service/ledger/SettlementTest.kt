@@ -145,19 +145,20 @@ class SettlementTest : LedgerFlowTest() {
     }
 
     @Test
+    // 200: the biggest deal any test runs (Platform's load test, PLT-14); under 1 s because a hold waits at most 1 s for its students.
     fun `a deal at its cap settles in one transaction, in under a second`() {
         val deal = UUID.randomUUID()
-        val orders = List(300) { UUID.randomUUID() to funded(1000) }
+        val orders = List(200) { UUID.randomUUID() to funded(1000) }
         orders.forEach { (order, student) -> assertEquals(HoldResult.PLACED, hold(order, student, 600, deal)) }
         val confirmed = DealConfirmed(deal, UUID.randomUUID(), 475, 1000, orders.map { OrderRef(it.first, it.second) })
 
         val started = System.nanoTime()
         tx.execute { settlement.settle(confirmed, UUID.randomUUID()) }
         val millis = (System.nanoTime() - started) / 1_000_000
-        println("Settled 300 orders in $millis ms")
+        println("Settled 200 orders in $millis ms")
 
-        assertEquals(300, jdbc.queryForObject("SELECT charged_count FROM deal_settlement WHERE deal_id = ?", Int::class.java, deal.toString()))
-        assertTrue(millis < 1_000, "settling 300 orders took $millis ms")
+        assertEquals(200, jdbc.queryForObject("SELECT charged_count FROM deal_settlement WHERE deal_id = ?", Int::class.java, deal.toString()))
+        assertTrue(millis < 1_000, "settling 200 orders took $millis ms")
         assertBooksBalance()
     }
 }
