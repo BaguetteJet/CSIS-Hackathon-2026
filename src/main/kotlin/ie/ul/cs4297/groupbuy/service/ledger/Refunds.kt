@@ -22,9 +22,11 @@ private class ChargeRow(val studentId: UUID, val dealId: UUID, val restaurantId:
                         val commissionCents: Long, val refundedCents: Long, val commissionReversedCents: Long)
 
 /**
- * Refunds after a charge, never more than the order was charged in total (LED-13; decision 0009).
+ * [LED-13] - Post refunds
+ * [LED-14] - Refund limits and early refunds
+ * Refunds after a charge, never more than the order was charged in total (decision 0009).
  * 1. Lock the order's charge row, so two refunds of one order go one at a time.
- * 2. A refundId already decided stops here. No charge yet: the refund came early, so park it (LED-14).
+ * 2. A refundId already decided stops here. No charge yet: the refund came early, so park it ([LED-14] - Refund limits and early refunds).
  * 3. Lock the student, then post REFUND or publish RefundRefused EXCEEDS_CHARGE.
  */
 @Component

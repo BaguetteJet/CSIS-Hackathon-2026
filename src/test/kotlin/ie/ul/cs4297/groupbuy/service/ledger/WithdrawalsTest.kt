@@ -22,7 +22,12 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-/** Cash-outs (LED-15, LED-16) and restaurant payouts (LED-17), through the payments.v1 listener. */
+/**
+ * [LED-15] - Reserve a cash-out
+ * [LED-16] - Pay out or return a cash-out
+ * [LED-17] - Restaurant payouts
+ * Cash-outs and restaurant payouts, through the payments.v1 listener.
+ */
 class WithdrawalsTest : LedgerFlowTest() {
 
     @Autowired lateinit var withdrawals: Withdrawals

@@ -1,4 +1,4 @@
-// LED-22: 100 hold calls a second for 20 s, straight at both replicas (the hold route has no token).
+// [LED-22] - Speed: 100 hold calls a second for 20 s, straight at both replicas (the hold route has no token).
 // Every answer must be a 200 hold result within 2 s.
 //
 //   docker run --rm --network hackathon -v "$PWD/scripts/k6:/scripts" -v <dir with students.json>:/data \

@@ -19,7 +19,7 @@ import org.springframework.kafka.core.KafkaTemplate
 import java.time.Duration
 import java.util.UUID
 
-/** LED-19: zero-amount payments events land on the dead-letter topic at once, unrecorded, and the consumer moves on. */
+/** [LED-19] - Bad input: zero-amount payments events land on the dead-letter topic at once, unrecorded, and the consumer moves on. */
 class PaymentsDeadLetterTest : ContainersTest() {
 
     @Autowired lateinit var kafka: KafkaTemplate<String, String>

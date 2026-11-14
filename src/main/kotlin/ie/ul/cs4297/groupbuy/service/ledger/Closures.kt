@@ -17,7 +17,11 @@ import org.springframework.stereotype.Component
 
 /**
  * The one listener on orders.v1 and deals.v1: it only routes, inside the inbox (decision 0006).
- * Closures refuse late holds (LED-04); releases and settlement move the money (LED-05, 08, 09).
+ * [LED-04] - Hold repeats and refusals
+ * [LED-05] - Settle a confirmed deal
+ * [LED-08] - Release a withdrawn or abandoned order
+ * [LED-09] - Release a failed or cancelled deal
+ * Closures refuse late holds; releases and settlement move the money.
  */
 @Component
 class ClosuresConsumer(
@@ -41,7 +45,7 @@ class ClosuresConsumer(
             is DealConfirmed -> inbox.once(CONSUMER, envelope) { settlement.settle(e, cause) }
             is DealFailed -> inbox.once(CONSUMER, envelope) { releases.dealClosed(e.dealId, HoldReleasedReason.DEAL_FAILED, "FAILED", cause) }
             is DealCancelled -> inbox.once(CONSUMER, envelope) { releases.dealClosed(e.dealId, HoldReleasedReason.DEAL_CANCELLED, "CANCELLED", cause) }
-            is RestaurantRegistered -> inbox.once(CONSUMER, envelope) { accounts.openRestaurant(e.restaurantId) } // LED-01
+            is RestaurantRegistered -> inbox.once(CONSUMER, envelope) { accounts.openRestaurant(e.restaurantId) } // [LED-01] - Open accounts
             else -> {}
         }
     }

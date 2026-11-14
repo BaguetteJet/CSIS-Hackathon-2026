@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 /**
- * The signed-in student's statement (LED-11): every labelled change to their AVAILABLE account.
+ * [LED-11] - My statement: the signed-in student's statement, every labelled change to their AVAILABLE account.
  * Each area labels its own posting when it moves the money, so new kinds show here with no change.
  */
 @RestController
@@ -19,7 +19,7 @@ class StatementController(private val jdbc: JdbcTemplate) {
     @GetMapping("/api/ledger/me/entries")
     fun myEntries(user: CurrentUser): List<LedgerEntry> {
         user.requireRole(Role.STUDENT)
-        // The student only ever comes from the token, never the request (LED-18).
+        // [LED-18] - Security: the student only ever comes from the token, never the request.
         return jdbc.query(
             """
             SELECT p.posted_at, p.entry_kind, p.amount_cents, p.deal_id, p.order_id, p.description

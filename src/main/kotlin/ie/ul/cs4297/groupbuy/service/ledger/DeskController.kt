@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 /**
- * Any student's balance for the Union desk (LED-12): the same Balance as /me, so cash-outs stay within availableCents.
+ * [LED-12] - Desk balance: any student's balance for the Union desk, the same Balance as /me, so cash-outs stay within availableCents.
  * Whether the student is active or blocked is Payments' check, not ours.
  */
 @RestController

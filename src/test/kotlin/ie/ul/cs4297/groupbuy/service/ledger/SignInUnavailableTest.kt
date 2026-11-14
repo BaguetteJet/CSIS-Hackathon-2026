@@ -9,7 +9,7 @@ import org.springframework.mock.web.MockHttpServletRequest
 import org.springframework.mock.web.MockHttpServletResponse
 import org.springframework.security.authentication.AuthenticationServiceException
 
-// LED-18: what Spring Security throws when it can't fetch the sign-in key becomes a 503, and nothing else changes.
+// [LED-18] - Security: what Spring Security throws when it can't fetch the sign-in key becomes a 503, and nothing else changes.
 class SignInUnavailableTest {
 
     private val mapper = Jackson2ObjectMapperBuilder.json().build<com.fasterxml.jackson.databind.ObjectMapper>() // the app's mapper writes `code` flat

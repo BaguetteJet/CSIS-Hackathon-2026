@@ -12,7 +12,7 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.util.UUID
 
-// Item 7, LED-12 and LED-18: Union finance reads any student's balance at the desk.
+// [LED-12] - Desk balance; [LED-18] - Security: Union finance reads any student's balance at the desk (item 7).
 class DeskTest : LedgerFlowTest() {
 
     @LocalServerPort var port = 0

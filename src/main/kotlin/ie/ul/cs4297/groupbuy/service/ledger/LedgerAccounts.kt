@@ -57,12 +57,12 @@ class LedgerAccounts(
         }
     }
 
-    /** Open a restaurant's payable at zero. Safe to call twice (LED-01). */
+    /** [LED-01] - Open accounts: open a restaurant's payable at zero. Safe to call twice. */
     fun openRestaurant(restaurantId: UUID) {
         ensure(AccountRef.restaurantPayable(restaurantId))
     }
 
-    /** No accounts yet: zeros (LED-07). */
+    /** [LED-07] - My balance: no accounts yet, zeros. */
     fun balance(studentId: UUID): Balance {
         val balances = jdbc.query(
             "SELECT purpose, balance_cents FROM ledger_account " +
@@ -81,7 +81,7 @@ class LedgerAccounts(
     }
 
     /**
-     * Open and lock the student's accounts, then return the latest balance (LED-20).
+     * [LED-20] - Two instances, one truth: open and lock the student's accounts, then return the latest balance.
      * Use it for money decisions and for any balance put on an event.
      * AVAILABLE is opened first: locks go in ascending id order, like [LedgerPostingService.post].
      * FOR UPDATE, not a plain read: a REPEATABLE READ snapshot can be out of date.
@@ -158,7 +158,7 @@ class LedgerAccounts(
         ref.owner.name, ref.ownerId, ref.purpose.name,
     ).firstOrNull()
 
-    /** Always zero under double entry (LED-20): every posting ever made, summed. */
+    /** [LED-20] - Two instances, one truth: always zero under double entry, every posting ever made, summed. */
     fun sumOfAllAccounts(): Long = jdbc.queryForObject(
         "SELECT COALESCE(SUM(amount_cents), 0) FROM ledger_posting", Long::class.java,
     )!!

@@ -20,7 +20,10 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 /**
- * Settles a confirmed deal in one transaction, exactly once (LED-05, LED-06, LED-10; decision 0007).
+ * [LED-05] - Settle a confirmed deal
+ * [LED-06] - Settle exactly once
+ * [LED-10] - Settlement problems
+ * Settles a confirmed deal in one transaction, exactly once (decision 0007).
  * 1. Claim deal_settlement: a repeat, on either instance or in a new envelope, stops here.
  * 2. Lock the hold rows (the deal's, then listed orders held elsewhere), close the deal, then lock every student involved.
  * 3. Charge each listed order that's fine; report the rest as SettlementIssue and leave their holds as they are.
@@ -89,6 +92,7 @@ class Settlement(
         outbox.publish(DealSettled(e.dealId, e.restaurantId, charges.size, chargedTotal, commissionTotal), causationId)
         wakeups.dealDecided(e.dealId)
 
+        // [LED-23] - Observability: settlement count, duration and SettlementIssue count
         meters.counter("ledger.settlement.issues").increment(issues.size.toDouble())
         meters.timer("ledger.settlement").record(System.nanoTime() - started, TimeUnit.NANOSECONDS)
     }
@@ -103,7 +107,7 @@ class Settlement(
         false
     }
 
-    /** Why a listed order can't be charged, in words for staff with no personal data (LED-10), or null if it can. */
+    /** [LED-10] - Settlement problems: why a listed order can't be charged, in words for staff with no personal data, or null if it can. */
     private fun problem(order: OrderRef, hold: HoldRow?, e: DealConfirmed): String? = when {
         hold == null || hold.result != "PLACED" -> "No money was set aside for this order"
         hold.state == "RELEASED" -> "The money set aside for this order was already released"

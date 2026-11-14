@@ -20,12 +20,13 @@ spring:
     hikari:
       maximum-pool-size: 10
       initialization-fail-timeout: 60000   # wait up to a minute for MySQL when the dev kit is still starting
-      # With MySQL down, give up on a connection fast so the hold call answers 503 instead of hanging (LED-21).
+      # [LED-21] - Outages: with MySQL down, give up on a connection fast so the hold call answers 503 instead of hanging.
       connection-timeout: 1000             # wait at most 1 s for a free connection (default 30 s)
       validation-timeout: 250              # the "is this connection alive?" check; its 5 s default made 503s take 10 s
 
   jpa:
     hibernate:
+      # [LED-24] - Operability and data: Flyway builds the schema; Hibernate only validates it
       ddl-auto: validate              # never create-drop: a redeploy would wipe your data
     open-in-view: false
     properties:

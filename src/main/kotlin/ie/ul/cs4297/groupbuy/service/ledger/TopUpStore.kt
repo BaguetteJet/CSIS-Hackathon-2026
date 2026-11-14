@@ -4,7 +4,7 @@ import ie.ul.cs4297.groupbuy.contracts.api.LedgerEntryKind
 import org.springframework.stereotype.Component
 import java.util.UUID
 
-/** [TopUpPosting] on the ledger (LED-02): Union cash to the student's available. */
+/** [LED-02] - Credit top-ups: [TopUpPosting] on the ledger, Union cash to the student's available. */
 @Component
 class TopUpStore(
     private val accounts: LedgerAccounts,
@@ -14,7 +14,7 @@ class TopUpStore(
     override fun creditTopUp(topUpId: UUID, studentId: UUID, amountCents: Long): TopUpResult {
         require(amountCents > 0) { "a top-up must be at least 1 cent, not $amountCents" }
 
-        // Opens the account if needed: no UserRegistered required (LED-01).
+        // [LED-01] - Open accounts: opens the account if needed, no UserRegistered required.
         val posted = postings.post(
             reference = MovementRef(MovementType.TOP_UP, topUpId),
             lines = listOf(
