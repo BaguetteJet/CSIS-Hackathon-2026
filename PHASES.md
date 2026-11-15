@@ -54,7 +54,7 @@ Each LED item has a Forgejo issue (#7 LED-01 to #30 LED-24): closed means done, 
 
 ## What's left
 
-As of Sun 15 Nov 06:40 UTC. Every LED item is done; this is what stands between us and the marks, then the weak spots still open.
+As of Sun 15 Nov 06:40 UTC. Every LED item is done. First what the marks still need, then the weak spots still open.
 
 | # | To do | Who |
 |---|---|---|
