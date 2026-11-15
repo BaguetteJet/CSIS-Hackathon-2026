@@ -19,4 +19,4 @@ description: Build or change a Ledger LED story (holds, settlement, releases, re
    - statement text in student words.
 5. **Contract test** in `ContractTest` for every new event, built the way the code builds it.
 6. **Verify** with the `ledger-verify` skill.
-7. **Record it.** Tick the step in your item and update `PHASES.md`.
+7. **Record it.** Tick the step in your item.

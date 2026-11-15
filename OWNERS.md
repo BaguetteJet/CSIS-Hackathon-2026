@@ -4,7 +4,7 @@
 
 We split the Ledger **by money flow**: each area owns one way money enters or leaves (the hold call, payments events, settlement, refunds...) with its own listener or API and its own tables. Each LED item then sits with one person instead of crossing three layers. Why, and the option we rejected: [decision 0001](docs/decisions/0001-work-split.md). Steps and dependencies: [work-items/](work-items/README.md). Progress: [PHASES.md](PHASES.md).
 
-**Rules we keep** (handover §16):
+**Rules we keep**:
 - Every area has one owner and one backup.
 - Everyone owns at least one area and backs up another.
 - Every LED item has one owner, shown as the assignee of its Forgejo issue.

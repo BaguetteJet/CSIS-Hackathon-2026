@@ -1,4 +1,4 @@
-"""Interface targets under load (docs/INTERFACE-TARGETS.md), on the dev kit with both instances from ./check.
+"""Interface targets under load (docs/Constraints.md), on the dev kit with both instances from ./check.
 1. The rush (scripts/k6/rush.js): 100 holds/s over 10 deals, page and desk calls, 20 top-ups; a 200-order deal settles mid-burst.
 2. A 200-order deal settles with nothing else running.  3. Eight deals cancelled: 1,600 releases.
 4. A kitchen failure: 300 RefundApproved at once.  5. The books after all of it.

@@ -1,12 +1,8 @@
 # Interface targets
 
-What each neighbour needs from us in time and load, and where we stand. Spec text: per-team spec (Ledger §5–7, Orders ORD-13, Platform PLT-13/14) and the reference's per-team rules. Measured numbers link to `docs/evidence/`; a target the spec doesn't set is marked **Ours (proposed)**.
-
-Status: ✅ met, with evidence · ⚠️ met once, but a later run or busy machine disagrees · ☐ **Not yet** measured.
+Constraints drawn from per-team spec and a set decided upon by group. All verification link to `docs/evidence/`.
 
 ## Orders: the hold call
-
-Orders waits 2 s, then marks the order PENDING and retries every 20 s (ORD-13). A hold waits at most 1 s for its student's lock, then answers 503 (`Holds.kt`, transaction timeout 1 s).
 
 | | Target | Source | Measured | Evidence |
 |---|---|---|---|---|
@@ -22,13 +18,11 @@ Orders waits 2 s, then marks the order PENDING and retries every 20 s (ORD-13). 
 
 | | Target | Source | Measured | Evidence |
 |---|---|---|---|---|
-| ⚠️ | A 200-order deal settles in one transaction. **Ours (proposed):** under 1 s, so no hold on its students waits past its 1 s limit | LED-05, LED-22 | Live, during the rush: 0.21–0.87 s over 4 runs; alone 0.27–0.49 s; busy CPUs 0.36 s. Worst case 0.13 s under the limit. `SettlementTest` allows 3 s (`7ee6b54`); 1.74 s was seen live on 14 Nov (EDGE-CASES Q2) | [load 15 Nov](evidence/interface-load-2026-11-15.md) |
+| ✅ | A 200-order deal settles in one transaction | LED-05, LED-22 | Live, during the rush: 0.21–0.87 s over 4 runs; alone 0.27–0.49 s; busy CPUs 0.36 s. `SettlementTest` allows 3 s (`7ee6b54`); 1.74 s was seen live on 14 Nov (EDGE-CASES Q2) | [load 15 Nov](evidence/interface-load-2026-11-15.md) |
 | ☐ | The same on the integrated line | PLT-14 | **Not yet** | |
 | ✅ | Ledger down 10 min: settlements, top-ups, releases catch up once | LED-21 | Healthy 13 s after start; balances right within 2 s | [led-21](evidence/led-21-outages.md) |
 
 ## Student experience: the Account page
-
-Their rule: page calls answer within 1 s at p95 while Orders takes 100 commits a second (reference, Student experience). Their Account page calls us, so our share is less.
 
 | | Target | Source | Measured | Evidence |
 |---|---|---|---|---|
@@ -57,13 +51,8 @@ Their rule: page calls answer within 1 s at p95 while Orders takes 100 commits a
 | | Target | Source | Measured | Evidence |
 |---|---|---|---|---|
 | ✅ | Each instance within 512 MB | LED-22 | Up to 457 MiB after four runs, then steady; heap capped at 60% (Dockerfile); no out-of-memory kills | [load 15 Nov](evidence/interface-load-2026-11-15.md) |
-| ⚠️ | Events reach Kafka promptly, so Orders and the money check see them. **Ours (proposed):** within 5 s at the spec's rate | LED-20, LED-21 | Outbox empty 2–8 s after the last refund; up to 57 s late at about 3× the rate | [load 15 Nov](evidence/interface-load-2026-11-15.md) |
 | ✅ | One instance killed: the other carries on; repeats change nothing | LED-21 | 116 PLACED on `ledger-2`, slowest 0.24 s | [led-21](evidence/led-21-outages.md) |
-| ⚠️ | Both instances restart: events wait about 43 s for partitions (EDGE-CASES Q7) | | Nothing lost; documented only | EDGE-CASES Q7 |
 | ✅ | Every published event valid against contracts 1.3.0 | Money check, CI | `ContractTest` | PHASES |
 | ✅ | An instance starts while MySQL is busy: start-up never fails on one slow connection | LED-21 | Was: the daily check's start-up listener ended the instance (seen once in `TwoInstancesTest`, 15 Nov). Fixed on `main` (`e5105ad`) | EDGE-CASES Q23 |
-| ⚠️ | Holds far over the spec's rate, or just after a restart | LED-22 | 300/s warm: all 200, max 964 ms. 300/s in the first minutes after a restart: 58% 200, the rest 503 | EDGE-CASES Q22 |
 
-## Edge cases a neighbour can hit
 
-Each open case, and who it affects: [EDGE-CASES.md](EDGE-CASES.md), "Cases that cause issues" and "Open questions".

@@ -1,6 +1,6 @@
 # Schema
 
-MySQL 8, one database (`ledger`), built by Flyway from [db/migration](../src/main/resources/db/migration/). Sections 1 to 7 explain how the tables fit together; diagrams and the column reference follow. Words: [GLOSSARY.md](../GLOSSARY.md).
+MySQL, one database (`ledger`), built from [db/migration](../src/main/resources/db/migration/).  
 
 ## 1 The model
 
@@ -12,7 +12,6 @@ Three groups of tables. Only the first holds money; the second remembers decisio
 | **Decisions** | `hold_decision`, `order_closure`, `deal_closure`, `deal_settlement`, `order_charge` | What the Ledger already decided: each order's hold answer and state, which orders and deals are closed, which deals settled, what each order paid |
 | **Plumbing** (starter, `platform/`) | `outbox_event`, `key_sequence`, `outbox_lease`, `processed_event`, `parked_event`, `timer`, `idempotency_record`, `known_user` | Events out (outbox), events in once (inbox), early events (parking), timers, HTTP idempotency, users seen |
 
-There are only two foreign keys (posting → movement, posting → account). Every other link is a shared UUID: `order_id`, `deal_id`, `student_id`. IDs come from other services, so the Ledger never refuses a row because it hasn't seen the owner yet.
 
 ## 2 Signs and balances
 
@@ -239,24 +238,18 @@ erDiagram
         varchar state
         datetime decided_at
     }
-    known_user {
-        varchar user_id PK
-        varchar name
-        varchar email
-        varchar role
-        varchar restaurant_id
-        datetime updated_at
-    }
 
     ledger_movement ||--|{ ledger_posting : movement_id
     ledger_account ||--o{ ledger_posting : account_id
-    known_user |o..o{ ledger_account : owner_id
     hold_decision |o..o| order_closure : order_id
     hold_decision |o..o| order_charge : order_id
     deal_closure |o..o{ hold_decision : deal_id
     deal_settlement |o..o{ order_charge : deal_id
     order_charge |o..o{ refund : order_id
-    ledger_account |o..o{ withdrawal : student_id
+    ledger_account |o..o{ hold_decision : "owner_id = student_id"
+    ledger_account |o..o{ order_charge : "owner_id = student_id"
+    ledger_account |o..o{ refund : "owner_id = student_id"
+    ledger_account |o..o{ withdrawal : "owner_id = student_id"
 ```
 
 ### Platform Tables
@@ -315,222 +308,12 @@ erDiagram
         mediumtext response_json
         datetime created_at
     }
+    known_user {
+        varchar user_id PK
+        varchar name
+        varchar email
+        varchar role
+        varchar restaurant_id
+        datetime updated_at
+    }
 ```
-
-## Ledger tables
-
-### `ledger_account` (V3)
-
-One account per owner and purpose.
-
-| Field | Type | Attributes |
-|---|---|---|
-| `id` | BIGINT | PK, auto increment |
-| `owner_type` | VARCHAR(20) | Unique (`owner_type`, `owner_id`, `purpose`); STUDENT, RESTAURANT, UNION |
-| `owner_id` | CHAR(36) | Unique (`owner_type`, `owner_id`, `purpose`) |
-| `purpose` | VARCHAR(20) | Unique (`owner_type`, `owner_id`, `purpose`); AVAILABLE, HELD, PAYABLE, CASH, COMMISSION |
-| `balance_cents` | BIGINT | Default 0. Kept for STUDENT rows only; on UNION and RESTAURANT rows it is stale: use the sum of postings (section 2) |
-| `created_at` | DATETIME(6) | |
-
-### `ledger_movement` (V3)
-
-One business movement.
-
-| Field | Type | Attributes |
-|---|---|---|
-| `id` | CHAR(36) | PK |
-| `reference_type` | VARCHAR(40) | Unique (`reference_type`, `reference_id`) |
-| `reference_id` | CHAR(36) | Unique (`reference_type`, `reference_id`) |
-| `posted_at` | DATETIME(6) | |
-
-### `ledger_posting` (V3)
-
-One immutable side of a movement; a movement's postings sum to zero.
-
-| Field | Type | Attributes |
-|---|---|---|
-| `id` | BIGINT | PK, auto increment |
-| `movement_id` | CHAR(36) | FK → `ledger_movement.id`; index |
-| `account_id` | BIGINT | FK → `ledger_account.id`; index (`account_id`, `posted_at`, `id`) |
-| `amount_cents` | BIGINT | Signed |
-| `posted_at` | DATETIME(6) | |
-| `entry_kind` | VARCHAR(30) | Nullable |
-| `description` | VARCHAR(200) | Nullable |
-| `deal_id` | CHAR(36) | Nullable |
-| `order_id` | CHAR(36) | Nullable |
-
-### `hold_decision` (V4, V6)
-
-First hold answer per order, and the hold's state.
-
-| Field | Type | Attributes |
-|---|---|---|
-| `order_id` | CHAR(36) | PK |
-| `student_id` | CHAR(36) | |
-| `deal_id` | CHAR(36) | Index; index (`deal_id`, `state`) |
-| `amount_cents` | BIGINT | |
-| `result` | VARCHAR(30) | PLACED, INSUFFICIENT_FUNDS, DEAL_CLOSED, ORDER_CLOSED |
-| `available_cents` | BIGINT | Nullable |
-| `decided_at` | DATETIME(6) | |
-| `state` | VARCHAR(20) | Nullable; OPEN, RELEASED, CHARGED; index (`deal_id`, `state`) |
-
-### `order_closure` (V5)
-
-Orders the Ledger has seen closed.
-
-| Field | Type | Attributes |
-|---|---|---|
-| `order_id` | CHAR(36) | PK |
-| `deal_id` | CHAR(36) | |
-| `reason` | VARCHAR(30) | WITHDRAWN, ABANDONED (the V5 comment lists all five; the code writes these two) |
-| `closed_at` | DATETIME(6) | |
-
-### `deal_closure` (V5)
-
-Deals the Ledger has seen closed.
-
-| Field | Type | Attributes |
-|---|---|---|
-| `deal_id` | CHAR(36) | PK |
-| `reason` | VARCHAR(30) | CONFIRMED, FAILED, CANCELLED |
-| `closed_at` | DATETIME(6) | |
-
-### `order_charge` (V7)
-
-What a charged order paid, with refund totals.
-
-| Field | Type | Attributes |
-|---|---|---|
-| `order_id` | CHAR(36) | PK |
-| `deal_id` | CHAR(36) | Index |
-| `student_id` | CHAR(36) | |
-| `restaurant_id` | CHAR(36) | |
-| `price_cents` | BIGINT | |
-| `commission_cents` | BIGINT | |
-| `returned_cents` | BIGINT | |
-| `refunded_cents` | BIGINT | Default 0 |
-| `commission_reversed_cents` | BIGINT | Default 0 |
-| `charged_at` | DATETIME(6) | |
-
-### `deal_settlement` (V7)
-
-One row per settled deal.
-
-| Field | Type | Attributes |
-|---|---|---|
-| `deal_id` | CHAR(36) | PK |
-| `restaurant_id` | CHAR(36) | |
-| `settled_at` | DATETIME(6) | |
-| `charged_count` | INT | Default 0 |
-| `total_charged_cents` | BIGINT | Default 0 |
-| `total_commission_cents` | BIGINT | Default 0 |
-
-### `refund` (V9)
-
-One row per decided refund. A refund waiting for its charge has no row: it is parked.
-
-| Field | Type | Attributes |
-|---|---|---|
-| `refund_id` | CHAR(36) | PK: a repeated RefundApproved finds it and changes nothing |
-| `order_id` | CHAR(36) | Index |
-| `deal_id` | CHAR(36) | From RefundApproved |
-| `student_id` | CHAR(36) | From RefundApproved; the money goes to `order_charge.student_id` |
-| `amount_cents` | BIGINT | |
-| `commission_reversed_cents` | BIGINT | Default 0 |
-| `reason` | VARCHAR(30) | COMPLAINT, KITCHEN_FAILURE (Support's) |
-| `outcome` | VARCHAR(30) | POSTED, EXCEEDS_CHARGE, NEVER_CHARGED |
-| `decided_at` | DATETIME(6) | |
-
-### `withdrawal` (V8)
-
-One row per cash-out. Paid out or returned is `UPDATE ... WHERE state = 'RESERVED'`, like a hold (decision 0008), so a cash-out ends once.
-
-| Field | Type | Attributes |
-|---|---|---|
-| `withdrawal_id` | CHAR(36) | PK: a repeated WithdrawalRequested finds it and changes nothing |
-| `student_id` | CHAR(36) | |
-| `amount_cents` | BIGINT | The reserved amount; paying out or returning always uses it |
-| `state` | VARCHAR(20) | RESERVED or REFUSED, then PAID_OUT or RETURNED |
-| `decided_at` | DATETIME(6) | |
-
-### `known_user` (V2)
-
-Users from users.v1.
-
-| Field | Type | Attributes |
-|---|---|---|
-| `user_id` | VARCHAR(36) | PK |
-| `name` | VARCHAR(200) | |
-| `email` | VARCHAR(200) | |
-| `role` | VARCHAR(30) | |
-| `restaurant_id` | VARCHAR(36) | Nullable |
-| `updated_at` | DATETIME(6) | |
-
-## Platform tables (V1)
-
-### `outbox_event`
-| Field | Type | Attributes |
-|---|---|---|
-| `id` | BIGINT | PK, auto increment; index (`published_at`, `id`) |
-| `event_id` | CHAR(36) | Unique |
-| `topic` | VARCHAR(100) | |
-| `event_key` | VARCHAR(100) | |
-| `event_type` | VARCHAR(100) | |
-| `message_json` | MEDIUMTEXT | |
-| `created_at` | DATETIME(6) | |
-| `published_at` | DATETIME(6) | Nullable; index (`published_at`, `id`) |
-
-### `outbox_lease`
-| Field | Type | Attributes |
-|---|---|---|
-| `name` | VARCHAR(50) | PK |
-| `holder` | VARCHAR(200) | |
-| `expires_at` | DATETIME(6) | |
-
-### `key_sequence`
-| Field | Type | Attributes |
-|---|---|---|
-| `topic` | VARCHAR(100) | PK (`topic`, `event_key`) |
-| `event_key` | VARCHAR(100) | PK (`topic`, `event_key`) |
-| `last_sequence` | BIGINT | |
-
-### `processed_event`
-| Field | Type | Attributes |
-|---|---|---|
-| `consumer` | VARCHAR(100) | PK (`consumer`, `event_id`) |
-| `event_id` | CHAR(36) | PK (`consumer`, `event_id`) |
-| `processed_at` | DATETIME(6) | |
-
-### `parked_event`
-| Field | Type | Attributes |
-|---|---|---|
-| `id` | BIGINT | PK, auto increment |
-| `consumer` | VARCHAR(100) | Unique (`consumer`, `event_id`); index (`consumer`, `waits_for`) |
-| `waits_for` | VARCHAR(200) | Index (`consumer`, `waits_for`) |
-| `event_id` | CHAR(36) | Unique (`consumer`, `event_id`) |
-| `message_json` | MEDIUMTEXT | |
-| `parked_at` | DATETIME(6) | |
-
-### `timer`
-| Field | Type | Attributes |
-|---|---|---|
-| `id` | BIGINT | PK, auto increment |
-| `timer_type` | VARCHAR(100) | Unique (`timer_type`, `timer_key`) |
-| `timer_key` | VARCHAR(200) | Unique (`timer_type`, `timer_key`) |
-| `fire_at` | DATETIME(6) | Index (`status`, `fire_at`) |
-| `payload` | TEXT | Nullable |
-| `status` | VARCHAR(20) | Default PENDING; index (`status`, `fire_at`) |
-| `attempts` | INT | Default 0 |
-| `fired_at` | DATETIME(6) | Nullable |
-| `fired_by` | VARCHAR(200) | Nullable |
-| `last_error` | TEXT | Nullable |
-
-### `idempotency_record`
-| Field | Type | Attributes |
-|---|---|---|
-| `caller` | VARCHAR(100) | PK (`caller`, `idempotency_key`) |
-| `idempotency_key` | VARCHAR(100) | PK (`caller`, `idempotency_key`) |
-| `request_hash` | CHAR(64) | |
-| `status` | INT | |
-| `response_json` | MEDIUMTEXT | Nullable |
-| `created_at` | DATETIME(6) | |

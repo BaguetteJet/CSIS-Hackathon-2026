@@ -1,6 +1,6 @@
 # 0001 Split the work by money flow
 
-**Protects.** Every LED item has one owner (handover §16).
+**Protects.** Every LED item has one owner
 
 **Problem.** Seven people, one service. Each area needs an owner and a backup.
 

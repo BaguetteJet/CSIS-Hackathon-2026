@@ -1,4 +1,4 @@
-"""The test agents' cheap checks (docs/BUG-HUNT.md), on the dev kit with both instances from ./check: every page call's
+"""The test agents' cheap checks, on the dev kit with both instances from ./check: every page call's
 401/403/404 order and bad IDs (DEC E1, E2), the hold call's bad input, repeats and answer time (E3, E5, E7, LED-04), the
 statement's order and wording (LED-11), and the books (I1, I2). Moves no money: holds go to students with no account.
 Usage: python3 -I agent_probes.py <dev-kit dir>. Exits 1 on any FAIL. Never prints a token."""

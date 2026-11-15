@@ -1,8 +1,6 @@
 # Neighbours: what we own, what we need, what we give
 
-Drafted Sat 14 Nov from each team's document (`per_team_spec.pdf`, the "You read" lists) and Orders' design decisions. Fields and keys checked against contracts 1.3.0 (`contracts/schemas/`, `contracts/openapi/` and `EventCatalogue` in the library's sources jar). **Confirmed** means that team's lead said this is complete.
-
-**By:** Sat 16:30, Sat 21:00 and Sun 14:00 are the spec's (Ledger §8); Sun 12:00 is our own target for the rest (PHASES, phase 3).
+Fields and keys checked against contracts (`contracts/schemas/`, `contracts/openapi/` and `EventCatalogue` in the library's sources jar). **Confirmed** means that team's lead said this is complete.
 
 ## 1 What we own, what we don't
 
@@ -81,9 +79,3 @@ Events with the same key arrive in the order we committed them (per-key FIFO, AR
 | SettlementIssue | `dealId` |
 
 A student's events therefore chain by balance (LED-20), but a deal's DealSettled can arrive before or after its students' OrderCharged.
-
-## 5 Asking each team
-
-One message per team lead, in the line channel. Tick **Confirmed** when they answer.
-
-> Hi, Ledger here. From your team document, you need these from us: <rows above>. Anything missing, or anything you'd use differently? Of these, <built ones> are on `main` and promoted from <tag>.
