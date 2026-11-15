@@ -251,6 +251,12 @@ Parked refunds: each waits for its order's charge (`order:<id>`) or, with no mon
 SELECT waits_for, event_id, parked_at FROM parked_event WHERE consumer = 'support-v1' ORDER BY parked_at;
 ```
 
+Cash-outs reserved but never finished: each waits for Payments' WithdrawalCompleted or WithdrawalFailed. One left for hours means Payments never sent it: ask them, don't post it by hand.
+
+```sql
+SELECT withdrawal_id, student_id, amount_cents, decided_at FROM withdrawal WHERE state = 'RESERVED' ORDER BY decided_at;
+```
+
 ### Failures (reference, Scenarios K)
 
 | Failure | Symptom | Confirm | Fix |

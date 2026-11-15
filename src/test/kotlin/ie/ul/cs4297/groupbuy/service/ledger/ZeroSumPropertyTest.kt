@@ -147,6 +147,7 @@ class ZeroSumPropertyTest : LedgerFlowTest() {
         }
         // Printed so the evidence shows every kind of operation really ran.
         println("ZeroSumPropertyTest: ${seeds.size} runs, ${done.values.sum()} steps: $done")
+        assertBooksBalance()
     }
 
     private fun count(sql: String): Int = jdbc.queryForObject(sql, Int::class.java)!!

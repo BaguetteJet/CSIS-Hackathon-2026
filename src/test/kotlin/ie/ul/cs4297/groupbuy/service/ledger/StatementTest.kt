@@ -57,6 +57,7 @@ class StatementTest : LedgerFlowTest() {
             if (entry["credit"].asBoolean()) net += entry["amountCents"].asLong() else net -= entry["amountCents"].asLong()
         }
         assertEquals(accounts.balance(student).availableCents, net)
+        assertBooksBalance()
     }
 
     @Test
@@ -133,6 +134,7 @@ class StatementTest : LedgerFlowTest() {
         assertEquals("WITHDRAWAL", newest["kind"].asText())
         assertEquals(300L, newest["amountCents"].asLong())
         assertEquals(false, newest["credit"].asBoolean())
+        assertBooksBalance()
     }
 
     @Test
@@ -147,6 +149,7 @@ class StatementTest : LedgerFlowTest() {
 
         assertEquals(listOf("HOLD", "TOP_UP"), body.map { it["kind"].asText() })
         assertEquals(4525L, accounts.balance(student).availableCents)
+        assertBooksBalance()
     }
 
     @Test

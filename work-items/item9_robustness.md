@@ -10,7 +10,7 @@
 
 **Builds on:** items 1, 2, 3, 5 (built), 6 and 8 (as they land). **Used by:** item 4 (runbooks), item 7 (property test).
 
-**Files:** `test/.../ledger/EdgeCasesTest.kt`, `test/.../ledger/LedgerInvariants.kt`, this item's section of `docs/HANDOVER.md`. A fix in another area's file goes in a PR reviewed by that area's owner.
+**Files:** `test/.../ledger/EdgeCasesTest.kt`, `assertBooksBalance()` in `test/.../ledger/LedgerFlowTest.kt` (planned as `LedgerInvariants.kt`), this item's section of `docs/HANDOVER.md`. A fix in another area's file goes in a PR reviewed by that area's owner.
 
 ### Invariants
 
@@ -29,7 +29,7 @@ Checked after every container test (step 1), and by SQL on a live deployment.
 
 1. [x] **`LedgerInvariants` (I1 to I6).** One `assertConsistent()` for tests; replaces `assertBooksBalance()` as each test is touched. The same checks as SQL in HANDOVER §8.
    *Done when:* every existing container test calls it and passes.
-   *Done:* I1 to I5 inside `LedgerFlowTest.assertBooksBalance()` (I1, I2 are the daily check's own), so every flow test that called it now checks all five; each was seen to fail on a deliberate break. I6 (published within a minute) is the outbox's, not checked here.
+   *Done:* I1 to I5 inside `LedgerFlowTest.assertBooksBalance()` (I1, I2 are the daily check's own), and every container test that moves money calls it (`DeskTest`, `StatementTest`, `ZeroSumPropertyTest` added Sun 15 Nov; not `LedgerMetricsTest`, which breaks a balance on purpose); each was seen to fail on a deliberate break. As SQL: I1, I2, I5 and stuck money in HANDOVER §8. I6 (published within a minute) is the outbox's, not checked here.
 2. [x] **Races, two instances.** Withdrawn vs settlement on one order; DealFailed vs DealConfirmed; a hold vs DealCancelled; a top-up vs a hold for exactly the balance. Item 8 owns the cash-out vs hold race (LED-15).
    *Done when:* each has exactly one outcome and I1 to I6 hold, 50 runs in a row.
    *Done:* `EdgeCasesTest` D8, D20, T7 (5 to 10 runs each, so the suite stays quick: two transactions on separate connections, as two instances are); a hold vs a closing deal is `ReleasesTest`'s race (DealFailed and DealCancelled share `dealClosed`).
@@ -41,6 +41,8 @@ Checked after every container test (step 1), and by SQL on a live deployment.
    *Done:* `EdgeCasesTest` X18, through real settlement.
 
 **If short of time:** steps 1 and 2; they defend the marked properties directly.
+
+**After the steps** (not required by the spec; [EDGE-CASES](../docs/EDGE-CASES.md#cases-that-cause-issues)): Q1, a repeat orderId for another student, is the one 🔴 left (items 1 and 5); X11, a deadlock test, and X16, a log line for unknown events, are still open.
 
 ### Out of scope
 

@@ -41,6 +41,7 @@ class DeskTest : LedgerFlowTest() {
         assertEquals(4400L, body["availableCents"].asLong())
         assertEquals(600L, body["heldCents"].asLong())
         assertEquals(mapper.readTree(me.body()), body)
+        assertBooksBalance()
     }
 
     @Test
