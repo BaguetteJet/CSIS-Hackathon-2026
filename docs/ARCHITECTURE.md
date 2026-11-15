@@ -32,7 +32,7 @@ The Ledger decides one thing: whether a student's money is available. Every move
 | Students funded in integration | 204 |
 | Memory per instance | 512 MB limit, about 330 MB used |
 
-The load is small. The risks are **contention** (hot rows, long locks) and **correctness under retries**, not throughput.
+The load is small; the risks are **contention** (hot rows, long locks) and **correctness under retries**.
 
 ## 3. API and events
 
@@ -108,7 +108,7 @@ Union and restaurant accounts have no running balance, so they're never locked (
 
 ### Cash-outs and payouts (LED-15, LED-16, LED-17, item 8)
 
-Money leaving the system. Payments runs the desk and pays restaurants; the Ledger only records it, and only after checking the student has the money.
+Payments runs the desk and pays restaurants. The Ledger records the money leaving, and for a cash-out first checks the student has it.
 
 **A cash-out happens in two steps**, like an order: the money is set aside first, then the outcome decides where it goes.
 
@@ -123,7 +123,7 @@ The example is the contracts' own: a student topped up €20 at the desk and has
 
 **A payout is one step:** `PayoutConfirmed` (the contracts' example: €129.60 for one restaurant's week) takes the amount from the restaurant's PAYABLE to Union CASH and announces `PayoutDebited`. Payments decides how much, so the payable may go below zero.
 
-**Why it can't go wrong:**
+**Guarantees:**
 - **Set aside first.** The cash can't also be spent on an order while staff count it out. A cash-out and an order racing for the same money both lock the student's row, so one wins and the other is refused.
 - **Ends once.** Step 2 only acts on a RESERVED row, so whichever of Completed or Failed arrives first wins; the other changes nothing. A cash-out is never both paid and returned.
 - **The reserved amount wins.** Step 2 moves what was set aside, whatever amount the later event carries; a different one is logged (`warn`).
@@ -179,8 +179,6 @@ sequenceDiagram
   end
 ```
 
-Same colours as the states below: yellow RESERVED, grey REFUSED, green PAID_OUT, blue RETURNED.
-
 ```mermaid
 stateDiagram-v2
   [*] --> RESERVED: Requested, enough available<br/>AVAILABLE → HELD
@@ -201,7 +199,7 @@ stateDiagram-v2
   class RETURNED returned
 ```
 
-Yellow: money set aside, waiting. Grey: refused, nothing moved. Green: cash left the Ledger. Blue: money back in the student's Account.
+Colours, in both diagrams: yellow RESERVED (money set aside, waiting), grey REFUSED (nothing moved), green PAID_OUT (cash left the Ledger), blue RETURNED (money back in the student's Account).
 
 Proof: `WithdrawalsTest` (8 container tests, including the race), `ContractTest` (every new event, zero amounts to `ledger.dlt`).
 

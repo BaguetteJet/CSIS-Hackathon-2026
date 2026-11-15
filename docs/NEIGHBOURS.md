@@ -6,7 +6,7 @@ Drafted Sat 14 Nov from each team's document (`per_team_spec.pdf`, the "You read
 
 ## 1 What we own, what we don't
 
-Every other service touches money only through us. We own the books; we never own the business decision that moves them.
+Other services touch money only through us. We keep the books; the decisions that move money belong to other teams.
 
 | The Ledger owns | Everyone else |
 |---|---|
@@ -80,7 +80,7 @@ Events with the same key arrive in the order we committed them (per-key FIFO, AR
 | DealSettled, PayoutDebited | `restaurantId` |
 | SettlementIssue | `dealId` |
 
-So a student's events chain by balance (LED-20), but a deal's DealSettled can arrive before or after its students' OrderCharged.
+A student's events therefore chain by balance (LED-20), but a deal's DealSettled can arrive before or after its students' OrderCharged.
 
 ## 5 Asking each team
 
