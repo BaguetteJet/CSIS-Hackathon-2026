@@ -1,6 +1,7 @@
 package ie.ul.cs4297.groupbuy.service.ledger
 
 import ie.ul.cs4297.groupbuy.contracts.ContractEvent
+import ie.ul.cs4297.groupbuy.contracts.ContractJson
 import ie.ul.cs4297.groupbuy.contracts.Envelope
 import ie.ul.cs4297.groupbuy.contracts.Money
 import ie.ul.cs4297.groupbuy.contracts.api.Balance
@@ -54,6 +55,22 @@ class Refunds(
             isDealDecided(e.dealId) -> refuseNeverCharged(envelope, e)
             else -> parking.park(SupportConsumer.CONSUMER, "deal:${e.dealId}", envelope)
         }
+    }
+
+    override fun waitingStudents(orderIds: Collection<UUID>, dealId: UUID?): Set<UUID> {
+        val keys = orderIds.map { "order:$it" } + listOfNotNull(dealId?.let { "deal:$it" })
+        if (keys.isEmpty()) return emptySet()
+        // The caller holds the order and closure rows that govern parking for these keys.
+        val waiting = jdbc.queryForList(
+            "SELECT message_json FROM parked_event WHERE consumer = ? AND waits_for IN (${keys.joinToString(",") { "?" }})",
+            String::class.java, SupportConsumer.CONSUMER, *keys.toTypedArray(),
+        ).mapNotNull { ContractJson.read(it)?.payload as? RefundApproved }
+        val students = waiting.mapTo(mutableSetOf()) { it.studentId }
+        // A posted refund uses the original charge's student, even if the approval names someone else.
+        for (orderId in waiting.map { it.orderId }.distinct().sortedBy { it.toString() }) {
+            lockHold(orderId)?.let { students += it.studentId }
+        }
+        return students
     }
 
     /** One query for the whole deal, not one per charged order. */
@@ -114,12 +131,12 @@ class Refunds(
             balance.availableCents, balance.heldCents), envelope.eventId)
     }
 
-    private class HoldState(val state: String?, val dealId: UUID)
+    private class HoldState(val state: String?, val dealId: UUID, val studentId: UUID)
 
     /** The order's hold state (OPEN, RELEASED, CHARGED; null if not placed) and deal, or null with no hold. Locks the row, or its gap if there's none. */
     private fun lockHold(orderId: UUID): HoldState? = jdbc.query(
-        "SELECT state, deal_id FROM hold_decision WHERE order_id = ? FOR UPDATE",
-        { rs, _ -> HoldState(rs.getString(1), UUID.fromString(rs.getString(2))) },
+        "SELECT state, deal_id, student_id FROM hold_decision WHERE order_id = ? FOR UPDATE",
+        { rs, _ -> HoldState(rs.getString(1), UUID.fromString(rs.getString(2)), UUID.fromString(rs.getString(3))) },
         orderId.toString(),
     ).singleOrNull()
 

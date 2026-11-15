@@ -47,14 +47,16 @@ class Releases(
     fun orderClosed(orderId: UUID, dealId: UUID, reason: HoldReleasedReason, causationId: UUID) {
         val open = holdsForOrders(listOf(orderId)).filter { it.isOpen }
         closeOrder(orderId, dealId, reason.name)
-        release(open, reason, causationId, accounts.lockStudents(open.map { it.studentId }))
+        val waiting = wakeups.waitingStudents(open.map { it.orderId })
+        release(open, reason, causationId, accounts.lockStudents(open.map { it.studentId } + waiting))
     }
 
     /** DealFailed or DealCancelled: close the deal and release every open hold for it. Never on a timer (D-E5). */
     fun dealClosed(dealId: UUID, reason: HoldReleasedReason, closure: String, causationId: UUID) {
         val open = holdsForDeal(dealId).filter { it.isOpen }
         closeDeal(dealId, closure)
-        release(open, reason, causationId, accounts.lockStudents(open.map { it.studentId }))
+        val waiting = wakeups.waitingStudents(open.map { it.orderId }, dealId)
+        release(open, reason, causationId, accounts.lockStudents(open.map { it.studentId } + waiting))
         wakeups.dealDecided(dealId)
     }
 
