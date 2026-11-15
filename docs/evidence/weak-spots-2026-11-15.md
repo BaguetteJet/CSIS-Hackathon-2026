@@ -45,3 +45,16 @@ Afterwards both instances were UP with no manual step. The log shows Hikari drop
 - `DailyCheck.check()` checks I1 and I2, not I3 or I5.
 - `ContractJson` ignores unknown fields, but an unknown enum value fails to read and goes to `ledger.dlt` at once.
 - CI runs no container tests (the organisers' rule), and `./check` only runs them with `--with-containers`.
+
+**Follow-up, 05:00–05:05 UTC, branch `item-4/outage-hardening`** (Q11, Q12, Q13, Q15 fixed). The suites passed with 26 unit, 13 contract and 103 container tests, and `./check` said Ready (334 and 328 MiB):
+- `docker port ledger-1` now shows `127.0.0.1:8081`. The LAN address `192.168.1.48:8081` doesn't answer, and the gateway still does (`/api/ledger/me` 401).
+- MySQL paused 12 s: three holds answered 503 in 2.20, 2.60 and 10.16 s (the last waited on two 5 s socket timeouts). Holds were normal 3 s after it returned.
+- MySQL stopped for 200 s: a top-up sent 8 s in waited 195 s (past the platform's 155 s), was credited 16 s after MySQL returned, and `ledger_dead_letters` stayed at 2 with no `Dead letter:` line. Both instances were UP after.
+- The books on the dev kit: I1 to I6 hold over 420 movements and 186 holds.
+
+**Follow-up, 06:10–06:50 UTC, branch `item-4/outage-hardening`** (Q18 to Q21 found and Q18 to Q20 fixed; Q21 from the drills):
+- LED-21 drills rerun on `e00940f`: all four pass ([follow-up](led-21-outages.md)). After a 5 min Kafka pause, a top-up waited 44 s for the consumers to rejoin (Q21).
+- The daily check's I3 query on a scratch database in the dev kit's MySQL, 5,000 students, 100,000 holds and 5,000 reserved cash-outs: the subquery per student took 217.7 s; summing each table once and joining took 0.06 s, with the same count (Q19).
+- Flyway on its own connection (Q18): the first try set only `spring.flyway.url`, and all 91 container tests failed with `Access denied` for the laptop's own user name, no password (with a url, Flyway doesn't take the datasource's user). With `user` and `password` set too: 26 unit, 13 contract and 105 container tests pass; `./check` Ready (330 and 341 MiB). The instances' log: `Successfully validated 9 migrations`.
+- k6 on the new image, 200 funded students, both instances: 100/s for 20 s, 2,001 holds, 100%, max 742 ms, p95 117 ms; 200/s, 3,986 holds, 100%, max 394 ms, p95 92 ms.
+- k6 at 300/s, 06:42 to 06:45: discarded, another session's releases and refunds ran on the same instances. Rerun on `c01e9e2`, quiet dev kit, fresh funded students (Q22): 300/s 4 min after a restart, 4,168 sent, 58% 200, the rest 503 (`Could not open JPA EntityManager`: no connection within 1 s, pool 10 of 10 busy), max 5.49 s; 100/s on one student, 1,958 sent, 99.4%, max 1.38 s, held 194,600 = 1,946 holds × 100; 300/s again, warm, 5,835 holds, 100%, max 964 ms, p95 273 ms. Memory peaked at 466.2 and 465.2 of 512 MiB, flat after; neither instance OOM-killed. After all of it, I1 to I6 hold over 40,721 movements and 30,588 holds; nothing unpublished, stuck or parked.

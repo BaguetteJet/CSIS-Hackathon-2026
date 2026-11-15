@@ -90,32 +90,8 @@ abstract class LedgerFlowTest : ContainersTest() {
         { rs, _ -> rs.getString(1) to rs.getString(2) }, student.toString(),
     )
 
-    /**
-     * Item 9's invariants (I1 to I5) over the whole database; each is one statement, so it reads one consistent snapshot.
-     * I1, I2: the daily check's own checks, so tests and production agree on what "balanced" means.
-     */
+    /** Item 9's invariants (I1 to I5) over the whole database: the daily check's own, so tests and production agree on what "balanced" means. */
     fun assertBooksBalance() {
-        assertEquals(emptyList<String>(), dailyCheck.check(), "I1, I2: books sum to 0, no student below 0, balances equal postings")
-        assertEquals(0, count("SELECT COUNT(*) FROM (SELECT movement_id FROM ledger_posting GROUP BY movement_id HAVING SUM(amount_cents) <> 0) x"),
-            "I1: every movement sums to 0")
-        assertEquals(0, count(
-            "SELECT COUNT(*) FROM ledger_account a WHERE a.owner_type = 'STUDENT' AND a.purpose = 'HELD' AND a.balance_cents <> " +
-                "COALESCE((SELECT SUM(h.amount_cents) FROM hold_decision h WHERE h.student_id = a.owner_id AND h.state = 'OPEN'), 0) + " +
-                "COALESCE((SELECT SUM(w.amount_cents) FROM withdrawal w WHERE w.student_id = a.owner_id AND w.state = 'RESERVED'), 0)",
-        ), "I3: a student's HELD equals their open holds plus reserved cash-outs")
-        assertEquals(0, count(
-            "SELECT COUNT(*) FROM hold_decision h WHERE " +
-                "(SELECT COUNT(*) FROM ledger_movement m WHERE m.reference_type = 'HOLD' AND m.reference_id = h.order_id) <> IF(h.result = 'PLACED', 1, 0) " +
-                "OR (SELECT COUNT(*) FROM ledger_movement m WHERE m.reference_type = 'RELEASE' AND m.reference_id = h.order_id) <> IF(h.state = 'RELEASED', 1, 0) " +
-                "OR (SELECT COUNT(*) FROM ledger_movement m WHERE m.reference_type = 'ORDER_CHARGE' AND m.reference_id = h.order_id) <> IF(h.state = 'CHARGED', 1, 0)",
-        ), "I4: each placed hold has one HOLD movement, and a RELEASE or ORDER_CHARGE only as its state says")
-        assertEquals(0, count(
-            "SELECT COUNT(*) FROM deal_settlement s WHERE " +
-                "s.charged_count <> (SELECT COUNT(*) FROM order_charge c WHERE c.deal_id = s.deal_id) " +
-                "OR s.total_charged_cents <> (SELECT COALESCE(SUM(c.price_cents), 0) FROM order_charge c WHERE c.deal_id = s.deal_id) " +
-                "OR s.total_commission_cents <> (SELECT COALESCE(SUM(c.commission_cents), 0) FROM order_charge c WHERE c.deal_id = s.deal_id)",
-        ), "I5: each deal's settlement totals equal its charges")
+        assertEquals(emptyList<String>(), dailyCheck.check(), "the books balance (I1 to I5)")
     }
-
-    private fun count(sql: String): Int = jdbc.queryForObject(sql, Int::class.java)!!
 }

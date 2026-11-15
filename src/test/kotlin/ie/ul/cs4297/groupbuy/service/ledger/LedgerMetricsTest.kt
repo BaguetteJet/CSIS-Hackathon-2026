@@ -15,6 +15,8 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.scheduling.config.FixedDelayTask
+import org.springframework.scheduling.config.ScheduledTaskHolder
 import java.sql.Timestamp
 import java.time.Duration
 import java.util.UUID
@@ -27,6 +29,7 @@ class LedgerMetricsTest : LedgerFlowTest() {
 
     @Autowired lateinit var meters: MeterRegistry
     @Autowired lateinit var timers: Timers
+    @Autowired lateinit var scheduled: ScheduledTaskHolder
 
     private fun gauge(name: String): Double = meters.get(name).gauge().value()
 
@@ -78,6 +81,33 @@ class LedgerMetricsTest : LedgerFlowTest() {
             dailyCheck.check().also { status.setRollbackOnly() }
         }!!
         assertEquals(listOf("1 student balances differ from their postings"), found)
+    }
+
+    @Test
+    fun `the daily check names set-aside money with no open hold, a hold ended with no movement, and settlement totals with no charges`() {
+        val order = UUID.randomUUID()
+        assertEquals(HoldResult.PLACED, hold(order, funded(1000), 600, UUID.randomUUID()))
+
+        // Both broken behind the postings' back, then rolled back.
+        val found = tx.execute { status ->
+            jdbc.update("UPDATE hold_decision SET state = 'RELEASED' WHERE order_id = ?", order.toString())
+            jdbc.update("INSERT INTO deal_settlement (deal_id, restaurant_id, settled_at, charged_count, total_charged_cents) VALUES (?, ?, ?, 1, 475)",
+                UUID.randomUUID().toString(), UUID.randomUUID().toString(), Timestamp.from(TestClock.instant()))
+            dailyCheck.check().also { status.setRollbackOnly() }
+        }!!
+        assertEquals(listOf(
+            "1 students' set-aside money differs from their open holds and reserved cash-outs",
+            "1 holds whose movements don't match their state",
+            "1 deal settlements whose totals differ from their charges",
+        ), found)
+        assertBooksBalance()
+    }
+
+    @Test
+    fun `a failed day's check doesn't end the checks - the next day is scheduled every hour as well as at start-up`() {
+        val hourly = scheduled.scheduledTasks.map { it.task }.filterIsInstance<FixedDelayTask>()
+            .filter { it.runnable.toString().endsWith("DailyCheck.scheduleNext") }
+        assertEquals(listOf(Duration.ofHours(1)), hourly.map { it.intervalDuration })
     }
 
     @Test

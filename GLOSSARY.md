@@ -94,7 +94,7 @@ Another team's service that sends us events or reads ours. What each owns: [NEIG
 The organisers' library (1.3.0) that fixes every event's and API's shape. We code against it and never change it.
 
 **Dead letter**:
-An event the Ledger can't process, sent to `ledger.dlt`: at once if it breaks the contract (a zero top-up), otherwise after about 2.5 min of retries. Platform replays it once fixed.
+An event the Ledger can't process, sent to `ledger.dlt`: at once if it breaks the contract (a zero top-up), otherwise after about 2.5 min of retries (15 min while MySQL is unreachable). Platform replays it once fixed.
 
 **Envelope**:
 The wrapper around every event: `eventId` (the inbox skips a repeat), `key` and `sequence` (order per key), `causationId` (the event that caused it).

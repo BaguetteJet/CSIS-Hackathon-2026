@@ -52,6 +52,28 @@ Each LED item has a Forgejo issue (#7 LED-01 to #30 LED-24): closed means done, 
 
 `checkpoint-2` is `13e63ea` (Sat 16:19): the demo's `6e8cce1` ([POC-DEMO.md](docs/POC-DEMO.md)) plus docs-only PRs #48 to #51, tagged after 15:50 with the advisor's agreement. All 24 LED items are merged (#56 to #63). Next: tag `checkpoint-3` and promote it before Sun 14:00; then `release` at 16:00. Brief against what's built: [CHECKLIST.md](CHECKLIST.md). Item 9 (edge cases, a stretch) is done: [evidence](docs/evidence/edge-cases-2026-11-15.md).
 
+## What's left
+
+As of Sun 15 Nov 06:40 UTC. Every LED item is done; this is what stands between us and the marks, then the weak spots still open.
+
+| # | To do | Who |
+|---|---|---|
+| 1 | Review and merge #64, then #65, then #66 (Q11 to Q22). The reviewer runs `./check --with-containers` first (Q16) | Someone other than the author: Pierce #64, Cian #65, Shakeeba #66 |
+| 2 | `checkpoint-3` by Sun 14:00, then the final's steps: the clean-machine deploy, `release`, the 2-minute questions | [CHECKLIST](CHECKLIST.md#checkpoints), [Before the final](CHECKLIST.md#before-the-final) (owners there) |
+
+Weak spots still open ([EDGE-CASES](docs/EDGE-CASES.md#cases-that-cause-issues); each row has its fix):
+
+| # | To do | Who |
+|---|---|---|
+| Q1 🔴 | Refuse a repeat `orderId` that names another student (422), and release a deal's uncharged OPEN holds at settlement. Changes decision 0003: agree it first | Pierce and Hersh (items 1, 5) |
+| Q2 | A 200-order deal settles in 1.74 s live against the 1 s target | Hersh (item 5) |
+| Q4 | Log `warn` when a repeated payoutId names another restaurant | Cian (item 8) |
+| Q5 | A metric and alert for a cash-out left reserved | Shakeeba (item 4) |
+| Q14 | Ask Platform to refuse `;` in paths at the gateway | Hersh (integration) |
+| Q22 | Optional: holds over 200/s just after a restart get some 503s; try a pool of 20 and measure | Shakeeba (item 4) |
+| X11, X16 | A deadlock test; a log line for unknown event types | Cian (item 9) |
+| Open questions | R4, H13, W11, P5, X2, X5 and X6, X9, X15 ([EDGE-CASES](docs/EDGE-CASES.md#open-questions)) | Their owners there |
+
 ## How we're marked
 
 Handover §20. The project is 40% of the module, out of 100, over four checkpoints. Marks are locked from each checkpoint's tag.

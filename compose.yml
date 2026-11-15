@@ -20,7 +20,7 @@ services:
     <<: *instance
     container_name: ${SERVICE_NAME}-1
     hostname: ${SERVICE_NAME}-1
-    ports: ["8081:8080"]
+    ports: ["127.0.0.1:8081:8080"]   # this machine only: the hold call has no token, and the gateway uses the network alias
     networks:
       hackathon:
         aliases: ["${SERVICE_NAME}-1", "${SERVICE_NAME}"]
@@ -29,7 +29,7 @@ services:
     <<: *instance
     container_name: ${SERVICE_NAME}-2
     hostname: ${SERVICE_NAME}-2
-    ports: ["8082:8080"]
+    ports: ["127.0.0.1:8082:8080"]
     networks:
       hackathon:
         aliases: ["${SERVICE_NAME}-2", "${SERVICE_NAME}"]
