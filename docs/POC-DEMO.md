@@ -19,7 +19,7 @@ DB=${DB:-ledger}
 PUB=${PUB:-../line-a-ledger/scripts/publish-sample.sh}
 me()  { curl -s -H "Authorization: Bearer $(./token $1)" localhost:8080/api/ledger/me; echo; }
 sql() { docker exec devkit-mysql-1 sh -c "mysql -uroot -p\"\$MYSQL_ROOT_PASSWORD\" $DB -N -e \"$1\"" 2>/dev/null; }
-uuid() { uuidgen | tr A-Z a-z; }
+uuid() { od -An -tx1 -N16 /dev/urandom | tr -d ' \n' | awk '{ print substr($0,1,8) "-" substr($0,9,4) "-4" substr($0,14,3) "-a" substr($0,18,3) "-" substr($0,21,12) }'; }   # macOS, Linux and Git Bash; uuidgen is missing on Git Bash
 curl -s localhost:8081/actuator/health; echo; curl -s localhost:8082/actuator/health; echo
 ```
 

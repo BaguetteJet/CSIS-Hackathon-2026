@@ -189,6 +189,48 @@ class RefundsTest : LedgerFlowTest() {
         assertEquals(1000L to 0L, balanceOf(student))
     }
 
+    // EDGE-CASES Q31: the hold stays set aside for staff (Q24), but its deal is decided, so it can't be charged.
+    @Test
+    fun `a parked refund for a listed order that can't be charged is refused NEVER_CHARGED, and so is a later one`() {
+        val student = funded(1000)
+        val order = UUID.randomUUID()
+        val deal = UUID.randomUUID()
+        assertEquals(HoldResult.PLACED, hold(order, student, 400, deal))
+        val early = refund(order, deal, student)
+        sendAndWait(envelope(early), consumer = SupportConsumer.CONSUMER)
+
+        sendAndWait(envelope(DealConfirmed(deal, UUID.randomUUID(), 500, 1000, listOf(OrderRef(order, student)))))
+
+        assertEquals(0, parked(early))
+        assertEquals("NEVER_CHARGED", events("RefundRefused", deal).single()["reason"].asText())
+        assertEquals(600L to 400L, balanceOf(student))
+
+        val late = refund(order, deal, student)
+        sendAndWait(envelope(late), consumer = SupportConsumer.CONSUMER)
+
+        assertEquals(0, parked(late))
+        assertEquals(2, events("RefundRefused", deal).count { it["reason"].asText() == "NEVER_CHARGED" })
+        assertEquals(600L to 400L, balanceOf(student))
+        assertBooksBalance()
+    }
+
+    @Test
+    fun `a parked refund whose hold is for another deal still open keeps waiting`() {
+        val student = funded(1000)
+        val order = UUID.randomUUID()
+        val holdDeal = UUID.randomUUID()
+        val listedIn = UUID.randomUUID()
+        assertEquals(HoldResult.PLACED, hold(order, student, 600, holdDeal))
+        val early = refund(order, listedIn, student)
+        sendAndWait(envelope(early), consumer = SupportConsumer.CONSUMER)
+
+        sendAndWait(envelope(DealConfirmed(listedIn, UUID.randomUUID(), 500, 1000, listOf(OrderRef(order, student)))))
+
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM parked_event WHERE consumer = ? AND waits_for = ?",
+            Int::class.java, SupportConsumer.CONSUMER, "order:$order"))
+        assertEquals(0, events("RefundRefused", listedIn).size)
+    }
+
     @Test
     fun `a refund for an order already released is refused NEVER_CHARGED at once`() {
         val student = funded(1000)
