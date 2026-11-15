@@ -54,12 +54,11 @@ Each LED item has a Forgejo issue (#7 LED-01 to #30 LED-24): closed means done, 
 
 ## What's left
 
-As of Sun 15 Nov 06:40 UTC. Every LED item is done. First what the marks still need, then the weak spots still open.
+As of Sun 15 Nov 08:15 UTC. Every LED item is done. First what the marks still need, then the weak spots still open.
 
 | # | To do | Who |
 |---|---|---|
-| 1 | Review and merge #64, then #65, then #66 (Q11 to Q22). The reviewer runs `./check --with-containers` first (Q16) | Someone other than the author: Pierce #64, Cian #65, Shakeeba #66 |
-| 2 | `checkpoint-3` by Sun 14:00, then the final's steps: the clean-machine deploy, `release`, the 2-minute questions | [CHECKLIST](CHECKLIST.md#checkpoints), [Before the final](CHECKLIST.md#before-the-final) (owners there) |
+| 1 | `checkpoint-3` by Sun 14:00, then the final's steps: the clean-machine deploy, `release`, the 2-minute questions | [CHECKLIST](CHECKLIST.md#checkpoints), [Before the final](CHECKLIST.md#before-the-final) (owners there) |
 
 Weak spots still open ([EDGE-CASES](docs/EDGE-CASES.md#cases-that-cause-issues); each row has its fix):
 
