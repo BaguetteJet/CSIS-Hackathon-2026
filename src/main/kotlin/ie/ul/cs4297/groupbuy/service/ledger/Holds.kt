@@ -176,7 +176,8 @@ class Holds(
     private val clock: Clock,
     private val meters: MeterRegistry,
     transactions: PlatformTransactionManager,
-    @Value("\${groupbuy.ledger.hold-deadline-ms:1800}") private val deadlineMillis: Long,
+    // 1.5 s, not nearer 2: a 0.36 s stop-the-world GC pause came on top of it in the 2,000-order drill (EDGE-CASES Q25).
+    @Value("\${groupbuy.ledger.hold-deadline-ms:1500}") private val deadlineMillis: Long,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
     private val tx = TransactionTemplate(transactions).apply { timeout = 1 }
