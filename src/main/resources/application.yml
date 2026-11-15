@@ -23,6 +23,11 @@ spring:
       # [LED-21] - Outages: with MySQL down, give up on a connection fast so the hold call answers 503 instead of hanging.
       connection-timeout: 1000             # wait at most 1 s for a free connection (default 30 s)
       validation-timeout: 250              # the "is this connection alive?" check; its 5 s default made 503s take 10 s
+      # A MySQL that stops answering (paused, packets dropped) made a hold wait until it came back: give up after 5 s instead.
+      # Set here, not in DB_URL, which the organisers set. Longer than any one statement takes (settlement's whole transaction is under 3 s).
+      data-source-properties:
+        connectTimeout: 2000
+        socketTimeout: 5000
 
   jpa:
     hibernate:

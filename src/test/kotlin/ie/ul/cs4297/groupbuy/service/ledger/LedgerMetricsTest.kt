@@ -81,6 +81,26 @@ class LedgerMetricsTest : LedgerFlowTest() {
     }
 
     @Test
+    fun `the daily check names set-aside money with no open hold, a hold ended with no movement, and settlement totals with no charges`() {
+        val order = UUID.randomUUID()
+        assertEquals(HoldResult.PLACED, hold(order, funded(1000), 600, UUID.randomUUID()))
+
+        // Both broken behind the postings' back, then rolled back.
+        val found = tx.execute { status ->
+            jdbc.update("UPDATE hold_decision SET state = 'RELEASED' WHERE order_id = ?", order.toString())
+            jdbc.update("INSERT INTO deal_settlement (deal_id, restaurant_id, settled_at, charged_count, total_charged_cents) VALUES (?, ?, ?, 1, 475)",
+                UUID.randomUUID().toString(), UUID.randomUUID().toString(), Timestamp.from(TestClock.instant()))
+            dailyCheck.check().also { status.setRollbackOnly() }
+        }!!
+        assertEquals(listOf(
+            "1 students' set-aside money differs from their open holds and reserved cash-outs",
+            "1 holds whose movements don't match their state",
+            "1 deal settlements whose totals differ from their charges",
+        ), found)
+        assertBooksBalance()
+    }
+
+    @Test
     fun `the next 2 am is today before 2 am, tomorrow after, and stays 2 am across the clock changes`() {
         assertEquals("2026-11-15T02:00Z[Europe/Dublin]", DailyCheck.next(java.time.Instant.parse("2026-11-14T10:00:00Z")).toString())
         assertEquals("2026-11-14T02:00Z[Europe/Dublin]", DailyCheck.next(java.time.Instant.parse("2026-11-14T01:59:00Z")).toString())

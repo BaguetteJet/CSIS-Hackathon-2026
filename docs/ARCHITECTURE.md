@@ -211,7 +211,7 @@ Proof: `WithdrawalsTest` (8 container tests, including the race), `ContractTest`
 |---|---|
 | Orders times out after commit | Retry returns the stored answer |
 | Same order on both instances | Primary key: the second waits, then reads the first |
-| Database down | 503 within about 1 s; normal once it's back |
+| Database down | API calls: 503 within about 1 s (stopped) or 2 to 10 s (not answering). Events wait for it, up to 15 min, then the dead-letter topic |
 | Kafka down | Events wait in the outbox, then go out in order |
 | Instance killed mid-settlement | Rollback; redelivery settles once |
 | Duplicate event | Inbox (event id) and business key (topUpId, orderId, ...) |

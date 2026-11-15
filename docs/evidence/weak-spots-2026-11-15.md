@@ -45,3 +45,9 @@ Afterwards both instances were UP with no manual step. The log shows Hikari drop
 - `DailyCheck.check()` checks I1 and I2, not I3 or I5.
 - `ContractJson` ignores unknown fields, but an unknown enum value fails to read and goes to `ledger.dlt` at once.
 - CI runs no container tests (the organisers' rule), and `./check` only runs them with `--with-containers`.
+
+**Follow-up, 05:00–05:05 UTC, branch `item-4/outage-hardening`** (Q11, Q12, Q13, Q15 fixed). The suites passed with 26 unit, 13 contract and 103 container tests, and `./check` said Ready (334 and 328 MiB):
+- `docker port ledger-1` now shows `127.0.0.1:8081`. The LAN address `192.168.1.48:8081` doesn't answer, and the gateway still does (`/api/ledger/me` 401).
+- MySQL paused 12 s: three holds answered 503 in 2.20, 2.60 and 10.16 s (the last waited on two 5 s socket timeouts). Holds were normal 3 s after it returned.
+- MySQL stopped for 200 s: a top-up sent 8 s in waited 195 s (past the platform's 155 s), was credited 16 s after MySQL returned, and `ledger_dead_letters` stayed at 2 with no `Dead letter:` line. Both instances were UP after.
+- The books on the dev kit: I1 to I6 hold over 420 movements and 186 holds.
