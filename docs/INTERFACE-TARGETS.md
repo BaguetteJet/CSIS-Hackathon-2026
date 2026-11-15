@@ -13,7 +13,7 @@ Orders waits 2 s, then marks the order PENDING and retries every 20 s (ORD-13). 
 | ✅ | 100 holds/s for 20 s, every answer under 2 s | LED-22 | Max 337 ms, p95 45 ms, 100% checks | [led-22](evidence/led-22-holds-k6.md) |
 | ✅ | The same while a 200-order deal settles on the same students, every answer a 200 | LED-22, marked-property table | 8,000 holds over 4 runs, none a 503; max 950 ms. Busy CPUs: p95 101 ms, max 330 ms | [load 15 Nov](evidence/interface-load-2026-11-15.md) |
 | ✅ | A held-up hold answers 503 within 2 s, saves nothing | ORD-13, LED-21 | `HoldsTest` | [flaky-tests](evidence/flaky-tests-2026-11-14.md) |
-| ✅ | Database down: 503 within 10 s, never 500; normal within 60 s of its return | LED-21 | Slowest 1.18 s; normal 8 s after | [led-21](evidence/led-21-outages.md) |
+| ✅ | Database down: 503 within 10 s, never 500; normal within 60 s of its return | LED-21 | Slowest 1.18 s; normal 8 s after. Incomplete: a hand run before #59 had three of ten at 1.98–3.34 s, still under 10 s; to measure again on `main` | [led-21](evidence/led-21-outages.md), its follow-ups |
 | ✅ | Kafka paused 5 min: holds still answered | LED-21 | 40 PLACED, slowest 0.18 s | [led-21](evidence/led-21-outages.md) |
 | ✅ | PLT-14 shape: 10 deals × 200 students, each student once per deal, at 100/s; every answer under 2 s | PLT-14 | Dev kit (`scripts/k6/rush.js`): p95 70 ms, max 289 ms. Integrated line: **Not yet** | [load 15 Nov](evidence/interface-load-2026-11-15.md) |
 | ✅ | Then the deals withdrawn: every hold released. **Ours (proposed):** within 60 s | PLT-14 | 1,600 releases in 4.6–4.7 s | [load 15 Nov](evidence/interface-load-2026-11-15.md) |
