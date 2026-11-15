@@ -108,7 +108,7 @@ New IDs come from `/proc/sys/kernel/random/uuid` (any Linux); on macOS use `uuid
    ```bash
    curl -s -H "Authorization: Bearer $(./token student011)" localhost:8080/api/ledger/me; echo
    ```
-   Expected: `{"studentId":"…","availableCents":…,"heldCents":…}`, with `availableCents` 2000 higher than before step 2 (each money-in credits every student 2000 once; we saw 5 → 2005).
+   Expected: `{"studentId":"…","availableCents":…,"heldCents":…}`, with `availableCents` 2000 higher than before step 2 (each money-in credits every student 2000 once; we saw 5 → 2005). The first top-up after a start can take a few seconds: if `availableCents` hasn't moved, wait 10 s and run it again before step 4.
 4. **One hold, asked three times on two instances, moves money once.**
    ```bash
    S=$(curl -s -H "Authorization: Bearer $(./token student011)" localhost:8080/api/ledger/me | grep -o '"studentId":"[^"]*"' | cut -d'"' -f4)

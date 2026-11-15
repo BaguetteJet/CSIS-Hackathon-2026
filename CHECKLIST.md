@@ -51,7 +51,7 @@ Every LED issue is closed. Marked properties: [PHASES.md](PHASES.md#marked-prope
 | ✅ | All 24 LED items merged; CI green on `main` | |
 | ✅ | No secret in history; no binary over 1 MB (checked Sat 14 Nov) | |
 | ✅ | Known limitations written ([HANDOVER §10](docs/HANDOVER.md#10-known-limitations)) | |
-| ⬜ | A teammate deploys from HANDOVER alone on a clean machine, using a CI `sha-` image (item 4 step 7) | Pierce, Shakeeba |
+| ⚠️ | A teammate deploys from HANDOVER alone on a clean machine, using a CI `sha-` image (item 4 step 7). Rehearsed on the dev kit: [evidence](docs/evidence/deploy-rehearsal-2026-11-15.md); a teammate's run and the Git clone question are left | Pierce, Shakeeba |
 | ⬜ | Tag `release` with green CI; add its link to HANDOVER §5 step 10 | Shakeeba, Sam |
 | ⬜ | Dev kit on every laptop: `/api/ledger/hello` answers from `ledger-1` or `ledger-2` (item 4 step 3) | Everyone |
 | ⚠️ | A review by someone other than the author: #56 to #61 have none; #64 to #68 (merged Sun 08:08–08:10, `7816b08`) were reviewed only by the author's Claude Code session, at Hersh's request, with the whole stack green first | Each area's backup |
