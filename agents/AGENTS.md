@@ -84,6 +84,7 @@ Change the file that owns a fact in the same PR as the behaviour; elsewhere, lin
 | Tables, columns, keys, contract fit, planned tables | docs/SCHEMA.md |
 | Deploy, verify, runbooks, known limitations | docs/HANDOVER.md |
 | Words | GLOSSARY.md |
+| How the test agents judge us, the pre-freeze rehearsal, where the next bugs hide | docs/BUG-HUNT.md |
 | Measured results, with date and commit | docs/evidence/: never rewritten; add a follow-up line instead |
 
 ## Skills

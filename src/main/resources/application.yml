@@ -6,6 +6,8 @@
 server:
   port: ${SERVER_PORT:8080}          # 8080 in Docker; 8081 and 8082 for two instances on a laptop
   shutdown: graceful
+  # A 10 KB path ID must reach the 404 check (DEC E1), not Tomcat's 8 KB limit and its 400.
+  max-http-request-header-size: 64KB
 
 spring:
   application:

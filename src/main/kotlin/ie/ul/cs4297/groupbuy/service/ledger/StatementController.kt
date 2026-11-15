@@ -20,6 +20,7 @@ class StatementController(private val jdbc: JdbcTemplate) {
     fun myEntries(user: CurrentUser): List<LedgerEntry> {
         user.requireRole(Role.STUDENT)
         // [LED-18] - Security: the student only ever comes from the token, never the request.
+        // Newest first by posting order, not posted_at: the platform clock can move back (EDGE-CASES Q26).
         return jdbc.query(
             """
             SELECT p.posted_at, p.entry_kind, p.amount_cents, p.deal_id, p.order_id, p.description
@@ -27,7 +28,7 @@ class StatementController(private val jdbc: JdbcTemplate) {
             JOIN ledger_account a ON a.id = p.account_id
             WHERE a.owner_type = 'STUDENT' AND a.owner_id = ? AND a.purpose = 'AVAILABLE'
             AND p.entry_kind IS NOT NULL
-            ORDER BY p.posted_at DESC, p.id DESC
+            ORDER BY p.id DESC
             LIMIT 100
             """.trimIndent(),
             { rs, _ ->
