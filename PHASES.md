@@ -65,10 +65,7 @@ Weak spots still open ([EDGE-CASES](docs/EDGE-CASES.md#cases-that-cause-issues);
 
 | # | To do | Who |
 |---|---|---|
-| Q1 🔴 | Refuse a repeat `orderId` that names another student (422), and release a deal's uncharged OPEN holds at settlement. Changes decision 0003: agree it first | Pierce and Hersh (items 1, 5) |
 | Q2 | A 200-order deal settles in 1.74 s live against the 1 s target | Hersh (item 5) |
-| Q4 | Log `warn` when a repeated payoutId names another restaurant | Cian (item 8) |
-| Q5 | A metric and alert for a cash-out left reserved | Shakeeba (item 4) |
 | Q14 | Ask Platform to refuse `;` in paths at the gateway | Hersh (integration) |
 | Q22 | Optional: holds over 200/s just after a restart get some 503s; try a pool of 20 and measure | Shakeeba (item 4) |
 | X11, X16 | A deadlock test; a log line for unknown event types | Cian (item 9) |
