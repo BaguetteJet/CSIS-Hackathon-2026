@@ -299,6 +299,8 @@ SELECT withdrawal_id, student_id, amount_cents, decided_at FROM withdrawal WHERE
 - Holds well over the spec's 100/s in the first minutes after a restart: some answer 503 `UNAVAILABLE` (Orders retries); warm, 300/s all answered ([EDGE-CASES Q22](EDGE-CASES.md#cases-that-cause-issues)).
 - A deal of 2,000 orders settles in 3.6 to 6 s; holds for its students meanwhile answer 503 within 1.5 s (Orders retries; EDGE-CASES Q25). 500 orders: 1 s, every hold under 0.3 s ([evidence](evidence/big-deal-2026-11-15.md)). The load test's deals are 200.
 - No API for the Ledger's own totals (Union cash, commission, payables): use §8.
+- A refund parked for a deal, with no hold, whose student is in another settlement at the same moment: MySQL may cancel one settlement as a deadlock; it retries after 5 s and settles once ([EDGE-CASES Q28](EDGE-CASES.md#cases-that-cause-issues)).
+- The starter's examples are still served: `/api/ledger/hello` and the page at `/app/ledger/`; `known_user` keeps users' names and emails ([EDGE-CASES Q29](EDGE-CASES.md#cases-that-cause-issues)).
 - The daily check's metric is kept by the instance that ran it, and starts at 0 after a restart; the log line is the record.
 - MySQL down over about 8.5 min at 02:00: that day's daily check fails (timer `FAILED`, `last_error` says why) and is skipped; the next day's runs as usual ([EDGE-CASES Q20](EDGE-CASES.md#cases-that-cause-issues)).
 
