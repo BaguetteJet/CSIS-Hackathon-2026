@@ -27,7 +27,8 @@ import java.util.concurrent.TimeUnit
  * 1. Claim deal_settlement: a repeat, on either instance or in a new envelope, stops here.
  * 2. Lock the hold rows (the deal's, then listed orders held elsewhere), close the deal, then lock every student involved.
  * 3. Charge each listed order that's fine; report the rest as SettlementIssue.
- * 4. Release every other open hold of the deal, listed or not (NOT_ON_LIST), then publish DealSettled covering only the charged orders.
+ * 4. Release every open hold of the deal that isn't on the list (NOT_ON_LIST), then publish DealSettled covering only the charged orders.
+ *    A listed order that can't be charged keeps its hold for staff (LED-10).
  * A crash anywhere rolls all of it back; redelivery settles the whole deal once.
  */
 @Component
@@ -62,9 +63,8 @@ class Settlement(
                 else -> issues += order.orderId to problem
             }
         }
-        // Listed but uncharged ones too: the deal is closed, so nothing else would ever end them (EDGE-CASES Q1).
-        val chargedIds = charges.map { it.orderId }.toSet()
-        val uncharged = dealHolds.filter { it.isOpen && it.orderId !in chargedIds }
+        // Listed ones that can't be charged keep their hold for staff: LED-10 says it is left as it is (EDGE-CASES Q24).
+        val uncharged = dealHolds.filter { it.isOpen && it.orderId !in listedIds }
         val balances = accounts.lockStudents((charges + uncharged).map { it.studentId })
 
         // Every charged hold ends here, in one statement (decision 0008): the rows are already ours.

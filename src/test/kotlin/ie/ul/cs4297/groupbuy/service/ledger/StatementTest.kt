@@ -7,6 +7,7 @@ import ie.ul.cs4297.groupbuy.contracts.events.OrderRef
 import ie.ul.cs4297.groupbuy.contracts.events.OrderWithdrawn
 import ie.ul.cs4297.groupbuy.contracts.events.Role
 import ie.ul.cs4297.groupbuy.contracts.events.WithdrawalRequested
+import ie.ul.cs4297.groupbuy.service.support.TestClock
 import ie.ul.cs4297.groupbuy.service.support.TestTokens
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -86,6 +87,21 @@ class StatementTest : LedgerFlowTest() {
         val body = mapper.readTree(entries(TestTokens.student(student)).body()).toList()
 
         assertEquals(body[0]["at"].asText(), body[1]["at"].asText(), "the test clock stands still, so both share a time")
+        assertEquals(listOf(200L, 100L), body.map { it["amountCents"].asLong() })
+    }
+
+    @Test
+    fun `after the platform clock moves back, the latest posting still shows first`() {
+        val student = funded(100)
+        TestClock.advance(Duration.ofHours(-1)) // ./clock moved back, as the organisers may do
+        try {
+            tx.execute { topUps.creditTopUp(UUID.randomUUID(), student, 200) }
+        } finally {
+            TestClock.advance(Duration.ofHours(1))
+        }
+
+        val body = mapper.readTree(entries(TestTokens.student(student)).body()).toList()
+
         assertEquals(listOf(200L, 100L), body.map { it["amountCents"].asLong() })
     }
 
