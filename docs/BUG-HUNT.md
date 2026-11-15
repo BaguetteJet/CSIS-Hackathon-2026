@@ -40,6 +40,7 @@ A code read of `src/main` against the spec, then fixes. Status here; what and wh
 | Q27: injected or 10 KB desk IDs answered 400 | E1, E2 | Fixed |
 | Q28: refunds woken by settlement lock a student out of order | Decision 0004 (ours) | Known limitation |
 | Q29: starter examples still served (`/api/ledger/hello`, `/app/ledger/`) | None | Known limitation |
+| Q30: a settlement statement over 5 s retries, then dead-letters after 15 min | LED-05, LED-06 | Open: measure first |
 
 ## Where the next ones hide
 
