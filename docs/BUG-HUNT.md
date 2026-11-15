@@ -34,10 +34,10 @@ A code read of `src/main` against the spec, then fixes. Status here; what and wh
 
 | Row | Spec it broke | Status |
 |---|---|---|
-| [Q24](EDGE-CASES.md#cases-that-cause-issues): a listed order that can't be charged had its hold released | LED-10 | Fixed (#PR) |
-| Q25: a hold answer could pass 2 s, or 10 s with MySQL frozen | LED-03, E10 | Fixed (#PR) |
-| Q26: the statement sorted by the platform clock | LED-11 | Fixed (#PR) |
-| Q27: injected or 10 KB desk IDs answered 400 | E1, E2 | Fixed (#PR) |
+| [Q24](EDGE-CASES.md#cases-that-cause-issues): a listed order that can't be charged had its hold released | LED-10 | Fixed |
+| Q25: a hold answer could pass 2 s, or 10 s with MySQL frozen | LED-03, E10 | Fixed |
+| Q26: the statement sorted by the platform clock | LED-11 | Fixed |
+| Q27: injected or 10 KB desk IDs answered 400 | E1, E2 | Fixed |
 | Q28: refunds woken by settlement lock a student out of order | Decision 0004 (ours) | Known limitation |
 | Q29: starter examples still served (`/api/ledger/hello`, `/app/ledger/`) | None | Known limitation |
 
