@@ -23,3 +23,5 @@ Each run gives 3 new students €50, then takes 10 to 40 random steps through th
 | Each student's running balance equals the sum of its postings | After every run, for that run's students |
 
 **The test can fail:** with `post()`'s zero-sum check commented out and a top-up that debits Union cash 1 cent less, it failed: `Failed with seed -2094875815510571490 after 19 steps (set REPLAY = -2094875815510571490L to rerun)`, `all postings sum to 0 ==> expected: <0> but was: <1>`. Both changes were reverted.
+
+**Follow-up, Sun 15 Nov:** the test now runs 50 random runs by default, to keep the suite quick (17 s, against 133 s for 200); `ZERO_SUM_RUNS=200 ./gradlew containerTest` runs 200 for evidence ([edge-cases-2026-11-15.md](edge-cases-2026-11-15.md)).

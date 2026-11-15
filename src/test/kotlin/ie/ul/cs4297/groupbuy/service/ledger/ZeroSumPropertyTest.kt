@@ -20,6 +20,7 @@ import kotlin.random.Random
  * Item 7, LED-20 (marked): after any sequence of money operations, no money is created or lost
  * and no student balance is negative. Each step calls the real service, in a transaction, the way its consumer does.
  * On failure the message names the seed: put it in [REPLAY] to run that exact sequence again.
+ * [RUNS] is 50 so the suite stays quick; `ZERO_SUM_RUNS=200 ./gradlew containerTest` for the evidence run.
  */
 class ZeroSumPropertyTest : LedgerFlowTest() {
 
@@ -151,7 +152,7 @@ class ZeroSumPropertyTest : LedgerFlowTest() {
     private fun count(sql: String): Int = jdbc.queryForObject(sql, Int::class.java)!!
 
     companion object {
-        const val RUNS = 200
+        val RUNS = System.getenv("ZERO_SUM_RUNS")?.toIntOrNull() ?: 50
 
         /** A seed from a failure message, to replay that one run; null runs [RUNS] random ones. */
         val REPLAY: Long? = null

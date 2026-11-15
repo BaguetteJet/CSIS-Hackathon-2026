@@ -1,12 +1,12 @@
 package ie.ul.cs4297.groupbuy.service.ledger
 
 import ie.ul.cs4297.groupbuy.contracts.api.HoldResult
-import ie.ul.cs4297.groupbuy.contracts.api.LedgerEntryKind
 import ie.ul.cs4297.groupbuy.contracts.events.DealConfirmed
 import ie.ul.cs4297.groupbuy.contracts.events.HoldReleasedReason
 import ie.ul.cs4297.groupbuy.contracts.events.OrderRef
 import ie.ul.cs4297.groupbuy.contracts.events.OrderWithdrawn
 import ie.ul.cs4297.groupbuy.contracts.events.Role
+import ie.ul.cs4297.groupbuy.contracts.events.WithdrawalRequested
 import ie.ul.cs4297.groupbuy.service.support.TestTokens
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -24,7 +24,7 @@ import java.util.UUID
 class StatementTest : LedgerFlowTest() {
 
     @LocalServerPort var port = 0
-    @Autowired lateinit var postings: LedgerPostingService
+    @Autowired lateinit var withdrawals: Withdrawals
 
     private val http = HttpClient.newHttpClient()
 
@@ -126,13 +126,7 @@ class StatementTest : LedgerFlowTest() {
     @Test
     fun `a cash-out reserve is a debit`() {
         val student = funded(1000)
-        // Cash-outs are item 8; this posts the same lines its reserve will, to pin the statement's side.
-        tx.execute {
-            postings.post(MovementRef(MovementType.WITHDRAWAL, UUID.randomUUID()), listOf(
-                PostingLine(AccountRef.studentAvailable(student), -300, EntryDetails(LedgerEntryKind.WITHDRAWAL, "Cash-out at the desk")),
-                PostingLine(AccountRef.studentHeld(student), 300),
-            ))
-        }
+        tx.execute { withdrawals.requested(WithdrawalRequested(UUID.randomUUID(), student, 300, UUID.randomUUID()), UUID.randomUUID()) }
 
         val newest = mapper.readTree(entries(TestTokens.student(student)).body()).first()
 

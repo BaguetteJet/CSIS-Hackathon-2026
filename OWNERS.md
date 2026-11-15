@@ -27,13 +27,13 @@ We split the Ledger **by money flow**: each area owns one way money enters or le
 
 **Hersh** (team lead)
 - Owns: holds (item 1), settlement and releases (item 5), refunds (item 6, from Md Hossain on Sat). Backs up: cash-outs (item 8).
-- Done: the hold call (LED-03, 04), accounts on registration (01), releases and settlement (05, 06, 08, 09, 10), refunds never over the charge (13), early refunds woken or refused NEVER_CHARGED (14), the load test (22), the sign-in 503 fix (18), 503 with MySQL down and the outage drills (21), refund and dead-letter metrics with the 6 h alert (23), the recompute SQL and the daily check (24); the proof of concept (`checkpoint-2`, [POC-DEMO.md](docs/POC-DEMO.md)). Items 5 and 6 complete.
+- Done: the hold call (LED-03, 04), accounts on registration (01), releases and settlement (05, 06, 08, 09, 10), refunds never over the charge (13), early refunds woken or refused NEVER_CHARGED (14), the load test (22), the sign-in 503 fix (18), 503 with MySQL down and the outage drills (21), refund and dead-letter metrics with the 6 h alert (23), the recompute SQL and the daily check (24); the proof of concept (`checkpoint-2`, [POC-DEMO.md](docs/POC-DEMO.md)); item 9's edge-case tests and invariants. Items 5 and 6 complete.
 - Next: promote into integration and tag `checkpoint-3`; the all-real golden path by Sun 14:00; confirm [NEIGHBOURS.md](docs/NEIGHBOURS.md) with each team lead.
 
 **Igor**
 - Owns: core and data (item 2). Backs up: holds (item 1) and edge cases (item 9).
 - Done: the schema, the posting service and `/me` (LED-07). Item 2 complete (the daily check, step 4, was added by Hersh).
-- Next: back up item 9 with Cian: steps 1 and 2.
+- Next: review item 9's invariants with Cian (I1 and I2 reuse your daily check).
 
 **Sam**
 - Owns: payments events and contract tests (item 3). Backs up: operations (item 4).
@@ -48,7 +48,7 @@ We split the Ledger **by money flow**: each area owns one way money enters or le
 **Cian**
 - Owns: cash-outs and payouts (item 8), edge cases and robustness (item 9). Backs up: settlement (item 5) and refunds (item 6).
 - Done: cash-outs (LED-15, 16) and payouts (17), with the cash-out-versus-hold race. Item 8 complete.
-- Next: item 9 (edge cases), a stretch: steps 1 and 2 first.
+- Next: review item 9 as its owner: `EdgeCasesTest` and the invariants in `assertBooksBalance()`, written by Hersh on Sun 15 Nov.
 
 **Md Hossain**
 - Backs up: payments events (item 3). Refunds (item 6) moved to Hersh on Sat afternoon.
@@ -64,5 +64,5 @@ We split the Ledger **by money flow**: each area owns one way money enters or le
 |---|---|
 | Done | 01–24 |
 
-**Work items completed:** items 2, 3, 5, 6, 7 and 8 in full. Items 1 (promote, contracts) and 4 (dev kit on every laptop, tags, handover) are partly done: see each item's checkboxes. Item 9 (edge cases) is a stretch, not started.
+**Work items completed:** items 2, 3, 5, 6, 7 and 8 in full. Items 1 (promote, contracts) and 4 (dev kit on every laptop, tags, handover) are partly done: see each item's checkboxes. Item 9 (edge cases, a stretch) is done, awaiting Cian's review.
 

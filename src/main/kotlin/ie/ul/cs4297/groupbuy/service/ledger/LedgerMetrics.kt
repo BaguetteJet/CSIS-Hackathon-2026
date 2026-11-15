@@ -48,10 +48,14 @@ class LedgerMetrics(
         return (clock.millis() - oldest.time).coerceAtLeast(0) / 1000.0
     }
 
+    // Described once: each describe logs a broker-version WARN (about 26 a minute per instance at the dev kit's scrape rate).
+    @Volatile private var deadLetterPartitions: List<TopicPartition>? = null
+
     /** Latest minus earliest offset on every partition: what the topic holds now. */
     fun deadLetters(): Double {
-        val partitions = admin.describeTopics(listOf(deadLetterTopic)).allTopicNames().get(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        val partitions = deadLetterPartitions ?: admin.describeTopics(listOf(deadLetterTopic)).allTopicNames().get(TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .getValue(deadLetterTopic).partitions().map { TopicPartition(deadLetterTopic, it.partition()) }
+            .also { deadLetterPartitions = it }
         val latest = admin.listOffsets(partitions.associateWith { OffsetSpec.latest() }).all().get(TIMEOUT_SECONDS, TimeUnit.SECONDS)
         val earliest = admin.listOffsets(partitions.associateWith { OffsetSpec.earliest() }).all().get(TIMEOUT_SECONDS, TimeUnit.SECONDS)
         return partitions.sumOf { latest.getValue(it).offset() - earliest.getValue(it).offset() }.toDouble()

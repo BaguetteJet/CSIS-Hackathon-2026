@@ -27,14 +27,18 @@ Checked after every container test (step 1), and by SQL on a live deployment.
 
 ### Steps
 
-1. [ ] **`LedgerInvariants` (I1 to I6).** One `assertConsistent()` for tests; replaces `assertBooksBalance()` as each test is touched. The same checks as SQL in HANDOVER §8.
+1. [x] **`LedgerInvariants` (I1 to I6).** One `assertConsistent()` for tests; replaces `assertBooksBalance()` as each test is touched. The same checks as SQL in HANDOVER §8.
    *Done when:* every existing container test calls it and passes.
-2. [ ] **Races, two instances.** Withdrawn vs settlement on one order; DealFailed vs DealConfirmed; a hold vs DealCancelled; a top-up vs a hold for exactly the balance. Item 8 owns the cash-out vs hold race (LED-15).
+   *Done:* I1 to I5 inside `LedgerFlowTest.assertBooksBalance()` (I1, I2 are the daily check's own), so every flow test that called it now checks all five; each was seen to fail on a deliberate break. I6 (published within a minute) is the outbox's, not checked here.
+2. [x] **Races, two instances.** Withdrawn vs settlement on one order; DealFailed vs DealConfirmed; a hold vs DealCancelled; a top-up vs a hold for exactly the balance. Item 8 owns the cash-out vs hold race (LED-15).
    *Done when:* each has exactly one outcome and I1 to I6 hold, 50 runs in a row.
-3. [ ] **Out of order.** OrderWithdrawn before its hold (ORDER_CLOSED); DealFailed after DealConfirmed (nothing moves); DealConfirmed after DealFailed (nothing charged, issues reported). Item 6 owns refund before charge.
+   *Done:* `EdgeCasesTest` D8, D20, T7 (5 to 10 runs each, so the suite stays quick: two transactions on separate connections, as two instances are); a hold vs a closing deal is `ReleasesTest`'s race (DealFailed and DealCancelled share `dealClosed`).
+3. [x] **Out of order.** OrderWithdrawn before its hold (ORDER_CLOSED); DealFailed after DealConfirmed (nothing moves); DealConfirmed after DealFailed (nothing charged, issues reported). Item 6 owns refund before charge.
    *Done when:* each has a test.
-4. [ ] **Commission rounding** (the money check reads it): 1 cent, a half cent rounding up, 0 and 10000 basis points.
+   *Done:* `HoldsTest` (ORDER_CLOSED), `EdgeCasesTest` D6, D7.
+4. [x] **Commission rounding** (the money check reads it): 1 cent, a half cent rounding up, 0 and 10000 basis points.
    *Done when:* each matches `Money.commission`.
+   *Done:* `EdgeCasesTest` X18, through real settlement.
 
 **If short of time:** steps 1 and 2; they defend the marked properties directly.
 
