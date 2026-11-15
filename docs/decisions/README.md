@@ -19,7 +19,7 @@ Each record says what it protects, the problem, what we chose, what we rejected 
 
 | Property (5 marks each) | Kept by | Proof |
 |---|---|---|
-| Movements sum to zero; no negative balance | 0002, 0004 | Zero-sum after every flow test; race tests; `ZeroSumPropertyTest`, 200 random runs (item 7) |
+| Movements sum to zero; no negative balance | 0002, 0004 | Zero-sum after every flow test; race tests; `ZeroSumPropertyTest`, 50 random runs by default, 200 with `ZERO_SUM_RUNS=200` (item 7) |
 | A deal settles exactly once, through a crash | 0007 | `SettlementTest` crash and repeat tests |
 | No order refunded more than charged | 0009 | `RefundsTest` over-the-charge and part-refund tests |
 | A hold after its order or deal closed is refused | 0010, 0004 | `HoldsTest` closed refusals |

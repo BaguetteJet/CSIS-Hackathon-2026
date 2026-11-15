@@ -1,10 +1,13 @@
 package ie.ul.cs4297.groupbuy.service.ledger
 
 import ie.ul.cs4297.groupbuy.contracts.api.HoldResult
+import ie.ul.cs4297.groupbuy.contracts.events.DealSettled
 import ie.ul.cs4297.groupbuy.contracts.events.RefundApproved
 import ie.ul.cs4297.groupbuy.contracts.events.RefundApprovedReason
 import ie.ul.cs4297.groupbuy.contracts.events.TopUpRecorded
+import ie.ul.cs4297.groupbuy.contracts.events.WithdrawalRequested
 import ie.ul.cs4297.groupbuy.service.platform.DueTimer
+import ie.ul.cs4297.groupbuy.service.platform.Outbox
 import ie.ul.cs4297.groupbuy.service.platform.Timers
 import ie.ul.cs4297.groupbuy.service.support.TestClock
 import io.micrometer.core.instrument.MeterRegistry
@@ -29,6 +32,7 @@ class LedgerMetricsTest : LedgerFlowTest() {
 
     @Autowired lateinit var meters: MeterRegistry
     @Autowired lateinit var timers: Timers
+    @Autowired lateinit var outbox: Outbox
     @Autowired lateinit var scheduled: ScheduledTaskHolder
 
     private fun gauge(name: String): Double = meters.get(name).gauge().value()
@@ -49,6 +53,35 @@ class LedgerMetricsTest : LedgerFlowTest() {
 
         assertEquals(before + 1, gauge("ledger.refunds.parked"))
         assertTrue(gauge("ledger.refunds.parked.oldest") >= Duration.ofHours(7).seconds, "the oldest parked refund is over 6 h old")
+    }
+
+    @Test
+    fun `a reserved cash-out shows in the count, and its age passes 6 hours when it has waited that long`() {
+        val student = funded(1000)
+        val before = gauge("ledger.withdrawals.reserved")
+        val withdrawal = UUID.randomUUID()
+
+        sendAndWait(envelope(WithdrawalRequested(withdrawal, student, 500, UUID.randomUUID())), consumer = PaymentsConsumer.CONSUMER)
+        jdbc.update("UPDATE withdrawal SET decided_at = ? WHERE withdrawal_id = ?",
+            Timestamp.from(TestClock.instant().minus(Duration.ofHours(7))), withdrawal.toString())
+
+        assertEquals(before + 1, gauge("ledger.withdrawals.reserved"))
+        assertTrue(gauge("ledger.withdrawals.reserved.oldest") >= Duration.ofHours(7).seconds, "the oldest reserved cash-out is over 6 h old")
+    }
+
+    @Test
+    fun `an event left unpublished shows its age, and drops back to 0 once Kafka takes it`() {
+        // Another holder takes the relay's lease, as if Kafka were unreachable: nothing is published meanwhile.
+        jdbc.update("UPDATE outbox_lease SET holder = 'test', expires_at = UTC_TIMESTAMP(6) + INTERVAL 1 HOUR WHERE name = 'outbox-relay'")
+        try {
+            tx.executeWithoutResult { outbox.publish(DealSettled(UUID.randomUUID(), UUID.randomUUID(), 0, 0, 0)) }
+            jdbc.update("UPDATE outbox_event SET created_at = ? WHERE published_at IS NULL",
+                Timestamp.from(TestClock.instant().minus(Duration.ofMinutes(10))))
+            assertTrue(gauge("ledger.outbox.unpublished.oldest") >= Duration.ofMinutes(10).seconds, "the oldest unpublished event is over 5 min old")
+        } finally {
+            jdbc.update("UPDATE outbox_lease SET expires_at = '1970-01-02 00:00:00' WHERE name = 'outbox-relay'")
+        }
+        await atMost Duration.ofSeconds(30) untilAsserted { assertEquals(0.0, gauge("ledger.outbox.unpublished.oldest")) }
     }
 
     @Test

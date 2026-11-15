@@ -60,7 +60,7 @@ class SettlementTest : LedgerFlowTest() {
     }
 
     @Test
-    fun `listed orders that can't be charged are reported, left as they are, and left out of DealSettled`() {
+    fun `listed orders that can't be charged are reported and left out of DealSettled, and this deal's open ones released`() {
         val deal = UUID.randomUUID()
         val good = funded(1000) to UUID.randomUUID()
         val released = funded(1000) to UUID.randomUUID()
@@ -85,8 +85,12 @@ class SettlementTest : LedgerFlowTest() {
         assertEquals(setOf(released.second, otherDeal.second, otherStudent.second, below.second, noHold), problems.keys)
         assertTrue(problems.getValue(otherStudent.second).contains("another student"))
         assertTrue(problems.getValue(below.second).contains("below the price"))
-        assertEquals(listOf("OPEN", "OPEN", "OPEN"), listOf(otherDeal, otherStudent, below).map { stateOf(it.second) })
-        assertEquals(400L to 600L, balanceOf(otherStudent.first))
+        // The other deal decides its own hold; this deal's would otherwise stay set aside for ever (EDGE-CASES Q1).
+        assertEquals(listOf("OPEN", "RELEASED", "RELEASED"), listOf(otherDeal, otherStudent, below).map { stateOf(it.second) })
+        assertEquals(1000L to 0L, balanceOf(otherStudent.first))
+        assertEquals(1000L to 0L, balanceOf(below.first))
+        val notOnList = events("HoldReleased", deal).filter { it["reason"].asText() == "NOT_ON_LIST" }
+        assertEquals(setOf(otherStudent.second, below.second), notOnList.map { UUID.fromString(it["orderId"].asText()) }.toSet())
         val settled = events("DealSettled", deal).single()
         assertEquals(listOf(1, 475, 48), listOf("count", "totalChargedCents", "totalCommissionCents").map { settled[it].asInt() })
         assertBooksBalance()

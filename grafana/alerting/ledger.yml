@@ -1,4 +1,5 @@
-# [LED-23] - Observability: a refund parked over 6 hours raises the Ledger's own alert (DEC team documents).
+# [LED-23] - Observability: the Ledger's own alerts (DEC team documents): a refund parked or a cash-out reserved over 6 h, events stuck
+# in the outbox over 5 min, a daily-check problem, and a new dead letter.
 # Copied to the dev kit's grafana/provisioning/alerting/ (HANDOVER §4 step 2); Grafana reads it at start-up.
 apiVersion: 1
 groups:
@@ -39,7 +40,151 @@ groups:
         execErrState: Error
         for: 1m
         annotations:
-          summary: A refund has waited over 6 hours for its order's charge or its deal's outcome
+          summary: "A refund has waited over 6 hours for its order's charge or its deal's outcome"
           description: "HANDOVER §8 'Is money stuck?': find the order or deal it waits for in parked_event (consumer support-v1)."
+        labels:
+          service: ledger
+      - uid: ledger-cashout-reserved-6h
+        title: "Ledger: cash-out reserved over 6 h"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              expr: max(ledger_withdrawals_reserved_oldest_seconds{service="ledger", job="services"})
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: math
+              expression: "$B > 21600"
+        dashboardUid: ledger
+        panelId: 17
+        noDataState: OK
+        execErrState: Error
+        for: 1m
+        annotations:
+          summary: "A cash-out has been reserved over 6 hours without Payments paying it out or returning it"
+          description: "HANDOVER §8 'Is money stuck?': the reserved cash-outs query names it; ask Payments for its WithdrawalCompleted or WithdrawalFailed."
+        labels:
+          service: ledger
+      - uid: ledger-outbox-stuck-5m
+        title: "Ledger: events not reaching Kafka for 5 min"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              expr: max(ledger_outbox_unpublished_oldest_seconds{service="ledger", job="services"})
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: math
+              expression: "$B > 300"
+        dashboardUid: ledger
+        panelId: 18
+        noDataState: OK
+        execErrState: Error
+        for: 1m
+        annotations:
+          summary: "A Ledger event has waited over 5 minutes in the outbox: other teams aren't hearing about money moves"
+          description: "HANDOVER §8 K1: usually Kafka is down; the outbox sends everything, in order, once it's back."
+        labels:
+          service: ledger
+      - uid: ledger-daily-check-problem
+        title: "Ledger: daily check found a problem"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              expr: max(ledger_daily_check_problems{service="ledger", job="services"})
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: math
+              expression: "$B > 0"
+        dashboardUid: ledger
+        panelId: 15
+        noDataState: OK
+        execErrState: Error
+        for: 1m
+        annotations:
+          summary: "The 02:00 daily check found the books out of line (I1 to I5): money created, lost or misplaced"
+          description: "The log line 'Daily check' names the check; HANDOVER §8 'Where did a student's money go?' and the recompute SQL."
+        labels:
+          service: ledger
+      - uid: ledger-dead-letter-new
+        title: "Ledger: new dead letter"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              expr: max(ledger_dead_letters{service="ledger", job="services"}) - max(ledger_dead_letters{service="ledger", job="services"} offset 10m)
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: math
+              expression: "$B > 0"
+        dashboardUid: ledger
+        panelId: 14
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: "A message went to ledger.dlt in the last 10 minutes: its money change wasn't applied"
+          description: "HANDOVER K4: read it on ledger.dlt, fix the cause, then ask Platform to replay it."
         labels:
           service: ledger

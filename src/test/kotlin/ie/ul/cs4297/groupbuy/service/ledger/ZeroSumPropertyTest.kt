@@ -71,7 +71,7 @@ class ZeroSumPropertyTest : LedgerFlowTest() {
                     return "release ${o.order}"
                 }
                 3 -> {
-                    // Some open orders make the list; the rest are released NOT_ON_LIST. A price above a hold is a SettlementIssue.
+                    // Some open orders make the list; the rest are released NOT_ON_LIST. A price above a hold is a SettlementIssue, and released too.
                     val listed = open.filter { random.nextBoolean() }
                     val price = random.nextLong(100, 801)
                     val basisPoints = random.nextInt(0, 3001)

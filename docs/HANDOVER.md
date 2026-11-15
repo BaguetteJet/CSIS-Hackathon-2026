@@ -144,7 +144,7 @@ Checked with repeats, disorder and a stopped instance. Tests that need Java are 
 
 | Marked property | Show it live | Recorded proof | Status |
 |---|---|---|---|
-| Every movement sums to zero; no student balance negative | §8 "Is the whole Ledger balanced?" after §5: every row 0 | `ZeroSumPropertyTest`: 200 random runs of top-ups, holds, releases, settlements, refunds, cash-outs and payouts; after every step all postings sum to 0 and no student is below 0 ([evidence](evidence/led-20-zero-sum.md)). Why it holds: `post()` refuses a movement whose sides don't sum to 0, and a student's balance only changes by `balance_cents + ? >= 0` | Done |
+| Every movement sums to zero; no student balance negative | §8 "Is the whole Ledger balanced?" after §5: every row 0 | `ZeroSumPropertyTest` (50 random runs by default; `ZERO_SUM_RUNS=200 ./gradlew containerTest` for 200): top-ups, holds, releases, settlements, refunds, cash-outs and payouts; after every step all postings sum to 0 and no student is below 0 ([evidence](evidence/led-20-zero-sum.md)). Why it holds: `post()` refuses a movement whose sides don't sum to 0, and a student's balance only changes by `balance_cents + ? >= 0` | Done |
 | A deal settles exactly once, through a crash | `./sim deal-confirmed --repeat` publishes DealConfirmed twice; §8 "One deal's settlement" shows one row | `SettlementTest`: a crash halfway charges nothing, the retry settles once; DealConfirmed twice settles once | Done |
 | No order refunded more than it was charged | Refund more than is left of the charge: RefundRefused `EXCEEDS_CHARGE` (`refund` row, no REFUND movement) | `RefundsTest`: over the charge refused; part refunds of 5 then 445 on 450 reverse 1 then 44 commission; a repeat posts once | Done; an early refund is parked, then posted on its charge or refused NEVER_CHARGED |
 | A hold after its order or deal closed is refused | §5 step 7: DEAL_CLOSED | `HoldsTest`: ORDER_CLOSED and DEAL_CLOSED, before and racing the closure | Done |
@@ -160,9 +160,11 @@ Grafana at http://localhost:3000, folder "Dev kit", dashboard "Ledger" (`grafana
 | `ledger_holds_seconds{result}`: hold rate, latency, answer | Mostly PLACED; every answer well under 2 s (k6 max 666 ms at 100/s) |
 | `ledger_settlement_seconds` | One per confirmed deal; about 0.1 s for 12 orders, 0.79 s for 202 (k6) |
 | `ledger_settlement_issues_total` | 0. Anything else is a listed order we couldn't charge: §8 |
-| `ledger_dead_letters`: messages on `ledger.dlt` | 0 new during a run (§9, K4) |
+| `ledger_dead_letters`: messages on `ledger.dlt` | 0 new during a run. A new one fires "Ledger: new dead letter" (§8 K4) |
 | `ledger_refunds_parked`, `ledger_refunds_parked_oldest_seconds` | A few for a moment while a deal settles; the oldest well under 6 h. Over 6 h the alert "Ledger: refund parked over 6 h" fires (Grafana, folder Ledger): §8 "Is money stuck?" |
-| `ledger_daily_check_problems`, `ledger_daily_check_last_run_seconds` | 0 problems; last run at 02:00 Irish time. A problem is named in the log line `Daily check` |
+| `ledger_withdrawals_reserved`, `ledger_withdrawals_reserved_oldest_seconds` | A few for a moment while the desk pays out; the oldest well under 6 h. Over 6 h the alert "Ledger: cash-out reserved over 6 h" fires: §8 "Is money stuck?" ([EDGE-CASES Q5](EDGE-CASES.md#cases-that-cause-issues)) |
+| `ledger_daily_check_problems`, `ledger_daily_check_last_run_seconds` | 0 problems; last run at 02:00 Irish time. A problem is named in the log line `Daily check` and fires "Ledger: daily check found a problem" (§8 "Is the whole Ledger balanced?") |
+| `ledger_outbox_unpublished_oldest_seconds`: the oldest event not yet on Kafka | Under a second. Over 5 min the alert "Ledger: events not reaching Kafka for 5 min" fires (§8 K1) |
 
 ## 8 Runbooks
 
@@ -237,7 +239,7 @@ Example: 11 orders at 500 with 10% commission and 600 set aside gives RESTAURANT
 
 ### Is money stuck?
 
-Open holds on a closed deal: money still set aside that nothing will charge. Normally no rows. A CONFIRMED row is an order listed but not charged (a SettlementIssue): its money comes back when its order closes. A FAILED or CANCELLED row is a bug. Platform's stuck-hold alert (PLT-11) watches the same thing from our events.
+Open holds on a closed deal: money still set aside that nothing will charge. Normally no rows: settlement releases every open hold it doesn't charge, SettlementIssue or not ([EDGE-CASES Q1](EDGE-CASES.md#cases-that-cause-issues)). Any row is a bug. Platform's stuck-hold alert (PLT-11) watches the same thing from our events.
 
 ```sql
 SELECT h.deal_id, dc.reason, COUNT(*) AS open_holds, SUM(h.amount_cents) AS set_aside_cents, MIN(h.decided_at) AS oldest
@@ -251,7 +253,7 @@ Parked refunds: each waits for its order's charge (`order:<id>`) or, with no mon
 SELECT waits_for, event_id, parked_at FROM parked_event WHERE consumer = 'support-v1' ORDER BY parked_at;
 ```
 
-Cash-outs reserved but never finished: each waits for Payments' WithdrawalCompleted or WithdrawalFailed. One left for hours means Payments never sent it: ask them, don't post it by hand.
+Cash-outs reserved but never finished: each waits for Payments' WithdrawalCompleted or WithdrawalFailed. One left over 6 h fires "Ledger: cash-out reserved over 6 h": Payments never sent it, so ask them, don't post it by hand.
 
 ```sql
 SELECT withdrawal_id, student_id, amount_cents, decided_at FROM withdrawal WHERE state = 'RESERVED' ORDER BY decided_at;
@@ -261,12 +263,13 @@ SELECT withdrawal_id, student_id, amount_cents, decided_at FROM withdrawal WHERE
 
 | Failure | Symptom | Confirm | Fix |
 |---|---|---|---|
-| **K1** Kafka down | Holds still answer; events stop appearing on ledger.v1; top-ups and settlements wait | `SELECT COUNT(*) FROM outbox_event WHERE published_at IS NULL;` grows | Nothing: when Kafka returns, the outbox sends them in order and consumers catch up, after up to about 45 s while they rejoin. Check the count falls to 0 |
+| **K1** Kafka down | Holds still answer; events stop appearing on ledger.v1; top-ups and settlements wait | `SELECT COUNT(*) FROM outbox_event WHERE published_at IS NULL;` grows; after 5 min the alert "Ledger: events not reaching Kafka for 5 min" fires | Nothing: when Kafka returns, the outbox sends them in order and consumers catch up, after up to about 45 s while they rejoin. Check the count falls to 0 |
 | **K2** One instance dies | Calls to it fail for a moment | `docker compose ps` shows one instance down | Nothing: the gateway and Orders' retry use the other; Kafka moves its partitions; repeats are absorbed. Restart: `docker compose up -d` |
 | **K2** Killed mid-settlement | That deal's settlement didn't finish | `deal_settlement` has no row for the deal | Nothing: the transaction rolled back; redelivery settles the whole deal once. Then check §8 "One deal's settlement" |
 | **K3** Ledger down 10 min | New orders stay pending and are abandoned after 2 min; top-ups and settlement wait | Both health checks fail | `docker compose up -d`. Holds answer again; queued events are applied once each; abandoned orders are released |
 | **K3** Database down | Holds, `/me`, the statement and the desk balance answer 503 `UNAVAILABLE` within about 1 s, or 2 to 10 s if MySQL hangs rather than stops. Events wait, retried every 10 s for up to 15 min | `docker compose logs --tail 40 instance-1` shows connection errors | Restart MySQL. 503s stop within seconds; nothing was half-saved, so retries decide afresh |
 | **K4** An event we can't process | It retried 5 times over about 2.5 min (15 min if MySQL was unreachable), then went to `ledger.dlt` | `docker exec devkit-kafka-1 kafka-get-offsets --bootstrap-server localhost:9092 --topic ledger.dlt` (any partition above 0) and the `Dead letter:` line in the log | Fix the cause; the platform team replays it, and anything parked behind it then applies |
+| **Deploy** A migration fails, or `Migration checksum mismatch` | Both instances exit at start-up (they're restarted together, [EDGE-CASES Q6](EDGE-CASES.md#cases-that-cause-issues)); holds answer 502 at the gateway | `docker compose logs --tail 40 instance-1` names the version; `SELECT version, success FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 3;` | Checksum mismatch: an applied migration file was edited; restore its applied text from git (never edit an applied one) and redeploy. `success = 0`: MySQL DDL isn't transactional, so check which statements of that version applied, undo them by hand, then `DELETE FROM flyway_schema_history WHERE success = 0;`. The schema is then as the previous image left it, so that image starts again; fix the file and redeploy. Never drop the database outside a dev kit (§9) |
 | **K5** Rebuild | The Ledger is a source of truth, not a view: never dropped | §8 "Is the whole Ledger balanced?" | Balances recompute from postings (§8) |
 | **K7** Clock | Settlement or releases seem late after `./clock advance` | `./clock` | Wait 5 s: services read the clock every 5 s. The Ledger never refuses for time |
 | **K8** Popular deal | One deal's events all on one partition | `docker exec devkit-kafka-1 kafka-consumer-groups --bootstrap-server localhost:9092 --describe --group ledger` (LAG) | Expected: keeps each deal in order. A 200-order deal settles in one transaction: 0.5 to 1 s on a quiet machine, up to about 2.8 s on a busy one ([evidence](evidence/edge-cases-2026-11-15.md)) |
@@ -290,8 +293,7 @@ SELECT withdrawal_id, student_id, amount_cents, decided_at FROM withdrawal WHERE
 
 - A `DealConfirmed` outside the contract (negative price, commission outside 0–10000) can't come from Deals; if one arrives anyway it moves nothing, is retried for 2.5 min, then goes to `ledger.dlt`.
 - One `orderId` listed twice with different students in a `DealConfirmed`: the second is dropped without a SettlementIssue.
-- A listed order that can't be charged keeps its money set aside until its order closes (§8 "Is money stuck?"). The alert is Platform's (PLT-11).
-- All three were left out on purpose: [item 9, Out of scope](../work-items/item9_robustness.md#out-of-scope).
+- Both were left out on purpose: [item 9, Out of scope](../work-items/item9_robustness.md#out-of-scope).
 - MySQL down over 15 min: events that arrived meanwhile go to `ledger.dlt` and need a replay (K4) ([EDGE-CASES Q12](EDGE-CASES.md#cases-that-cause-issues)).
 - Holds well over the spec's 100/s in the first minutes after a restart: some answer 503 `UNAVAILABLE` (Orders retries); warm, 300/s all answered ([EDGE-CASES Q22](EDGE-CASES.md#cases-that-cause-issues)).
 - No API for the Ledger's own totals (Union cash, commission, payables): use §8.
