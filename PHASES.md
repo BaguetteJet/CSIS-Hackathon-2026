@@ -66,7 +66,7 @@ Weak spots still open ([EDGE-CASES](docs/EDGE-CASES.md#cases-that-cause-issues);
 
 | # | To do | Who |
 |---|---|---|
-| Q2 | A 200-order deal settles in 1.74 s live against the 1 s target | Hersh (item 5) |
+| Q2 | A 200-order deal settles in 0.21–0.87 s live during 100 holds/s (15 Nov, [evidence](docs/evidence/interface-load-2026-11-15.md)), under the 1 s a hold waits but with little margin; `SettlementTest` still reads 2.6–3.1 s on a busy laptop; not yet measured on the integrated line | Hersh (item 5) |
 | Q14 | Ask Platform to refuse `;` in paths at the gateway | Hersh (integration) |
 | Q22 | Optional: holds over 200/s just after a restart get some 503s; try a pool of 20 and measure | Shakeeba (item 4) |
 | X11, X16 | A deadlock test; a log line for unknown event types | Cian (item 9) |
