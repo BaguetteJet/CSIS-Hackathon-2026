@@ -30,3 +30,5 @@ CI runs `test` and `contractTest` only, so none of these run there. Run 1's `tes
 **Follow-up, Sat 14 Nov, 21:20, `main` at `7ac810f`:** `SettlementTest` "a deal at its cap" run alternately on `09869a8` (before the LED-14 to 24 merges) and `7ac810f` (after), load average about 11.5 (dev kit running, an unrelated crash-looping Kubernetes pod): before 1333, 1251, 1661 ms; after 1580, 1196, 1546 ms. The merges did not slow settlement; the laptop's load did. `ZeroSumPropertyTest` failed once (a hold answered 503 while two container suites ran at once), then passed 6 of 6 alone.
 
 **Follow-up, Sun 15 Nov:** #63 (Igor) raised that test's limit from 1 s to 3 s, to match the brief.
+
+**Follow-up, Sun 15 Nov:** `LedgerFlowTest.hold()` retries a 503 as Orders does, which ends the setup 503s above; 200 orders settled in 2789 ms at load 9 ([edge-cases-2026-11-15.md](edge-cases-2026-11-15.md)).

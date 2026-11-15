@@ -26,7 +26,6 @@ import java.util.UUID
 class LedgerMetricsTest : LedgerFlowTest() {
 
     @Autowired lateinit var meters: MeterRegistry
-    @Autowired lateinit var dailyCheck: DailyCheck
     @Autowired lateinit var timers: Timers
 
     private fun gauge(name: String): Double = meters.get(name).gauge().value()

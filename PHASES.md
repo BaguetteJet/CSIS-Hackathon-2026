@@ -50,7 +50,7 @@ Each LED item has a Forgejo issue (#7 LED-01 to #30 LED-24): closed means done, 
 
 ## Next for the lead
 
-`checkpoint-2` is `13e63ea` (Sat 16:19): the demo's `6e8cce1` ([POC-DEMO.md](docs/POC-DEMO.md)) plus docs-only PRs #48 to #51, tagged after 15:50 with the advisor's agreement. All 24 LED items are merged (#56 to #63). Next: tag `checkpoint-3` and promote it before Sun 14:00; then `release` at 16:00. Brief against what's built: [CHECKLIST.md](CHECKLIST.md). Item 9 (edge cases) is a stretch.
+`checkpoint-2` is `13e63ea` (Sat 16:19): the demo's `6e8cce1` ([POC-DEMO.md](docs/POC-DEMO.md)) plus docs-only PRs #48 to #51, tagged after 15:50 with the advisor's agreement. All 24 LED items are merged (#56 to #63). Next: tag `checkpoint-3` and promote it before Sun 14:00; then `release` at 16:00. Brief against what's built: [CHECKLIST.md](CHECKLIST.md). Item 9 (edge cases, a stretch) is done: [evidence](docs/evidence/edge-cases-2026-11-15.md).
 
 ## How we're marked
 

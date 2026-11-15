@@ -251,6 +251,12 @@ Parked refunds: each waits for its order's charge (`order:<id>`) or, with no mon
 SELECT waits_for, event_id, parked_at FROM parked_event WHERE consumer = 'support-v1' ORDER BY parked_at;
 ```
 
+Cash-outs reserved but never finished: each waits for Payments' WithdrawalCompleted or WithdrawalFailed. One left for hours means Payments never sent it: ask them, don't post it by hand.
+
+```sql
+SELECT withdrawal_id, student_id, amount_cents, decided_at FROM withdrawal WHERE state = 'RESERVED' ORDER BY decided_at;
+```
+
 ### Failures (reference, Scenarios K)
 
 | Failure | Symptom | Confirm | Fix |
@@ -263,7 +269,7 @@ SELECT waits_for, event_id, parked_at FROM parked_event WHERE consumer = 'suppor
 | **K4** An event we can't process | It retried 5 times over about 2.5 min, then went to `ledger.dlt` | `docker exec devkit-kafka-1 kafka-get-offsets --bootstrap-server localhost:9092 --topic ledger.dlt` (any partition above 0) and the `Dead letter:` line in the log | Fix the cause; the platform team replays it, and anything parked behind it then applies |
 | **K5** Rebuild | The Ledger is a source of truth, not a view: never dropped | §8 "Is the whole Ledger balanced?" | Balances recompute from postings (§8) |
 | **K7** Clock | Settlement or releases seem late after `./clock advance` | `./clock` | Wait 5 s: services read the clock every 5 s. The Ledger never refuses for time |
-| **K8** Popular deal | One deal's events all on one partition | `docker exec devkit-kafka-1 kafka-consumer-groups --bootstrap-server localhost:9092 --describe --group ledger` (LAG) | Expected: keeps each deal in order. A 200-order deal settles in one transaction: 0.5 to 1 s on a quiet machine, up to about 1.7 s on a busy one ([evidence](evidence/flaky-tests-2026-11-14.md)) |
+| **K8** Popular deal | One deal's events all on one partition | `docker exec devkit-kafka-1 kafka-consumer-groups --bootstrap-server localhost:9092 --describe --group ledger` (LAG) | Expected: keeps each deal in order. A 200-order deal settles in one transaction: 0.5 to 1 s on a quiet machine, up to about 2.8 s on a busy one ([evidence](evidence/edge-cases-2026-11-15.md)) |
 
 ## 9 Troubleshooting
 
@@ -286,6 +292,7 @@ SELECT waits_for, event_id, parked_at FROM parked_event WHERE consumer = 'suppor
 - One `orderId` listed twice with different students in a `DealConfirmed`: the second is dropped without a SettlementIssue.
 - A listed order that can't be charged keeps its money set aside until its order closes (§8 "Is money stuck?"). The alert is Platform's (PLT-11).
 - All three were left out on purpose: [item 9, Out of scope](../work-items/item9_robustness.md#out-of-scope).
+- MySQL frozen rather than stopped: a hold waits until it returns, not 503 in 1 s. MySQL down over about 2.5 min: events that arrived meanwhile go to `ledger.dlt` and need a replay (K4). Both have a fix planned: [EDGE-CASES Q11, Q12](EDGE-CASES.md#cases-that-cause-issues).
 - No API for the Ledger's own totals (Union cash, commission, payables): use §8.
 - The daily check's metric is kept by the instance that ran it, and starts at 0 after a restart; the log line is the record.
 

@@ -69,4 +69,4 @@ Every LED issue is closed. Marked properties: [PHASES.md](PHASES.md#marked-prope
 | ✅ | [6](work-items/item6_refunds.md) Refunds | |
 | ✅ | [7](work-items/item7_statement.md) Statement | |
 | ✅ | [8](work-items/item8_cashouts.md) Cash-outs | |
-| ⬜ | [9](work-items/item9_robustness.md) Edge cases (stretch, bonus only) | Steps 1 to 4 |
+| ✅ | [9](work-items/item9_robustness.md) Edge cases (stretch, bonus only) | |
