@@ -59,7 +59,7 @@ As of Sun 15 Nov 08:55 UTC. Every LED item is done. First what the marks still n
 | # | To do | Who |
 |---|---|---|
 | 1 | Tag `checkpoint-3` with green CI, then post `promote ledger checkpoint-3` in the line's integration channel. Until then the fake Ledger answers for us in integration. The mark is the last journey run that finishes by 14:00, and a run takes about 95 minutes, so promote by about 12:00 | Hersh |
-| 2 | A teammate deploys from HANDOVER alone, with a CI `sha-` image. Rehearsed on the dev kit: the steps pass, but both instances were then killed by their 512 MB limit, 4 times each by 09:12 ([evidence](docs/evidence/deploy-rehearsal-2026-11-15.md)). Fix the memory first; don't tag `checkpoint-3` on `sha-7816b08` | Hersh (memory, under diagnosis); then Pierce, Shakeeba |
+| 2 | A teammate deploys from HANDOVER alone, with a CI `sha-` image. Rehearsed on the dev kit: the steps pass ([evidence](docs/evidence/deploy-rehearsal-2026-11-15.md)). The instances were then OOM-killed under x86 emulation on an arm64 laptop, not a Ledger fault: the amd64 image runs natively on the reference machine. Rehearse on an amd64 machine if one is free | Pierce, Shakeeba |
 | 3 | `release` at 16:00 with green CI; the 2-minute questions | [Before the final](CHECKLIST.md#before-the-final) (owners there) |
 
 Weak spots still open ([EDGE-CASES](docs/EDGE-CASES.md#cases-that-cause-issues); each row has its fix):
