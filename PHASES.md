@@ -121,6 +121,6 @@ Each checkpoint is 10 team marks and 5 individual (from your own merged, reviewe
 | Sun 16:00 | Code freeze; final assessment (line A 16:00–17:00) |
 
 - Tag `checkpoint-1`, `checkpoint-2`, `checkpoint-3`, then `release`. Marks come from the tag.
-- Every PR is reviewed by someone other than its author.
+- Every PR is reviewed by someone other than its author, and states the main prompt used (handover §18.4).
 - To promote, the lead posts `promote ledger <tag>` in the line's integration channel.
 - In the final, each person gets about 2 minutes of questions on their own area, how it connects with the others, and the team's decisions.
