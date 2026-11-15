@@ -66,6 +66,7 @@ About 2 minutes: 1 for the dev kit, under 1 for the Ledger (both instances were 
    ```bash
    git clone https://cs4297.skynet.ie/hackathon-2026/line-a-ledger.git && cp line-a-ledger/.env.example line-a-ledger/.env
    ```
+   The repository is private: if Git asks for a username, sign in with your `cs4297.skynet.ie` (Forgejo) account.
 2. Point the dev kit at the real Ledger, add our dashboard, and start it with the full profile:
    ```bash
    cd dev-kit
