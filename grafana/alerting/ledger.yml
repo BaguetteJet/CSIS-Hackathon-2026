@@ -1,5 +1,7 @@
 # [LED-23] - Observability: the Ledger's own alerts (DEC team documents): a refund parked or a cash-out reserved over 6 h, events stuck
 # in the outbox over 5 min, a daily-check problem, and a new dead letter.
+# Every query takes the max over both instances and both scrape jobs, so a doubled scrape changes nothing. No data, or only NaN
+# (a gauge MySQL or Kafka could not answer), shows as "No data" rather than OK: an alert that cannot be evaluated must not look calm.
 # Copied to the dev kit's grafana/provisioning/alerting/ (HANDOVER §4 step 2); Grafana reads it at start-up.
 apiVersion: 1
 groups:
@@ -19,7 +21,7 @@ groups:
             datasourceUid: prometheus
             model:
               refId: A
-              expr: max(ledger_refunds_parked_oldest_seconds{service="ledger", job="services"})
+              expr: max(ledger_refunds_parked_oldest_seconds{service="ledger"})
               instant: true
           - refId: B
             datasourceUid: __expr__
@@ -28,6 +30,8 @@ groups:
               type: reduce
               expression: A
               reducer: last
+              settings:
+                mode: dropNN
           - refId: C
             datasourceUid: __expr__
             model:
@@ -36,7 +40,7 @@ groups:
               expression: "$B > 21600"
         dashboardUid: ledger
         panelId: 13
-        noDataState: OK
+        noDataState: NoData
         execErrState: Error
         for: 1m
         annotations:
@@ -55,7 +59,7 @@ groups:
             datasourceUid: prometheus
             model:
               refId: A
-              expr: max(ledger_withdrawals_reserved_oldest_seconds{service="ledger", job="services"})
+              expr: max(ledger_withdrawals_reserved_oldest_seconds{service="ledger"})
               instant: true
           - refId: B
             datasourceUid: __expr__
@@ -64,6 +68,8 @@ groups:
               type: reduce
               expression: A
               reducer: last
+              settings:
+                mode: dropNN
           - refId: C
             datasourceUid: __expr__
             model:
@@ -72,7 +78,7 @@ groups:
               expression: "$B > 21600"
         dashboardUid: ledger
         panelId: 17
-        noDataState: OK
+        noDataState: NoData
         execErrState: Error
         for: 1m
         annotations:
@@ -91,7 +97,7 @@ groups:
             datasourceUid: prometheus
             model:
               refId: A
-              expr: max(ledger_outbox_unpublished_oldest_seconds{service="ledger", job="services"})
+              expr: max(ledger_outbox_unpublished_oldest_seconds{service="ledger"})
               instant: true
           - refId: B
             datasourceUid: __expr__
@@ -100,6 +106,8 @@ groups:
               type: reduce
               expression: A
               reducer: last
+              settings:
+                mode: dropNN
           - refId: C
             datasourceUid: __expr__
             model:
@@ -108,7 +116,7 @@ groups:
               expression: "$B > 300"
         dashboardUid: ledger
         panelId: 18
-        noDataState: OK
+        noDataState: NoData
         execErrState: Error
         for: 1m
         annotations:
@@ -127,7 +135,7 @@ groups:
             datasourceUid: prometheus
             model:
               refId: A
-              expr: max(ledger_daily_check_problems{service="ledger", job="services"})
+              expr: max(ledger_daily_check_problems{service="ledger"})
               instant: true
           - refId: B
             datasourceUid: __expr__
@@ -136,6 +144,8 @@ groups:
               type: reduce
               expression: A
               reducer: last
+              settings:
+                mode: dropNN
           - refId: C
             datasourceUid: __expr__
             model:
@@ -144,7 +154,7 @@ groups:
               expression: "$B > 0"
         dashboardUid: ledger
         panelId: 15
-        noDataState: OK
+        noDataState: NoData
         execErrState: Error
         for: 1m
         annotations:
@@ -163,7 +173,7 @@ groups:
             datasourceUid: prometheus
             model:
               refId: A
-              expr: max(ledger_dead_letters{service="ledger", job="services"}) - max(ledger_dead_letters{service="ledger", job="services"} offset 10m)
+              expr: max(ledger_dead_letters{service="ledger"}) - max(ledger_dead_letters{service="ledger"} offset 10m)
               instant: true
           - refId: B
             datasourceUid: __expr__
@@ -172,6 +182,8 @@ groups:
               type: reduce
               expression: A
               reducer: last
+              settings:
+                mode: dropNN
           - refId: C
             datasourceUid: __expr__
             model:
@@ -180,7 +192,7 @@ groups:
               expression: "$B > 0"
         dashboardUid: ledger
         panelId: 14
-        noDataState: OK
+        noDataState: NoData
         execErrState: Error
         for: 0s
         annotations:
