@@ -25,3 +25,5 @@ From opening §4 to the end of §5: 86 s of commands.
 | macOS: `sed -i ''`, `uuidgen` | Ubuntu 24.04: `sed -i`, `/proc/sys/kernel/random/uuid` | Both Linux forms run on `ubuntu:24.04`: the `sed` sets the two lines, `/proc` gives a UUID |
 | Dev kit already running | Dev kit cloned, images pulled, not started | §4.2 starts it; about a minute more |
 | `git clone` used a saved Forgejo login | Logged in to the container registry; nothing said about Git | **Open:** the repository is private. Ask the assessor whether the reference machine can clone it |
+
+**Follow-up, 09:15 UTC:** the "0 restarts" above was read at 08:39, just before the first kill. Both instances were then killed by their own 512 MB limit (kernel: CONSTRAINT_MEMCG, java about 518 MB): at 08:39 and 08:40, again at 09:09 while idle, and during a later load test; 4 restarts each by 09:12, idle at about 499 of 512 MiB. Found by session 4d; being diagnosed (PHASES "What's left"). The deploy steps pass; the instances don't yet stay up.
