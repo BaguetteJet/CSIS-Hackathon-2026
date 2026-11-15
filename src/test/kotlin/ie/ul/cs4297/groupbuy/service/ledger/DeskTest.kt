@@ -68,6 +68,17 @@ class DeskTest : LedgerFlowTest() {
     }
 
     @Test
+    fun `an injected or 10 KB id is 404 like any malformed one, and 401 without a token, never 400`() {
+        // Spring Security's firewall refuses these before any controller (DEC E1, E2). An encoded backslash stays Tomcat's 400 (EDGE-CASES Q27).
+        for (id in listOf("..;", "a;b=1", "%2e%2e;", "a%2Fb", "a%25b", "x".repeat(10_000))) {
+            val response = call("/api/ledger/students/$id", finance)
+            assertEquals(404, response.statusCode(), "${id.take(20)}: ${response.body()}")
+            assertEquals("NOT_FOUND", mapper.readTree(response.body())["code"].asText(), id.take(20))
+            assertEquals(401, call("/api/ledger/students/$id", null).statusCode(), id.take(20))
+        }
+    }
+
+    @Test
     fun `no or expired token is 401, then any role but finance is 403 with no data`() {
         val student = funded(1000)
         val path = "/api/ledger/students/$student"
