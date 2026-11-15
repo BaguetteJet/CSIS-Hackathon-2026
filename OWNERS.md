@@ -27,23 +27,23 @@ We split the Ledger **by money flow**: each area owns one way money enters or le
 
 **Hersh** (team lead)
 - Owns: holds (item 1), settlement and releases (item 5), refunds (item 6, from Md Hossain on Sat). Backs up: cash-outs (item 8).
-- Done: the hold call (LED-03, 04), accounts on registration (01), releases and settlement (05, 06, 08, 09, 10), refunds never over the charge (13), the load test (22), the sign-in 503 fix (18), the recompute SQL (24); the proof of concept (`checkpoint-2`, [POC-DEMO.md](docs/POC-DEMO.md)).
-- Next: wake parked refunds (LED-14) and their metrics (23); promote into integration; confirm [NEIGHBOURS.md](docs/NEIGHBOURS.md) with each team lead.
+- Done: the hold call (LED-03, 04), accounts on registration (01), releases and settlement (05, 06, 08, 09, 10), refunds never over the charge (13), early refunds woken or refused NEVER_CHARGED (14), the load test (22), the sign-in 503 fix (18), 503 with MySQL down and the outage drills (21), refund and dead-letter metrics with the 6 h alert (23), the recompute SQL and the daily check (24); the proof of concept (`checkpoint-2`, [POC-DEMO.md](docs/POC-DEMO.md)). Items 5 and 6 complete.
+- Next: promote into integration and tag `checkpoint-3`; the all-real golden path by Sun 14:00; confirm [NEIGHBOURS.md](docs/NEIGHBOURS.md) with each team lead.
 
 **Igor**
 - Owns: core and data (item 2). Backs up: holds (item 1) and edge cases (item 9).
-- Done: the schema, the posting service and `/me` (LED-07).
-- Next: help item 7 with the zero-sum test (LED-20, by Sun 12:00); the daily check waits until LED-11 to 17 are done (bonus counts only then).
+- Done: the schema, the posting service and `/me` (LED-07). Item 2 complete (the daily check, step 4, was added by Hersh).
+- Next: back up item 9 with Cian: steps 1 and 2.
 
 **Sam**
 - Owns: payments events and contract tests (item 3). Backs up: operations (item 4).
 - Done: top-ups credited once (LED-02); zero-amount top-ups, cash-outs and payouts to the dead-letter topic (19); the payments routing item 8 builds on; contract tests for the new events; the reset at 204 students. Item 3 complete.
-- Next: back up item 4 (outage drills, handover).
+- Next: back up item 4: the handover document and the `release` tag.
 
 **Shakeeba**
 - Owns: operations (item 4). Backs up: statement and testing (item 7).
 - Done: the slice-1 demo bench and its evidence; the Grafana dashboard (LED-23); `checkpoint-2`.
-- Next: outage drills (21); the handover document (24, by Sun 16:00); refund and dead-letter panels once their metrics exist (23).
+- Next: the handover document, all 11 sections (item 4 step 7), and the `release` tag, by Sun 16:00.
 
 **Cian**
 - Owns: cash-outs and payouts (item 8), edge cases and robustness (item 9). Backs up: settlement (item 5) and refunds (item 6).
@@ -55,16 +55,14 @@ We split the Ledger **by money flow**: each area owns one way money enters or le
 
 **Pierce**
 - Owns: statement, desk balance and testing (item 7). Backs up: core and data (item 2).
-- Done: the statement (LED-11), the desk balance (12), page security (18).
-- Next: the zero-sum property test (20, marked) and the marked-property map, by Sun 12:00.
+- Done: the statement (LED-11), the desk balance (12), page security (18), the zero-sum property test (20, marked) and the marked-property map. Item 7 complete.
+- Next: deploy from `docs/HANDOVER.md` alone on a clean machine, the check for item 4 step 7; report every question it leaves.
 
 ## LED items
 
 | Status | LED |
 |---|---|
-| Done | 01–13, 15–19, 22 |
-| Partly done | 14, 20, 23, 24 |
-| To do | 21 |
+| Done | 01–24 |
 
-**Work items completed:** items 3, 5 and 8 in full. Items 1, 2, 4, 6 and 7 are partly done: see each item's checkboxes. Item 9 (edge cases) is a stretch, not started.
+**Work items completed:** items 2, 3, 5, 6, 7 and 8 in full. Items 1 (promote, contracts) and 4 (dev kit on every laptop, tags, handover) are partly done: see each item's checkboxes. Item 9 (edge cases) is a stretch, not started.
 
