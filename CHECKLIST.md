@@ -54,7 +54,7 @@ Every LED issue is closed. Marked properties: [PHASES.md](PHASES.md#marked-prope
 | ⬜ | A teammate deploys from HANDOVER alone on a clean machine, using a CI `sha-` image (item 4 step 7) | Pierce, Shakeeba |
 | ⬜ | Tag `release` with green CI; add its link to HANDOVER §5 step 10 | Shakeeba, Sam |
 | ⬜ | Dev kit on every laptop: `/api/ledger/hello` answers from `ledger-1` or `ledger-2` (item 4 step 3) | Everyone |
-| ⚠️ | A review by someone other than the author: #56 to #61 have none | Each area's backup |
+| ⚠️ | A review by someone other than the author: #56 to #61 have none; #64 to #68 (merged Sun 08:08–08:10, `7816b08`) were reviewed only by the author's Claude Code session, at Hersh's request, with the whole stack green first | Each area's backup |
 | ⬜ | About 2 minutes of questions each on your area, how it connects, and the decisions | Everyone |
 
 ## Work items
