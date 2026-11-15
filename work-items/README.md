@@ -51,7 +51,7 @@ If short of time: drop payouts, then cash-out returns, before refunds.
 
 ## Working in parallel
 
-- **Branches:** `item-<n>/<topic>`; PR into `main`, reviewed by the area's backup, prompts included (handover §18.4).
+- **Branches:** `item-<n>/<topic>`; PR into `main`, reviewed by the area's backup.
 - **Migrations:** take the next free `V` number when you merge (Flyway rejects one lower than the database has). Never edit an applied one.
 - **Files:** each area edits its own; others' only through a shared interface.
 

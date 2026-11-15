@@ -11,6 +11,6 @@ description: Ship Ledger work as a small, reviewable pull request into main. Use
    - `ledger-verify` is done;
    - the diff touches only your area's files;
    - no secrets, and no binary over 1 MB.
-4. **Open the PR into `main`.** A plain title, and a body of at most 5 lines: what changed (with LED numbers), how it was tested, and the prompts used (handover §18.4).
+4. **Open the PR into `main`.** A plain title, and a body of at most 5 lines: what changed (with LED numbers) and how it was tested.
 5. **Review** with the `code-review` skill (the area's backup); answer comments with `receiving-code-review`.
 6. **Merge** only with CI green, as a merge commit, never squash. Delete the branch afterwards. Never force-push a branch someone else has pulled.
