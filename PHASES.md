@@ -50,15 +50,17 @@ Each LED item has a Forgejo issue (#7 LED-01 to #30 LED-24): closed means done, 
 
 ## Next for the lead
 
-`checkpoint-2` is `13e63ea` (Sat 16:19): the demo's `6e8cce1` ([POC-DEMO.md](docs/POC-DEMO.md)) plus docs-only PRs #48 to #51, tagged after 15:50 with the advisor's agreement. All 24 LED items are merged (#56 to #63). Next: tag `checkpoint-3` and promote it before Sun 14:00; then `release` at 16:00. Brief against what's built: [CHECKLIST.md](CHECKLIST.md). Item 9 (edge cases, a stretch) is done: [evidence](docs/evidence/edge-cases-2026-11-15.md).
+`checkpoint-2` is `13e63ea` (Sat 16:19): the demo's `6e8cce1` ([POC-DEMO.md](docs/POC-DEMO.md)) plus docs-only PRs #48 to #51, tagged after 15:50 with the advisor's agreement. All 24 LED items are merged (#56 to #63). Next: tag `checkpoint-3` and promote it before Sun 14:00; then `release` at 16:00. The deploy gate is rehearsed on the dev kit: [evidence](docs/evidence/deploy-rehearsal-2026-11-15.md). Brief against what's built: [CHECKLIST.md](CHECKLIST.md). Item 9 (edge cases, a stretch) is done: [evidence](docs/evidence/edge-cases-2026-11-15.md).
 
 ## What's left
 
-As of Sun 15 Nov 08:15 UTC. Every LED item is done. First what the marks still need, then the weak spots still open.
+As of Sun 15 Nov 08:55 UTC. Every LED item is done. First what the marks still need, then the weak spots still open.
 
 | # | To do | Who |
 |---|---|---|
-| 1 | `checkpoint-3` by Sun 14:00, then the final's steps: the clean-machine deploy, `release`, the 2-minute questions | [CHECKLIST](CHECKLIST.md#checkpoints), [Before the final](CHECKLIST.md#before-the-final) (owners there) |
+| 1 | Tag `checkpoint-3` with green CI, then post `promote ledger checkpoint-3` in the line's integration channel. Until then the fake Ledger answers for us in integration. The mark is the last journey run that finishes by 14:00, and a run takes about 95 minutes, so promote by about 12:00 | Hersh |
+| 2 | A teammate deploys from HANDOVER alone, with a CI `sha-` image. Rehearsed on the dev kit, passed: [evidence](docs/evidence/deploy-rehearsal-2026-11-15.md) | Pierce, Shakeeba |
+| 3 | `release` at 16:00 with green CI; the 2-minute questions | [Before the final](CHECKLIST.md#before-the-final) (owners there) |
 
 Weak spots still open ([EDGE-CASES](docs/EDGE-CASES.md#cases-that-cause-issues); each row has its fix):
 
