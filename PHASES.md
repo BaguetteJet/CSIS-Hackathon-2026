@@ -27,7 +27,7 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 | 17 | Payouts, once per payoutId | `WithdrawalsTest`, `ContractTest` |
 | 18 | 401 before 403 on `/me`, statement and desk; 503 when sign-in key is down | `LedgerCoreTest`, `StatementTest`, `DeskTest`, `SignInUnavailableTest`, live via gateway |
 | 19 | Bad hold input 422/413; zero-amount top-up, refund, cash-out and payout to `ledger.dlt` | `HoldsTest`, `ContractTest`, `PaymentsDeadLetterTest`, [evidence](docs/evidence/led-19-payments-dlt.md) |
-| 20 | Movements sum to zero and no student goes negative, after any sequence | `ZeroSumPropertyTest` (200 random runs, [evidence](docs/evidence/led-20-zero-sum.md)) |
+| 20 | Movements sum to zero and no student goes negative, after any sequence | `ZeroSumPropertyTest` (50 random runs by default, 200 with `ZERO_SUM_RUNS=200`, [evidence](docs/evidence/led-20-zero-sum.md)) |
 | 21 | Outages: Kafka paused 5 min, MySQL down (503, never 500), one instance killed, both down 10 min; each event applied once | `DatabaseUnavailableTest`, [drill evidence](docs/evidence/led-21-outages.md) |
 | 22 | 100 holds/s, also during settlement | [k6 evidence](docs/evidence/led-22-holds-k6.md) |
 | 23 | Holds, settlement, parked refunds (count, oldest; 6 h alert), dead letters on the dashboard | `LedgerMetricsTest`, alert checked on Grafana 13.0.3 (fired on a test value) |
@@ -41,7 +41,7 @@ None: every LED item, LED-01 to LED-24, is done.
 
 | Property | Status |
 |---|---|
-| Movements sum to zero, no negative balance | Done (`ZeroSumPropertyTest`: 200 random runs of every money operation) |
+| Movements sum to zero, no negative balance | Done (`ZeroSumPropertyTest`: random runs of every money operation, 50 by default, 200 in the evidence run) |
 | A deal settles exactly once, through a crash | Done (`SettlementTest`) |
 | No order refunded more than charged | Done (`RefundsTest`: over the charge refused, part refunds round on the total; early refunds woken by the charge or refused NEVER_CHARGED) |
 | A hold after its deal or order closed is refused | Done (`HoldsTest`) |

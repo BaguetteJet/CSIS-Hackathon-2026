@@ -39,8 +39,17 @@ class DailyCheck(
     private val problems = meters.gauge("ledger.daily.check.problems", AtomicLong(0))!!
     private val lastRun = meters.gauge("ledger.daily.check.last.run.seconds", AtomicLong(0))!!
 
-    // Hourly too: a run that fails 10 times (MySQL down over 8 min at 02:00) never schedules the next, and the checks would stop.
+    // Only logs: a ready listener that throws stops Spring Boot, so a slow MySQL at start-up would take the instance down; the hourly run retries.
     @EventListener(ApplicationReadyEvent::class)
+    fun scheduleAtStartup() {
+        try {
+            scheduleNext()
+        } catch (e: Exception) {
+            log.warn("Daily check not scheduled at start-up, retried within the hour: {}", e.message)
+        }
+    }
+
+    // Hourly too: a run that fails 10 times (MySQL down over 8 min at 02:00) never schedules the next, and the checks would stop.
     @Scheduled(fixedDelay = 3_600_000, initialDelay = 3_600_000)
     fun scheduleNext() {
         val at = next(clock.instant())
