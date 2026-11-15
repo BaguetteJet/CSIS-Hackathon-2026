@@ -25,7 +25,7 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "query": "label_values(ledger_holds_seconds_count{service=\"ledger\"}, job)",
+        "query": "label_values(process_uptime_seconds{service=\"ledger\"}, job)",
         "includeAll": false,
         "multi": false,
         "current": {

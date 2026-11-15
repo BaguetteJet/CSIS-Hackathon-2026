@@ -34,4 +34,4 @@ The 503s: each instance's 10 database connections were busy (`waiting=104`) and 
 - Holds and settlement could register their counters at start-up with 0 for each result (items 1, 5). Then rates and the mean settlement time also show the first event after a start.
 - First traffic after a start: about 10% of holds answered 503 for 4 s at 100/s (item 1).
 
-**Follow-up, Sun 15 Nov:** #60 added parked refunds, dead letters and the 6 h alert. The Scrape job list filtered on its own value (`job="$job"`), so it offered only the job already chosen and `in-your-ide` couldn't be picked; it now lists every job that has Ledger hold metrics.
+**Follow-up, Sun 15 Nov:** #60 added parked refunds, dead letters and the 6 h alert. The Scrape job list filtered on its own value (`job="$job"`), so it offered only the job already chosen and `in-your-ide` couldn't be picked; it now lists every job scraping a Ledger instance, from `process_uptime_seconds`, which each instance reports from its first scrape. Built from the hold metric, the list was empty after a restart until the first hold.
