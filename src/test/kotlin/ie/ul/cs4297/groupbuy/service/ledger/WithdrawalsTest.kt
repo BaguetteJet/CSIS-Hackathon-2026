@@ -241,4 +241,20 @@ class WithdrawalsTest : LedgerFlowTest() {
         assertEquals(12960, debited["amountCents"].asInt())
         assertBooksBalance()
     }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension::class)
+    fun `a repeated payoutId that names another restaurant changes nothing and is logged as a warning`(output: CapturedOutput) {
+        val paid = UUID.randomUUID()
+        val other = UUID.randomUUID()
+        val payout = UUID.randomUUID()
+
+        pay(envelope(PayoutConfirmed(payout, paid, 12960)), envelope(PayoutConfirmed(payout, other, 5000)))
+
+        assertEquals(0L, accounts.postedBalance(AccountRef.restaurantPayable(other)))
+        assertEquals(1, published("PayoutDebited", "payoutId", payout).size)
+        val line = output.out.lines().single { it.contains("Payout $payout was taken from restaurant $paid; this repeat names $other") }
+        assertTrue(line.contains("WARN"), line)
+        assertBooksBalance()
+    }
 }
