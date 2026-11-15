@@ -1,10 +1,10 @@
 # Schema
 
-MySQL 8, one database (`ledger`), built by Flyway from [db/migration](../src/main/resources/db/migration/). Sections 1 to 6 explain how the tables work together; the diagrams and the column reference follow. Words: [GLOSSARY.md](../GLOSSARY.md).
+MySQL 8, one database (`ledger`), built by Flyway from [db/migration](../src/main/resources/db/migration/). Sections 1 to 7 explain how the tables fit together; diagrams and the column reference follow. Words: [GLOSSARY.md](../GLOSSARY.md).
 
-## 1 The model in one minute
+## 1 The model
 
-Three groups of tables. Only the first holds money; the second remembers decisions so that repeats and races change nothing; the third is the starter's plumbing.
+Three groups of tables. Only the first holds money; the second remembers decisions, so repeats and races change nothing.
 
 | Group | Tables | Is the truth for |
 |---|---|---|
@@ -21,12 +21,12 @@ There are only two foreign keys (posting → movement, posting → account). Eve
 | Account (`owner_type`, `purpose`) | Positive means | Example, 14 Nov |
 |---|---|---|
 | STUDENT AVAILABLE | Money the student can spend. Never negative | +1,805 |
-| STUDENT HELD | Money **set aside** for open orders, and (item 8, planned) cash-outs reserved at the desk. Students never see the word "held". Never negative | +1,600 |
+| STUDENT HELD | Money **set aside** for open orders and cash-outs reserved at the desk. Students never see the word "held". Never negative | +1,600 |
 | RESTAURANT PAYABLE | What the Union owes the restaurant | +10,350 (one restaurant's deals so far) |
 | UNION COMMISSION | What the Union has earned | +3,170 |
 | UNION CASH | Negative: the cash the desk took in, mirrored by everything above | −824,000 |
 
-So `−(Union cash) = students' money + payables + commission`, and all postings sum to 0.
+`−(Union cash) = students' money + payables + commission`, and all postings sum to 0.
 
 **`balance_cents` is kept for STUDENT rows only** (decision 0005). On UNION and RESTAURANT rows it is not maintained: on 14 Nov Union cash read −8000 there while its postings summed to −824,000. For those accounts always use `SUM(ledger_posting.amount_cents)`. The Union's two rows have the zero UUID as `owner_id` and exist from the first start (V3); every other account opens on first use.
 
@@ -144,8 +144,8 @@ Checked against contracts 1.3.0 on Sat 14 Nov: every shape another service sends
 | DealConfirmed `orders`: no maximum | | The 200 orders in `SettlementTest` is the load test's deal (PLT-14), not a contract limit |
 
 **Decided:**
-- Decided (item 6): when RefundApproved's `studentId` differs from the charged order's, the money goes to the student `order_charge` says paid; the refund row keeps what Support sent.
-- Decided (item 8): WithdrawalCompleted or WithdrawalFailed for a refused or unknown cash-out moves nothing and publishes nothing (`WithdrawalsTest`).
+- Item 6: when RefundApproved's `studentId` differs from the charged order's, the money goes to the student `order_charge` says paid; the refund row keeps what Support sent.
+- Item 8: WithdrawalCompleted or WithdrawalFailed for a refused or unknown cash-out moves nothing and publishes nothing (`WithdrawalsTest`).
 
 ## Diagrams
 

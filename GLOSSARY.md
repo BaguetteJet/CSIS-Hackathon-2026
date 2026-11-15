@@ -52,7 +52,7 @@ Money moved from a student's available to set aside for one order, at the deal's
 _Avoid_: reservation, authorisation
 
 **Hold answer**:
-The Ledger's one decision for an order: placed, insufficient funds, order closed or deal closed. The first answer is the answer for good.
+The Ledger's one decision for an order: placed, insufficient funds, order closed or deal closed. The first answer is final.
 
 **Closure**:
 The Ledger's record that an order or a deal can no longer take money, so a later hold for it is refused.

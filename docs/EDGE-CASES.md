@@ -2,7 +2,7 @@
 
 Every case the Ledger must handle, and what it does. The spec for [item 9](../work-items/item9_robustness.md); each row becomes a test. Design: [ARCHITECTURE.md](ARCHITECTURE.md). Tables: [schema.md](SCHEMA.md).
 
-**Every decision is recorded, declines included.** Only the money depends on the outcome.
+Every decision is recorded, declines included; the outcome only decides whether money moves.
 
 ## How to read the table
 
@@ -77,7 +77,7 @@ Amounts are the contracts' own examples: a €20 desk top-up; a deal with a €6
 | ✅ Yes | W10 | Cash-out | Same withdrawalId with another student or amount | Same withdrawalId | Seen | ➖ First stands | None | Nothing new | A retry can't change a cash-out | Done (`WithdrawalsTest`) |
 | ⚠️ Partly | W11 | Cash-out | "Completed" arrives before the request | `WithdrawalCompleted`, then `WithdrawalRequested` | No such cash-out yet | ➖ The early Completed is ignored with a warning; the request then reserves, and waits for another ending | None | A warning in the log | Cash isn't paid out twice or lost | Can't come from Payments: both events are keyed by the student, so Kafka keeps their order. ❓ If it ever does |
 | ✅ Yes | W12 | Cash-out | Cash-out of €0 | `WithdrawalRequested` €0 | Amount fails | ❌ Dead-letter topic | None | Copy on `ledger.dlt` | Junk never reaches the books | Done (`ContractTest`, live) |
-| ✅ Yes | R1 | Refund | Refund of €2 on a €4.50 charge | `RefundApproved` (Support) | Seen this refundId? charged? within the charge? | ✅ Refunded | €2 back; Union gives back €0.20 commission, the restaurant €1.80 | `refund` PAID; `RefundPosted` | No order is refunded more than charged (marked) | Done (`RefundsTest`) |
+| ✅ Yes | R1 | Refund | Refund of €2 on a €4.50 charge | `RefundApproved` (Support) | Seen this refundId? charged? within the charge? | ✅ Refunded | €2 back; Union gives back €0.20 commission, the restaurant €1.80 | `refund` POSTED; `RefundPosted` | No order is refunded more than charged (marked) | Done (`RefundsTest`) |
 | ✅ Yes | R2 | Refund | Refund of €6 on a €4.50 charge | `RefundApproved` | Within the charge? fails | ❌ EXCEEDS_CHARGE | None | `refund` EXCEEDS_CHARGE; `RefundRefused` | No order is refunded more than charged (marked) | Done (`RefundsTest`) |
 | ✅ Yes | R3 | Refund | Three €2 refunds on a €4.50 charge | `RefundApproved` ×3 | Adds up earlier refunds | ✅ First two paid, ❌ third EXCEEDS_CHARGE | €4 | Both recorded; `RefundPosted`, `RefundRefused` | No order is refunded more than charged (marked) | Done (`RefundsTest`: part refunds on the running total, one past the charge refused) |
 | ✅ Yes | R4 | Refund | Refund arrives before the order is charged | `RefundApproved` | Charged? not yet; hold open | ⏸ Parked by order, then ✅ refunded when the deal settles, after the settlement's own events | On the charge | Parked row; `RefundPosted` after `DealSettled` | A late charge doesn't lose the refund | Done (`RefundsTest`: posted on the charge, balances chain) |
@@ -131,9 +131,7 @@ Amounts are the contracts' own examples: a €20 desk top-up; a deal with a €6
 |---|---|---|---|
 | Hold | OPEN | RELEASED or CHARGED | Both |
 | Cash-out | RESERVED | PAID_OUT or RETURNED | Both |
-| Refund | New or parked | PAID, EXCEEDS_CHARGE or NEVER_CHARGED | Two outcomes |
-
-Cash-out and refund state names are planned (items 8 and 6).
+| Refund | New or parked | POSTED, EXCEEDS_CHARGE or NEVER_CHARGED | Two outcomes |
 
 ## Waiting
 
@@ -144,7 +142,7 @@ The Ledger never declines because of time. A wait ends only when another service
 | # | Question | Owner |
 |---|---|---|
 | H4, T3 | Conflicting repeat: is a warning log and `ledger.conflicting_repeats` counter enough? Answered: neither, the first answer stands ([item 9, Out of scope](../work-items/item9_robustness.md#out-of-scope)) | Cian (item 9) |
-| R4 | What the student sees while a refund is parked | Member 6 (item 6) |
+| R4 | What the student sees while a refund is parked | Hersh (item 6) |
 | H13 | Blocked accounts: confirm Orders or Payments stops their orders | Hersh |
 | W11 | "Completed" before the request: park or dead-letter? | Cian (item 8) |
 | P5 | Payout for an unknown restaurant: report it? | Cian (item 8) |
@@ -173,7 +171,7 @@ Found by live tests on the dev kit with both Ledger instances, Sat 14 Nov (real 
 | Q11 | 🟠 Medium | MySQL frozen, not stopped (paused, or a network that drops packets) | A hold waits for MySQL to come back: 12.3 s for a 12 s pause, not 503 in about 1 s. Up to 10 calls per instance (the pool) wait; the rest get 503 after 1 s. Consumers wait too, then carry on | `docker pause` 12 s: hold 200 after 12.29 s | Item 4 (LED-21), `application.yml` | **Fixed** (`application.yml`): `socketTimeout` 5 s and `connectTimeout` 2 s as Hikari data-source properties, whatever `DB_URL` the organisers set. Retested: 503 in 2.2, 2.6 and 10.2 s (the last waited on two 5 s timeouts); before, until MySQL returned |
 | Q12 | 🟠 Medium | MySQL down longer than about 2.5 min | Each event that arrives meanwhile is retried 5 times (155 s), then dead-lettered although valid: top-ups, settlements and releases wait for the platform team's replay | From the code (`EventConsumerConfig`; decision E11 accepted 2 min); LED-21 was run to 2 min 13 s | Item 4 (LED-21) | **Fixed** (`DatabaseOutageRetry`, `platform/` untouched): while MySQL is unreachable an event is retried every 10 s for up to 15 min, then dead-lettered; any other failure keeps the platform's 5 retries (`DatabaseOutageRetryTest`). Over 15 min: replay (HANDOVER K4) |
 | Q13 | 🟠 Medium | Someone on the network calls an instance's port directly | `compose.yml` publishes 8081 and 8082 on every interface, so anyone who can reach the machine can call the hold call (no token, by design) and set aside any student's money, or read `/actuator/prometheus`, without the gateway | `docker port ledger-1`: `0.0.0.0:8081` | Item 4 (`compose.yml`) | **Fixed** (`compose.yml`): `127.0.0.1:8081` and `127.0.0.1:8082`. HANDOVER's `curl localhost:8081` still works, and the gateway reaches the instances by their network alias |
-| Q14 | 🟡 Low | `/api/ledger/..;/..;/internal/ledger/holds` through the gateway | The gateway passes it on (Tomcat would read it as `/internal/...`); only Spring Security's firewall stops it, with a 400 | Live: 400 from the Ledger, no hold row | Platform (gateway), starter `platform/` | One layer, but it holds: never set `allowSemicolon`. Ask Platform to refuse `;` in paths at the gateway |
+| Q14 | 🟡 Low | `/api/ledger/..;/..;/internal/ledger/holds` through the gateway | The gateway passes it on (Tomcat would read it as `/internal/...`); only Spring Security's firewall stops it, with a 400 | Live: 400 from the Ledger, no hold row | Platform (gateway), starter `platform/` | The firewall is the only layer that stops it: never set `allowSemicolon`. Ask Platform to refuse `;` in paths at the gateway |
 | Q15 | 🟡 Low | HELD drifts from the open holds, or a settlement's totals from its charges | The daily check looks at I1 and I2 only, so I3 and I5 are found only by running HANDOVER §8 by hand | `DailyCheck.check()`; on the dev kit all six hold today | Item 4 (LED-24) | **Fixed** (`DailyCheck`): checks I1 to I5; `assertBooksBalance()` in the tests now calls the same check, so tests and production agree (`LedgerMetricsTest`) |
 | Q16 | 🟡 Low | A PR breaks settlement, releases or refunds | CI stays green: it runs no container tests (the organisers' rule), and `./check` runs them only with `--with-containers` | `.forgejo/workflows/ci.yml`, `check` | Every reviewer | Before merging a change to `src/main`, run `./check --with-containers` (about 3 min) and say so in the PR |
 | Q17 | 🟡 Low | A team sends an enum value contracts 1.3.0 doesn't have | Unknown fields are ignored, but an unknown enum value fails to read and goes to `ledger.dlt` at once | `ContractJson` | Platform (contracts) | Nothing while every team uses 1.3.0. In an upgrade, move the Ledger first |

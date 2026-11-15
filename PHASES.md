@@ -54,7 +54,7 @@ Each LED item has a Forgejo issue (#7 LED-01 to #30 LED-24): closed means done, 
 
 ## What's left
 
-As of Sun 15 Nov 06:40 UTC. Every LED item is done; this is what stands between us and the marks, then the weak spots still open.
+As of Sun 15 Nov 06:40 UTC. Every LED item is done. First what the marks still need, then the weak spots still open.
 
 | # | To do | Who |
 |---|---|---|
@@ -121,6 +121,6 @@ Each checkpoint is 10 team marks and 5 individual (from your own merged, reviewe
 | Sun 16:00 | Code freeze; final assessment (line A 16:00–17:00) |
 
 - Tag `checkpoint-1`, `checkpoint-2`, `checkpoint-3`, then `release`. Marks come from the tag.
-- Every PR is reviewed by someone other than its author, and says which prompts were used (handover §18.4).
+- Every PR is reviewed by someone other than its author, and states the main prompt used (handover §18.4).
 - To promote, the lead posts `promote ledger <tag>` in the line's integration channel.
 - In the final, each person gets about 2 minutes of questions on their own area, how it connects with the others, and the team's decisions.
