@@ -7,7 +7,7 @@ import java.util.UUID
  * Called in the same transaction as the charge or release; [Refunds] implements it.
  */
 interface RefundWakeups {
-    fun ordersCharged(orderIds: Collection<UUID>)
+    fun ordersSettled(orderIds: Collection<UUID>)
     fun holdReleased(orderId: UUID)
     fun dealDecided(dealId: UUID)
 }

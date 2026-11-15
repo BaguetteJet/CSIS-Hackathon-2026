@@ -21,7 +21,7 @@
 | ✅ | 11 My statement | Credits minus debits equal availableCents | `StatementTest` (newest first, at most 100, student words) |
 | ✅ | 12 Desk balance | Other roles 403, a malformed ID 404, an unknown one zeros | `DeskTest` |
 | ✅ | 13 Post refunds | 450 with 45 commission, refunded 5 then 445, reverses 1 then 44 | `RefundsTest` "part refunds round on the running total" |
-| ✅ | 14 Refund limits, early refunds | Over the charge is EXCEEDS_CHARGE; an early refund posts after the charge | `RefundsTest` (11 tests, NEVER_CHARGED too) |
+| ✅ | 14 Refund limits, early refunds | Over the charge is EXCEEDS_CHARGE; an early refund posts after the charge | `RefundsTest` (13 tests, NEVER_CHARGED too) |
 | ✅ | 15 Reserve a cash-out | A cash-out racing a hold has exactly one winner | `WithdrawalsTest` "racing an order for the same money" |
 | ✅ | 16 Pay out or return | The first of Completed or Failed wins; repeats change nothing | `WithdrawalsTest` |
 | ✅ | 17 Restaurant payouts | The same payoutId twice debits once | `WithdrawalsTest`, `ContractTest` |
