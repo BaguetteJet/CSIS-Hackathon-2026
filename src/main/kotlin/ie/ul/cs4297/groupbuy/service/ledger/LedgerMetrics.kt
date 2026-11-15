@@ -15,7 +15,7 @@ import java.time.Clock
 import java.util.concurrent.TimeUnit
 
 /**
- * [LED-23] - Observability: parked refunds and reserved cash-outs, the age of the oldest of each (the 6 h alerts), and dead letters, read at each scrape.
+ * [LED-23] - Observability: parked refunds and reserved cash-outs, the age of the oldest of each (the 6 h alerts), the oldest unpublished event, and dead letters, read at each scrape.
  * They come from the database and the topic, not from memory, so both instances report the same number and a restart loses nothing:
  * the dashboard takes the max, not the sum. Unreachable: NaN; with Kafka down the dead-letter read waits up to 3 × 2 s, inside the 10 s scrape timeout.
  */
@@ -39,6 +39,8 @@ class LedgerMetrics(
             .description("Cash-outs reserved, waiting for Payments to pay them out or return them").register(meters)
         Gauge.builder("ledger.withdrawals.reserved.oldest", this) { it.orNaN { oldestReservedSeconds() } }
             .baseUnit("seconds").description("How long the oldest reserved cash-out has waited; 0 when none").register(meters)
+        Gauge.builder("ledger.outbox.unpublished.oldest", this) { it.orNaN { oldestUnpublishedSeconds() } }
+            .baseUnit("seconds").description("How long the oldest event not yet on Kafka has waited; 0 when none").register(meters)
         Gauge.builder("ledger.dead.letters", this) { it.orNaN { deadLetters() } }
             .description("Messages on the Ledger's dead-letter topic").register(meters)
     }
@@ -58,6 +60,13 @@ class LedgerMetrics(
     fun oldestReservedSeconds(): Double {
         val oldest = jdbc.queryForObject("SELECT MIN(decided_at) FROM withdrawal WHERE state = 'RESERVED'", Timestamp::class.java)
             ?: return 0.0
+        return (clock.millis() - oldest.time).coerceAtLeast(0) / 1000.0
+    }
+
+    // The lowest id is the oldest, and the unpublished index finds it without scanning a backlog.
+    fun oldestUnpublishedSeconds(): Double {
+        val oldest = jdbc.query("SELECT created_at FROM outbox_event WHERE published_at IS NULL ORDER BY id LIMIT 1") { rs, _ -> rs.getTimestamp(1) }
+            .firstOrNull() ?: return 0.0
         return (clock.millis() - oldest.time).coerceAtLeast(0) / 1000.0
     }
 

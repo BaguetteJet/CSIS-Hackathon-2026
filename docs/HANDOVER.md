@@ -160,10 +160,11 @@ Grafana at http://localhost:3000, folder "Dev kit", dashboard "Ledger" (`grafana
 | `ledger_holds_seconds{result}`: hold rate, latency, answer | Mostly PLACED; every answer well under 2 s (k6 max 666 ms at 100/s) |
 | `ledger_settlement_seconds` | One per confirmed deal; about 0.1 s for 12 orders, 0.79 s for 202 (k6) |
 | `ledger_settlement_issues_total` | 0. Anything else is a listed order we couldn't charge: §8 |
-| `ledger_dead_letters`: messages on `ledger.dlt` | 0 new during a run (§9, K4) |
+| `ledger_dead_letters`: messages on `ledger.dlt` | 0 new during a run. A new one fires "Ledger: new dead letter" (§8 K4) |
 | `ledger_refunds_parked`, `ledger_refunds_parked_oldest_seconds` | A few for a moment while a deal settles; the oldest well under 6 h. Over 6 h the alert "Ledger: refund parked over 6 h" fires (Grafana, folder Ledger): §8 "Is money stuck?" |
 | `ledger_withdrawals_reserved`, `ledger_withdrawals_reserved_oldest_seconds` | A few for a moment while the desk pays out; the oldest well under 6 h. Over 6 h the alert "Ledger: cash-out reserved over 6 h" fires: §8 "Is money stuck?" ([EDGE-CASES Q5](EDGE-CASES.md#cases-that-cause-issues)) |
-| `ledger_daily_check_problems`, `ledger_daily_check_last_run_seconds` | 0 problems; last run at 02:00 Irish time. A problem is named in the log line `Daily check` |
+| `ledger_daily_check_problems`, `ledger_daily_check_last_run_seconds` | 0 problems; last run at 02:00 Irish time. A problem is named in the log line `Daily check` and fires "Ledger: daily check found a problem" (§8 "Is the whole Ledger balanced?") |
+| `ledger_outbox_unpublished_oldest_seconds`: the oldest event not yet on Kafka | Under a second. Over 5 min the alert "Ledger: events not reaching Kafka for 5 min" fires (§8 K1) |
 
 ## 8 Runbooks
 
@@ -262,12 +263,13 @@ SELECT withdrawal_id, student_id, amount_cents, decided_at FROM withdrawal WHERE
 
 | Failure | Symptom | Confirm | Fix |
 |---|---|---|---|
-| **K1** Kafka down | Holds still answer; events stop appearing on ledger.v1; top-ups and settlements wait | `SELECT COUNT(*) FROM outbox_event WHERE published_at IS NULL;` grows | Nothing: when Kafka returns, the outbox sends them in order and consumers catch up, after up to about 45 s while they rejoin. Check the count falls to 0 |
+| **K1** Kafka down | Holds still answer; events stop appearing on ledger.v1; top-ups and settlements wait | `SELECT COUNT(*) FROM outbox_event WHERE published_at IS NULL;` grows; after 5 min the alert "Ledger: events not reaching Kafka for 5 min" fires | Nothing: when Kafka returns, the outbox sends them in order and consumers catch up, after up to about 45 s while they rejoin. Check the count falls to 0 |
 | **K2** One instance dies | Calls to it fail for a moment | `docker compose ps` shows one instance down | Nothing: the gateway and Orders' retry use the other; Kafka moves its partitions; repeats are absorbed. Restart: `docker compose up -d` |
 | **K2** Killed mid-settlement | That deal's settlement didn't finish | `deal_settlement` has no row for the deal | Nothing: the transaction rolled back; redelivery settles the whole deal once. Then check §8 "One deal's settlement" |
 | **K3** Ledger down 10 min | New orders stay pending and are abandoned after 2 min; top-ups and settlement wait | Both health checks fail | `docker compose up -d`. Holds answer again; queued events are applied once each; abandoned orders are released |
 | **K3** Database down | Holds, `/me`, the statement and the desk balance answer 503 `UNAVAILABLE` within about 1 s, or 2 to 10 s if MySQL hangs rather than stops. Events wait, retried every 10 s for up to 15 min | `docker compose logs --tail 40 instance-1` shows connection errors | Restart MySQL. 503s stop within seconds; nothing was half-saved, so retries decide afresh |
 | **K4** An event we can't process | It retried 5 times over about 2.5 min (15 min if MySQL was unreachable), then went to `ledger.dlt` | `docker exec devkit-kafka-1 kafka-get-offsets --bootstrap-server localhost:9092 --topic ledger.dlt` (any partition above 0) and the `Dead letter:` line in the log | Fix the cause; the platform team replays it, and anything parked behind it then applies |
+| **Deploy** A migration fails, or `Migration checksum mismatch` | Both instances exit at start-up (they're restarted together, [EDGE-CASES Q6](EDGE-CASES.md#cases-that-cause-issues)); holds answer 502 at the gateway | `docker compose logs --tail 40 instance-1` names the version; `SELECT version, success FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 3;` | Checksum mismatch: an applied migration file was edited; restore its applied text from git (never edit an applied one) and redeploy. `success = 0`: MySQL DDL isn't transactional, so check which statements of that version applied, undo them by hand, then `DELETE FROM flyway_schema_history WHERE success = 0;`. The schema is then as the previous image left it, so that image starts again; fix the file and redeploy. Never drop the database outside a dev kit (§9) |
 | **K5** Rebuild | The Ledger is a source of truth, not a view: never dropped | §8 "Is the whole Ledger balanced?" | Balances recompute from postings (§8) |
 | **K7** Clock | Settlement or releases seem late after `./clock advance` | `./clock` | Wait 5 s: services read the clock every 5 s. The Ledger never refuses for time |
 | **K8** Popular deal | One deal's events all on one partition | `docker exec devkit-kafka-1 kafka-consumer-groups --bootstrap-server localhost:9092 --describe --group ledger` (LAG) | Expected: keeps each deal in order. A 200-order deal settles in one transaction: 0.5 to 1 s on a quiet machine, up to about 2.8 s on a busy one ([evidence](evidence/edge-cases-2026-11-15.md)) |
