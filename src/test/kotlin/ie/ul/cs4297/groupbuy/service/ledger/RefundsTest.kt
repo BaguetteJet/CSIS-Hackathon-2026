@@ -5,17 +5,30 @@ import ie.ul.cs4297.groupbuy.contracts.events.CancelReason
 import ie.ul.cs4297.groupbuy.contracts.events.DealCancelled
 import ie.ul.cs4297.groupbuy.contracts.events.DealConfirmed
 import ie.ul.cs4297.groupbuy.contracts.events.DealFailed
+import ie.ul.cs4297.groupbuy.contracts.events.HoldReleasedReason
 import ie.ul.cs4297.groupbuy.contracts.events.OrderAbandoned
 import ie.ul.cs4297.groupbuy.contracts.events.OrderRef
 import ie.ul.cs4297.groupbuy.contracts.events.OrderWithdrawn
 import ie.ul.cs4297.groupbuy.contracts.events.RefundApproved
 import ie.ul.cs4297.groupbuy.contracts.events.RefundApprovedReason
+import org.awaitility.kotlin.atMost
+import org.awaitility.kotlin.await
+import org.awaitility.kotlin.untilAsserted
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
+import org.springframework.beans.factory.annotation.Autowired
+import java.time.Duration
 import java.util.UUID
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit.SECONDS
 
 // [LED-13] - Post refunds: a refund goes back to the student, never more than the order was charged (marked property; item 6 review).
 class RefundsTest : LedgerFlowTest() {
+
+    @Autowired lateinit var settlement: Settlement
+    @Autowired lateinit var releases: Releases
 
     private class Charged(val student: UUID, val order: UUID, val deal: UUID, val restaurant: UUID)
 
@@ -260,6 +273,54 @@ class RefundsTest : LedgerFlowTest() {
         assertEquals(0, parked(noHold))
         assertEquals("NEVER_CHARGED", events("RefundRefused", deal).single()["reason"].asText())
         assertEquals(1000L to 0L, balanceOf(student))
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = [true, false])
+    fun `deal closure waits for an earlier refund student before locking a later student`(confirm: Boolean) {
+        val refundStudent = funded(1000)
+        val orderStudent = funded(1000)
+        val deal = UUID.randomUUID()
+        val order = UUID.randomUUID()
+        val approval = refund(UUID.randomUUID(), deal, refundStudent)
+        assertEquals(HoldResult.PLACED, hold(order, orderStudent, 600, deal))
+        sendAndWait(envelope(approval), consumer = SupportConsumer.CONSUMER)
+        assertEquals(1, parked(approval))
+
+        val refundAccount = accounts.ensure(AccountRef.studentAvailable(refundStudent))
+        val orderAccount = accounts.ensure(AccountRef.studentAvailable(orderStudent))
+        lateinit var closing: CompletableFuture<Void>
+        try {
+            tx.executeWithoutResult {
+                accounts.lockStudent(refundStudent)
+                closing = CompletableFuture.runAsync {
+                    tx.executeWithoutResult {
+                        if (confirm) {
+                            settlement.settle(DealConfirmed(deal, UUID.randomUUID(), 500, 1000, listOf(OrderRef(order, orderStudent))), UUID.randomUUID())
+                        } else {
+                            releases.dealClosed(deal, HoldReleasedReason.DEAL_FAILED, "FAILED", UUID.randomUUID())
+                        }
+                    }
+                }
+                // The closing transaction has reached the blocked refund account. It must not hold the later account yet.
+                await atMost Duration.ofSeconds(4) untilAsserted {
+                    assertEquals(1, jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM information_schema.processlist WHERE ID <> CONNECTION_ID() " +
+                            "AND INFO LIKE 'SELECT id, balance_cents FROM ledger_account WHERE id IN (%' AND INFO REGEXP ?",
+                        Int::class.java, "[^0-9]$refundAccount([^0-9]|$)",
+                    ))
+                }
+                assertEquals(orderAccount, jdbc.queryForObject(
+                    "SELECT id FROM ledger_account WHERE id = ? FOR UPDATE NOWAIT", Long::class.java, orderAccount,
+                ))
+            }
+        } finally {
+            closing.get(10, SECONDS)
+        }
+
+        assertEquals(0, parked(approval))
+        assertEquals("NEVER_CHARGED", events("RefundRefused", deal).single()["reason"].asText())
+        assertBooksBalance()
     }
 
     @Test

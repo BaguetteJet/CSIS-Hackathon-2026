@@ -65,7 +65,8 @@ class Settlement(
         }
         // Listed ones that can't be charged keep their hold for staff: LED-10 says it is left as it is (EDGE-CASES Q24).
         val uncharged = dealHolds.filter { it.isOpen && it.orderId !in listedIds }
-        val balances = accounts.lockStudents((charges + uncharged).map { it.studentId })
+        val waiting = wakeups.waitingStudents(listedIds + uncharged.map { it.orderId }, e.dealId)
+        val balances = accounts.lockStudents((charges + uncharged).map { it.studentId } + waiting)
 
         // Every charged hold ends here, in one statement (decision 0008): the rows are already ours.
         if (charges.isNotEmpty()) {
