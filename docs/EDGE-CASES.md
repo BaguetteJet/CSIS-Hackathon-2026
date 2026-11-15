@@ -2,7 +2,7 @@
 
 Every case the Ledger must handle, and what it does. The spec for [item 9](../work-items/item9_robustness.md); each row becomes a test. Design: [ARCHITECTURE.md](ARCHITECTURE.md). Tables: [schema.md](SCHEMA.md).
 
-**Every decision is recorded, declines included.** Only the money depends on the outcome.
+Every decision is recorded, declines included; the outcome only decides whether money moves.
 
 ## How to read the table
 
@@ -77,7 +77,7 @@ Amounts are the contracts' own examples: a €20 desk top-up; a deal with a €6
 | ✅ Yes | W10 | Cash-out | Same withdrawalId with another student or amount | Same withdrawalId | Seen | ➖ First stands | None | Nothing new | A retry can't change a cash-out | Done (`WithdrawalsTest`) |
 | ⚠️ Partly | W11 | Cash-out | "Completed" arrives before the request | `WithdrawalCompleted`, then `WithdrawalRequested` | No such cash-out yet | ➖ The early Completed is ignored with a warning; the request then reserves, and waits for another ending | None | A warning in the log | Cash isn't paid out twice or lost | Can't come from Payments: both events are keyed by the student, so Kafka keeps their order. ❓ If it ever does |
 | ✅ Yes | W12 | Cash-out | Cash-out of €0 | `WithdrawalRequested` €0 | Amount fails | ❌ Dead-letter topic | None | Copy on `ledger.dlt` | Junk never reaches the books | Done (`ContractTest`, live) |
-| ✅ Yes | R1 | Refund | Refund of €2 on a €4.50 charge | `RefundApproved` (Support) | Seen this refundId? charged? within the charge? | ✅ Refunded | €2 back; Union gives back €0.20 commission, the restaurant €1.80 | `refund` PAID; `RefundPosted` | No order is refunded more than charged (marked) | Done (`RefundsTest`) |
+| ✅ Yes | R1 | Refund | Refund of €2 on a €4.50 charge | `RefundApproved` (Support) | Seen this refundId? charged? within the charge? | ✅ Refunded | €2 back; Union gives back €0.20 commission, the restaurant €1.80 | `refund` POSTED; `RefundPosted` | No order is refunded more than charged (marked) | Done (`RefundsTest`) |
 | ✅ Yes | R2 | Refund | Refund of €6 on a €4.50 charge | `RefundApproved` | Within the charge? fails | ❌ EXCEEDS_CHARGE | None | `refund` EXCEEDS_CHARGE; `RefundRefused` | No order is refunded more than charged (marked) | Done (`RefundsTest`) |
 | ✅ Yes | R3 | Refund | Three €2 refunds on a €4.50 charge | `RefundApproved` ×3 | Adds up earlier refunds | ✅ First two paid, ❌ third EXCEEDS_CHARGE | €4 | Both recorded; `RefundPosted`, `RefundRefused` | No order is refunded more than charged (marked) | Done (`RefundsTest`: part refunds on the running total, one past the charge refused) |
 | ✅ Yes | R4 | Refund | Refund arrives before the order is charged | `RefundApproved` | Charged? not yet; hold open | ⏸ Parked by order, then ✅ refunded when the deal settles, after the settlement's own events | On the charge | Parked row; `RefundPosted` after `DealSettled` | A late charge doesn't lose the refund | Done (`RefundsTest`: posted on the charge, balances chain) |
@@ -131,9 +131,7 @@ Amounts are the contracts' own examples: a €20 desk top-up; a deal with a €6
 |---|---|---|---|
 | Hold | OPEN | RELEASED or CHARGED | Both |
 | Cash-out | RESERVED | PAID_OUT or RETURNED | Both |
-| Refund | New or parked | PAID, EXCEEDS_CHARGE or NEVER_CHARGED | Two outcomes |
-
-Cash-out and refund state names are planned (items 8 and 6).
+| Refund | New or parked | POSTED, EXCEEDS_CHARGE or NEVER_CHARGED | Two outcomes |
 
 ## Waiting
 
