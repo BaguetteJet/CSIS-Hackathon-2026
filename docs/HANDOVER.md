@@ -162,6 +162,7 @@ Grafana at http://localhost:3000, folder "Dev kit", dashboard "Ledger" (`grafana
 | `ledger_settlement_issues_total` | 0. Anything else is a listed order we couldn't charge: §8 |
 | `ledger_dead_letters`: messages on `ledger.dlt` | 0 new during a run (§9, K4) |
 | `ledger_refunds_parked`, `ledger_refunds_parked_oldest_seconds` | A few for a moment while a deal settles; the oldest well under 6 h. Over 6 h the alert "Ledger: refund parked over 6 h" fires (Grafana, folder Ledger): §8 "Is money stuck?" |
+| `ledger_withdrawals_reserved`, `ledger_withdrawals_reserved_oldest_seconds` | A few for a moment while the desk pays out; the oldest well under 6 h. Over 6 h the alert "Ledger: cash-out reserved over 6 h" fires: §8 "Is money stuck?" ([EDGE-CASES Q5](EDGE-CASES.md#cases-that-cause-issues)) |
 | `ledger_daily_check_problems`, `ledger_daily_check_last_run_seconds` | 0 problems; last run at 02:00 Irish time. A problem is named in the log line `Daily check` |
 
 ## 8 Runbooks
@@ -251,7 +252,7 @@ Parked refunds: each waits for its order's charge (`order:<id>`) or, with no mon
 SELECT waits_for, event_id, parked_at FROM parked_event WHERE consumer = 'support-v1' ORDER BY parked_at;
 ```
 
-Cash-outs reserved but never finished: each waits for Payments' WithdrawalCompleted or WithdrawalFailed. One left for hours means Payments never sent it: ask them, don't post it by hand.
+Cash-outs reserved but never finished: each waits for Payments' WithdrawalCompleted or WithdrawalFailed. One left over 6 h fires "Ledger: cash-out reserved over 6 h": Payments never sent it, so ask them, don't post it by hand.
 
 ```sql
 SELECT withdrawal_id, student_id, amount_cents, decided_at FROM withdrawal WHERE state = 'RESERVED' ORDER BY decided_at;

@@ -1,7 +1,7 @@
 {
   "uid": "ledger",
   "title": "Ledger",
-  "description": "LED-23. Holds (rate, result, latency), settlement (time, SettlementIssue count), parked refunds (count, oldest; alert 'Ledger: refund parked over 6 h' from grafana/alerting/ledger.yml), dead letters and the daily check. Latency is mean and max: the timers have no histogram buckets, so no percentiles. Scrape job: Prometheus scrapes each container twice in the dev kit (services, and in-your-ide via the published ports 8081/8082), so every query is limited to one job. Parked refunds, dead letters and the daily check read the database or the topic, so both instances report the same value: those panels take the max, not the sum.",
+  "description": "LED-23. Holds (rate, result, latency), settlement (time, SettlementIssue count), parked refunds and reserved cash-outs (count, oldest; alerts 'Ledger: refund parked over 6 h' and 'Ledger: cash-out reserved over 6 h' from grafana/alerting/ledger.yml), dead letters and the daily check. Latency is mean and max: the timers have no histogram buckets, so no percentiles. Scrape job: Prometheus scrapes each container twice in the dev kit (services, and in-your-ide via the published ports 8081/8082), so every query is limited to one job. Parked refunds, dead letters and the daily check read the database or the topic, so both instances report the same value: those panels take the max, not the sum.",
   "tags": [
     "ledger",
     "led-23"
@@ -618,6 +618,106 @@
           "refId": "A",
           "expr": "max(ledger_daily_check_problems{service=\"ledger\", job=\"$job\"})",
           "legendFormat": "Daily check problems"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "type": "stat",
+      "title": "Reserved cash-outs",
+      "description": "Cash-outs reserved at the desk, waiting for Payments' WithdrawalCompleted or WithdrawalFailed (LED-15, 16). A few for a moment is normal.",
+      "gridPos": {
+        "x": 0,
+        "y": 31,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(ledger_withdrawals_reserved{service=\"ledger\", job=\"$job\"})",
+          "legendFormat": "Reserved cash-outs"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "type": "stat",
+      "title": "Oldest reserved cash-out",
+      "description": "How long the oldest reserved cash-out has waited. Red from 6 h: the alert 'Ledger: cash-out reserved over 6 h' fires (HANDOVER §8 'Is money stuck?').",
+      "gridPos": {
+        "x": 6,
+        "y": 31,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 21600
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(ledger_withdrawals_reserved_oldest_seconds{service=\"ledger\", job=\"$job\"})",
+          "legendFormat": "Oldest reserved cash-out"
         }
       ]
     }

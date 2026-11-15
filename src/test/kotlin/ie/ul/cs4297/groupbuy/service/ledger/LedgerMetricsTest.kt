@@ -4,6 +4,7 @@ import ie.ul.cs4297.groupbuy.contracts.api.HoldResult
 import ie.ul.cs4297.groupbuy.contracts.events.RefundApproved
 import ie.ul.cs4297.groupbuy.contracts.events.RefundApprovedReason
 import ie.ul.cs4297.groupbuy.contracts.events.TopUpRecorded
+import ie.ul.cs4297.groupbuy.contracts.events.WithdrawalRequested
 import ie.ul.cs4297.groupbuy.service.platform.DueTimer
 import ie.ul.cs4297.groupbuy.service.platform.Timers
 import ie.ul.cs4297.groupbuy.service.support.TestClock
@@ -49,6 +50,20 @@ class LedgerMetricsTest : LedgerFlowTest() {
 
         assertEquals(before + 1, gauge("ledger.refunds.parked"))
         assertTrue(gauge("ledger.refunds.parked.oldest") >= Duration.ofHours(7).seconds, "the oldest parked refund is over 6 h old")
+    }
+
+    @Test
+    fun `a reserved cash-out shows in the count, and its age passes 6 hours when it has waited that long`() {
+        val student = funded(1000)
+        val before = gauge("ledger.withdrawals.reserved")
+        val withdrawal = UUID.randomUUID()
+
+        sendAndWait(envelope(WithdrawalRequested(withdrawal, student, 500, UUID.randomUUID())), consumer = PaymentsConsumer.CONSUMER)
+        jdbc.update("UPDATE withdrawal SET decided_at = ? WHERE withdrawal_id = ?",
+            Timestamp.from(TestClock.instant().minus(Duration.ofHours(7))), withdrawal.toString())
+
+        assertEquals(before + 1, gauge("ledger.withdrawals.reserved"))
+        assertTrue(gauge("ledger.withdrawals.reserved.oldest") >= Duration.ofHours(7).seconds, "the oldest reserved cash-out is over 6 h old")
     }
 
     @Test
