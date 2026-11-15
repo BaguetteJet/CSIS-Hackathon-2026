@@ -91,7 +91,8 @@ class StatementTest : LedgerFlowTest() {
     }
 
     @Test
-    fun `after the platform clock moves back, the latest posting still shows first`() {
+    fun `after the platform clock moves back, entries stay newest first by their time`() {
+        // ledger.yaml: "Newest first (equal times in reverse order of posting)", so by `at`, as the student reads it.
         val student = funded(100)
         TestClock.advance(Duration.ofHours(-1)) // ./clock moved back, as the organisers may do
         try {
@@ -102,7 +103,9 @@ class StatementTest : LedgerFlowTest() {
 
         val body = mapper.readTree(entries(TestTokens.student(student)).body()).toList()
 
-        assertEquals(listOf(200L, 100L), body.map { it["amountCents"].asLong() })
+        assertEquals(listOf(100L, 200L), body.map { it["amountCents"].asLong() })
+        val times = body.map { java.time.Instant.parse(it["at"].asText()) }
+        assertEquals(times.sortedDescending(), times)
     }
 
     @Test
