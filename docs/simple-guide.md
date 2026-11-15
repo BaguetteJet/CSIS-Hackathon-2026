@@ -162,7 +162,7 @@ The €7 hold becomes a €5 charge:
 
 The €2 is not a refund. It is the difference between what was set aside and what the order actually cost.
 
-**An order that cannot be charged** (no hold, already released, another student or deal, below the price) moves no money; it gets a `SettlementIssue` and keeps its money set aside until its order closes.
+**An order that cannot be charged** (no hold, already released, another student or deal, below the price) isn't charged; it gets a `SettlementIssue`, and if its money is set aside for this deal, that money comes back (released NOT_ON_LIST).
 
 ### 5. Read a balance
 

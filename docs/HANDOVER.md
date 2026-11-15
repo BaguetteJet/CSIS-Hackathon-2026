@@ -237,7 +237,7 @@ Example: 11 orders at 500 with 10% commission and 600 set aside gives RESTAURANT
 
 ### Is money stuck?
 
-Open holds on a closed deal: money still set aside that nothing will charge. Normally no rows. A CONFIRMED row is an order listed but not charged (a SettlementIssue): its money comes back when its order closes. A FAILED or CANCELLED row is a bug. Platform's stuck-hold alert (PLT-11) watches the same thing from our events.
+Open holds on a closed deal: money still set aside that nothing will charge. Normally no rows: settlement releases every open hold it doesn't charge, SettlementIssue or not ([EDGE-CASES Q1](EDGE-CASES.md#cases-that-cause-issues)). Any row is a bug. Platform's stuck-hold alert (PLT-11) watches the same thing from our events.
 
 ```sql
 SELECT h.deal_id, dc.reason, COUNT(*) AS open_holds, SUM(h.amount_cents) AS set_aside_cents, MIN(h.decided_at) AS oldest
@@ -290,8 +290,7 @@ SELECT withdrawal_id, student_id, amount_cents, decided_at FROM withdrawal WHERE
 
 - A `DealConfirmed` outside the contract (negative price, commission outside 0–10000) can't come from Deals; if one arrives anyway it moves nothing, is retried for 2.5 min, then goes to `ledger.dlt`.
 - One `orderId` listed twice with different students in a `DealConfirmed`: the second is dropped without a SettlementIssue.
-- A listed order that can't be charged keeps its money set aside until its order closes (§8 "Is money stuck?"). The alert is Platform's (PLT-11).
-- All three were left out on purpose: [item 9, Out of scope](../work-items/item9_robustness.md#out-of-scope).
+- Both were left out on purpose: [item 9, Out of scope](../work-items/item9_robustness.md#out-of-scope).
 - MySQL down over 15 min: events that arrived meanwhile go to `ledger.dlt` and need a replay (K4) ([EDGE-CASES Q12](EDGE-CASES.md#cases-that-cause-issues)).
 - Holds well over the spec's 100/s in the first minutes after a restart: some answer 503 `UNAVAILABLE` (Orders retries); warm, 300/s all answered ([EDGE-CASES Q22](EDGE-CASES.md#cases-that-cause-issues)).
 - No API for the Ledger's own totals (Union cash, commission, payables): use §8.

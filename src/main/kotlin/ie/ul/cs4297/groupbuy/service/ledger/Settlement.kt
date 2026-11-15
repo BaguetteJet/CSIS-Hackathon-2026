@@ -26,8 +26,8 @@ import java.util.concurrent.TimeUnit
  * Settles a confirmed deal in one transaction, exactly once (decision 0007).
  * 1. Claim deal_settlement: a repeat, on either instance or in a new envelope, stops here.
  * 2. Lock the hold rows (the deal's, then listed orders held elsewhere), close the deal, then lock every student involved.
- * 3. Charge each listed order that's fine; report the rest as SettlementIssue and leave their holds as they are.
- * 4. Release the deal's other open holds (NOT_ON_LIST), then publish DealSettled covering only the charged orders.
+ * 3. Charge each listed order that's fine; report the rest as SettlementIssue.
+ * 4. Release every other open hold of the deal, listed or not (NOT_ON_LIST), then publish DealSettled covering only the charged orders.
  * A crash anywhere rolls all of it back; redelivery settles the whole deal once.
  */
 @Component
@@ -62,8 +62,10 @@ class Settlement(
                 else -> issues += order.orderId to problem
             }
         }
-        val notListed = dealHolds.filter { it.isOpen && it.orderId !in listedIds }
-        val balances = accounts.lockStudents((charges + notListed).map { it.studentId })
+        // Listed but uncharged ones too: the deal is closed, so nothing else would ever end them (EDGE-CASES Q1).
+        val chargedIds = charges.map { it.orderId }.toSet()
+        val uncharged = dealHolds.filter { it.isOpen && it.orderId !in chargedIds }
+        val balances = accounts.lockStudents((charges + uncharged).map { it.studentId })
 
         // Every charged hold ends here, in one statement (decision 0008): the rows are already ours.
         if (charges.isNotEmpty()) {
@@ -81,7 +83,7 @@ class Settlement(
             )
         }
         val commissionTotal = charges.indices.sumOf { rows[it][5] as Long }
-        releases.release(notListed, HoldReleasedReason.NOT_ON_LIST, causationId, balances)
+        releases.release(uncharged, HoldReleasedReason.NOT_ON_LIST, causationId, balances)
 
         val chargedTotal = e.priceCents * charges.size
         jdbc.update(
