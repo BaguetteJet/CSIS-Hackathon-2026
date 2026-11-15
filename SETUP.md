@@ -173,7 +173,7 @@ cd ../dev-kit
 podman compose --profile full up -d
 ```
 
-Open http://localhost:3000, folder "Dev kit", dashboard "Ledger". Grafana picks up a changed file within a minute.
+Open http://localhost:3000, folder "Dev kit", dashboard "Ledger". After copying a changed file, recreate Grafana: `docker compose --profile full up -d --force-recreate grafana` in `../dev-kit`. On Docker Desktop for Windows it did not pick up the change by itself (15 Nov).
 
 Set "Scrape job" to `services` for the containers, or `in-your-ide` for IntelliJ runs. Prometheus scrapes the containers under both, so the dashboard shows one at a time.
 

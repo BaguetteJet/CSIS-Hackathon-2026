@@ -154,7 +154,7 @@ Also checked by the test agents: every hold within 2 s, also during a 202-order 
 
 ## 7 Dashboard tour
 
-Grafana at http://localhost:3000, folder "Dev kit", dashboard "Ledger" (`grafana/ledger.json`, copied in §4 step 2); set "Scrape job" to `services`. The same measures are on each instance (`curl -s localhost:8081/actuator/prometheus | grep '^ledger_'`):
+Grafana at http://localhost:3000, folder "Dev kit", dashboard "Ledger" (`grafana/ledger.json`, copied in §4 step 2); set "Scrape job" to `services`. Live check: [LED-23 evidence](evidence/led-23-dashboard.md). The same measures are on each instance (`curl -s localhost:8081/actuator/prometheus | grep '^ledger_'`):
 
 | Measure | What normal looks like |
 |---|---|
@@ -166,6 +166,8 @@ Grafana at http://localhost:3000, folder "Dev kit", dashboard "Ledger" (`grafana
 | `ledger_withdrawals_reserved`, `ledger_withdrawals_reserved_oldest_seconds` | A few for a moment while the desk pays out; the oldest well under 6 h. Over 6 h the alert "Ledger: cash-out reserved over 6 h" fires: §8 "Is money stuck?" ([EDGE-CASES Q5](EDGE-CASES.md#cases-that-cause-issues)) |
 | `ledger_daily_check_problems`, `ledger_daily_check_last_run_seconds` | 0 problems; last run at 02:00 Irish time. A problem is named in the log line `Daily check` and fires "Ledger: daily check found a problem" (§8 "Is the whole Ledger balanced?") |
 | `ledger_outbox_unpublished_oldest_seconds`: the oldest event not yet on Kafka | Under a second. Over 5 min the alert "Ledger: events not reaching Kafka for 5 min" fires (§8 K1) |
+
+An alert in "No data" means Prometheus has nothing it can compare from the Ledger: both instances down, or their gauges unread because MySQL or Kafka didn't answer. Treat it as §8 K1 or K3, not as calm.
 
 ## 8 Runbooks
 
