@@ -75,6 +75,7 @@ Change the file that owns a fact in the same PR as the behaviour; elsewhere, lin
 | Status of each LED item | PHASES.md |
 | The brief's "Done when" for each LED, with its proof | CHECKLIST.md |
 | What each neighbour needs in time and load, with measured results | docs/INTERFACE-TARGETS.md |
+| The check before a promotion, on x86_64 | docs/INTEGRATION-CHECK.md |
 | Owner and backup | OWNERS.md |
 | An item's steps, and what it dropped and why (its Out of scope table) | work-items/ |
 | Ownership, inputs and outputs, event keys | docs/NEIGHBOURS.md |
