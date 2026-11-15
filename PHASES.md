@@ -58,7 +58,7 @@ As of Sun 15 Nov 06:40 UTC. Every LED item is done; this is what stands between 
 
 | # | To do | Who |
 |---|---|---|
-| 1 | Review and merge #64, then #65, then #66 (Q11 to Q21). The reviewer runs `./check --with-containers` first (Q16) | Someone other than the author: Pierce #64, Cian #65, Shakeeba #66 |
+| 1 | Review and merge #64, then #65, then #66 (Q11 to Q22). The reviewer runs `./check --with-containers` first (Q16) | Someone other than the author: Pierce #64, Cian #65, Shakeeba #66 |
 | 2 | `checkpoint-3` by Sun 14:00, then the final's steps: the clean-machine deploy, `release`, the 2-minute questions | [CHECKLIST](CHECKLIST.md#checkpoints), [Before the final](CHECKLIST.md#before-the-final) (owners there) |
 
 Weak spots still open ([EDGE-CASES](docs/EDGE-CASES.md#cases-that-cause-issues); each row has its fix):
@@ -70,6 +70,7 @@ Weak spots still open ([EDGE-CASES](docs/EDGE-CASES.md#cases-that-cause-issues);
 | Q4 | Log `warn` when a repeated payoutId names another restaurant | Cian (item 8) |
 | Q5 | A metric and alert for a cash-out left reserved | Shakeeba (item 4) |
 | Q14 | Ask Platform to refuse `;` in paths at the gateway | Hersh (integration) |
+| Q22 | Optional: holds over 200/s just after a restart get some 503s; try a pool of 20 and measure | Shakeeba (item 4) |
 | X11, X16 | A deadlock test; a log line for unknown event types | Cian (item 9) |
 | Open questions | R4, H13, W11, P5, X2, X5 and X6, X9, X15 ([EDGE-CASES](docs/EDGE-CASES.md#open-questions)) | Their owners there |
 

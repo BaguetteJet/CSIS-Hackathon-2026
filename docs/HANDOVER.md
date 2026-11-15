@@ -293,6 +293,7 @@ SELECT withdrawal_id, student_id, amount_cents, decided_at FROM withdrawal WHERE
 - A listed order that can't be charged keeps its money set aside until its order closes (§8 "Is money stuck?"). The alert is Platform's (PLT-11).
 - All three were left out on purpose: [item 9, Out of scope](../work-items/item9_robustness.md#out-of-scope).
 - MySQL down over 15 min: events that arrived meanwhile go to `ledger.dlt` and need a replay (K4) ([EDGE-CASES Q12](EDGE-CASES.md#cases-that-cause-issues)).
+- Holds well over the spec's 100/s in the first minutes after a restart: some answer 503 `UNAVAILABLE` (Orders retries); warm, 300/s all answered ([EDGE-CASES Q22](EDGE-CASES.md#cases-that-cause-issues)).
 - No API for the Ledger's own totals (Union cash, commission, payables): use §8.
 - The daily check's metric is kept by the instance that ran it, and starts at 0 after a restart; the log line is the record.
 - MySQL down over about 8.5 min at 02:00: that day's daily check fails (timer `FAILED`, `last_error` says why) and is skipped; the next day's runs as usual ([EDGE-CASES Q20](EDGE-CASES.md#cases-that-cause-issues)).
