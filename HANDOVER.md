@@ -287,7 +287,7 @@ Recorded here as they are. None of these is being built now.
 - Holds far above 100/s just after a restart: some answer 503 `UNAVAILABLE`. Orders retries.
 - A deal of 2,000 orders settles in 3.6 to 6 s; holds for its students meanwhile answer 503 within 1.5 s. The load test's deals are 200.
 
-The reasons and evidence for each: [HANDOVER.md §10](HANDOVER.md), [EDGE-CASES.md](EDGE-CASES.md).
+The reasons and evidence for each: [docs/evidence/](docs/evidence/), [docs/EDGE-CASES.md](docs/EDGE-CASES.md).
 
 ## 8. When something breaks
 
@@ -325,12 +325,10 @@ All in `line-a-ledger/`:
 
 | You want | Read |
 |---|---|
-| Every detail, every scenario, every command | [HANDOVER.md](HANDOVER.md) |
-| How it works and why | [ARCHITECTURE.md](ARCHITECTURE.md) |
-| Tables and columns | [SCHEMA.md](SCHEMA.md) |
-| Who else depends on us, and on what | [NEIGHBOURS.md](NEIGHBOURS.md) |
-| The odd cases and what we chose to do | [EDGE-CASES.md](EDGE-CASES.md) |
-| Proof from real runs | [evidence/](evidence/) |
-| Words we use | [GLOSSARY.md](../GLOSSARY.md) |
-
-Owner of this file: item 4 (Shakeeba).
+| Every detail, every scenario, every command | [docs/EDGE-CASES.md](docs/EDGE-CASES.md) |
+| How it works and why | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| Tables and columns | [docs/SCHEMA.md](docs/SCHEMA.md) |
+| Who else depends on us, and on what | [docs/NEIGHBOURS.md](docs/NEIGHBOURS.md) |
+| The odd cases and what we chose to do | [docs/EDGE-CASES.md](docs/EDGE-CASES.md) |
+| Proof from real runs | [docs/evidence/](docs/evidence/) |
+| Words we use | [README.md § Words](README.md#words) |
