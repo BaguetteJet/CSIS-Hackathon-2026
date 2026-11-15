@@ -50,7 +50,7 @@ Each LED item has a Forgejo issue (#7 LED-01 to #30 LED-24): closed means done, 
 
 ## Next for the lead
 
-`checkpoint-2` tagged (`6e8cce1`, the proof of concept: [POC-DEMO.md](docs/POC-DEMO.md)). Next: merge the stacked PRs, promote into integration, tag `checkpoint-3`. Item 9 (edge cases) is a stretch.
+`checkpoint-2` is `13e63ea` (Sat 16:19): the demo's `6e8cce1` ([POC-DEMO.md](docs/POC-DEMO.md)) plus docs-only PRs #48 to #51, tagged after 15:50 with the advisor's agreement. All 24 LED items are merged (#56 to #63). Next: tag `checkpoint-3` and promote it before Sun 14:00; then `release` at 16:00. Brief against what's built: [CHECKLIST.md](CHECKLIST.md). Item 9 (edge cases) is a stretch.
 
 ## How we're marked
 
@@ -59,9 +59,9 @@ Handover §20. The project is 40% of the module, out of 100, over four checkpoin
 | Checkpoint | When | Marks | Earned by | Where we are |
 |---|---|---|---|---|
 | Design | Sat 11:00 | 15 | Work split; data model; how we keep the properties; decisions with the options rejected | Tagged `checkpoint-1` |
-| Proof of concept | Sat 15:50 | 15 | Slice and more on the fake line; CI passing; dashboard live | Slice and settlement done; dashboard to do |
-| Integration | Sun 14:00 | 15 | Running in integration; our part of the journey end to end; failure handling | Promote by Sat 16:30 |
-| Final | Sun 16:00 | 55 | Deploy gate, then handover document 10, marked properties 20, end to end and known limitations 15, individual 10 | Handover document to do |
+| Proof of concept | Sat 15:50 | 15 | Slice and more on the fake line; CI passing; dashboard live | Tagged `checkpoint-2` (`13e63ea`) |
+| Integration | Sun 14:00 | 15 | Running in integration; our part of the journey end to end; failure handling | Not yet tagged: `checkpoint-3`, then promote |
+| Final | Sun 16:00 | 55 | Deploy gate, then handover document 10, marked properties 20, end to end and known limitations 15, individual 10 | Handover's 11 sections written; a teammate's deploy from it alone, and the `release` tag, still to do |
 
 Each checkpoint is 10 team marks and 5 individual (from your own merged, reviewed work and issues, and your answers).
 

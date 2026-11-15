@@ -52,10 +52,10 @@ So `−(Union cash) = students' money + payables + commission`, and all postings
 | `RELEASE` | orderId | Student HELD −, AVAILABLE + |
 | `ORDER_CHARGE` | orderId | Student HELD −hold; Restaurant PAYABLE +(price − commission); Union COMMISSION +commission; Student AVAILABLE +rest (lines that would be 0 are left out) |
 | `REFUND` | refundId | Student AVAILABLE +amount; Union COMMISSION −reversed; Restaurant PAYABLE −(amount − reversed). Built (LED-13) |
-| `WITHDRAWAL` | withdrawalId | Student AVAILABLE −, HELD +. **Planned** (item 8) |
-| `WITHDRAWAL_PAYOUT` | withdrawalId | Student HELD −, Union CASH +. **Planned** (item 8) |
-| `WITHDRAWAL_RETURN` | withdrawalId | Student HELD −, AVAILABLE +. **Planned** (item 8) |
-| `PAYOUT` | payoutId | Restaurant PAYABLE −, Union CASH +. **Planned** (item 8) |
+| `WITHDRAWAL` | withdrawalId | Student AVAILABLE −, HELD +. Built (LED-15, 16) |
+| `WITHDRAWAL_PAYOUT` | withdrawalId | Student HELD −, Union CASH +. Built (LED-15, 16) |
+| `WITHDRAWAL_RETURN` | withdrawalId | Student HELD −, AVAILABLE +. Built (LED-15, 16) |
+| `PAYOUT` | payoutId | Restaurant PAYABLE −, Union CASH +. Built (LED-17) |
 
 ## 4 What each operation writes
 
@@ -70,7 +70,10 @@ All in one transaction each; nothing is half-written.
 | Order closed | OrderWithdrawn, OrderAbandoned | `processed_event`; `order_closure`; if the hold is open: state → RELEASED, RELEASE movement + 2 postings, HoldReleased |
 | Deal failed or cancelled | DealFailed, DealCancelled | `processed_event`; `deal_closure`; each open hold released as above |
 | Deal settled | DealConfirmed | `processed_event`; `deal_settlement` (claimed first, totals filled last); `deal_closure` CONFIRMED; per charged order: state → CHARGED, ORDER_CHARGE movement + 2 to 4 postings, `order_charge`, OrderCharged; per unlisted open hold: a release; per problem: SettlementIssue; one DealSettled |
-| Refund | RefundApproved | `processed_event`; `order_charge` locked; `refund` (POSTED, EXCEEDS_CHARGE or NEVER_CHARGED); if posted: REFUND movement + 2 or 3 postings, `order_charge` refunded totals up, RefundPosted; otherwise RefundRefused. No charge yet: only `parked_event`, keyed `order:<id>` (hold open) or `deal:<id>` (no hold, deal undecided) |
+| Refund | RefundApproved | `processed_event`; `hold_decision` then `order_charge` locked; `refund` (POSTED, EXCEEDS_CHARGE or NEVER_CHARGED); if posted: REFUND movement + 2 or 3 postings, `order_charge` refunded totals up, RefundPosted; otherwise RefundRefused. No charge yet: only `parked_event`, keyed `order:<id>` (hold open) or `deal:<id>` (no hold, deal undecided) |
+| Cash-out | WithdrawalRequested | `processed_event`; `withdrawal` (RESERVED or REFUSED); if reserved: WITHDRAWAL movement + 2 postings, WithdrawalDebited; otherwise WithdrawalRefused |
+| Cash-out ends | WithdrawalCompleted, WithdrawalFailed | `processed_event`; `withdrawal` state → PAID_OUT or RETURNED, only from RESERVED; WITHDRAWAL_PAYOUT or WITHDRAWAL_RETURN movement + 2 postings of the reserved amount; WithdrawalPaidOut or WithdrawalReturned |
+| Payout | PayoutConfirmed | `processed_event`; PAYOUT movement + 2 postings (the payable may go below 0); PayoutDebited |
 
 Every event goes to `outbox_event` in the same transaction and is published from there; `key_sequence` numbers them per key: `studentId` for a student's events, `restaurantId` for DealSettled and PayoutDebited, `dealId` for SettlementIssue ([NEIGHBOURS §4](NEIGHBOURS.md#4-event-keys)).
 
@@ -118,7 +121,6 @@ SELECT consumer, COUNT(*) FROM processed_event GROUP BY consumer;
 
 - A new table or column: a new migration with the next free `V` number when you merge. Never edit an applied one, not even a comment: Flyway's checksum stops the service.
 - Already there for later items: `order_charge.refunded_cents` and `commission_reversed_cents` (refunds, item 6); the statement fields on `ledger_posting` (item 7).
-- Still to add: the `withdrawal` table (section 7).
 - `Migration checksum mismatch` on the dev kit: drop and create the `ledger` database (HANDOVER §9).
 
 ## 7 Fit with the contracts
@@ -136,20 +138,14 @@ Checked against contracts 1.3.0 on Sat 14 Nov: every shape another service sends
 | OrderCharged, DealSettled | `order_charge`, `deal_settlement` | Yes |
 | RefundPosted needs `restaurantId`, `commissionReversedCents` | `order_charge.restaurant_id`; the refund row | Yes (V9) |
 | RefundRefused needs `dealId`, `studentId`, also for NEVER_CHARGED, when no `order_charge` row exists | RefundApproved's own fields | Yes: the refund row keeps them |
-| WithdrawalRefused `reason`: INSUFFICIENT_FUNDS only; Payments shows RESERVED or REFUSED | The withdrawal row | Planned: REFUSED is kept, so a repeat gets the same answer |
+| WithdrawalRefused `reason`: INSUFFICIENT_FUNDS only; Payments shows RESERVED or REFUSED | The withdrawal row | Yes: REFUSED is kept, so a repeat gets the same answer |
 | WithdrawalCompleted, WithdrawalFailed: `amountCents` ≥ 0 | `withdrawal.amount_cents`, from WithdrawalRequested | Yes: the reserved amount wins; a different one is logged |
-| PayoutConfirmed: `payoutId`, `restaurantId`, `amountCents` ≥ 1 | The PAYOUT movement, keyed by `payoutId` | Planned: no table, the movement key makes it once. A payable may go negative after a refund |
+| PayoutConfirmed: `payoutId`, `restaurantId`, `amountCents` ≥ 1 | The PAYOUT movement, keyed by `payoutId` | Yes: no table, the movement key makes it once. A payable may go negative after a refund |
 | DealConfirmed `orders`: no maximum | | The 200 orders in `SettlementTest` is the load test's deal (PLT-14), not a contract limit |
 
-**Planned tables** (the owning item takes the next free `V` number when it merges):
-
-| Table | Columns | Why these |
-|---|---|---|
-| `withdrawal` (item 8) | `withdrawal_id` PK, `student_id`, `amount_cents`, `state` (RESERVED, REFUSED, PAID_OUT, RETURNED), `decided_at` | Paid out or returned is `UPDATE ... WHERE state = 'RESERVED'`, like a hold (decision 0008) |
-
-**Open, for the owning item:**
+**Decided:**
 - Decided (item 6): when RefundApproved's `studentId` differs from the charged order's, the money goes to the student `order_charge` says paid; the refund row keeps what Support sent.
-- WithdrawalCompleted or WithdrawalFailed for a refused or unknown cash-out: nothing moves; which event, if any? (item 8).
+- Decided (item 8): WithdrawalCompleted or WithdrawalFailed for a refused or unknown cash-out moves nothing and publishes nothing (`WithdrawalsTest`).
 
 ## Diagrams
 
@@ -225,6 +221,24 @@ erDiagram
         bigint total_charged_cents
         bigint total_commission_cents
     }
+    refund {
+        char refund_id PK
+        char order_id
+        char deal_id
+        char student_id
+        bigint amount_cents
+        bigint commission_reversed_cents
+        varchar reason
+        varchar outcome
+        datetime decided_at
+    }
+    withdrawal {
+        char withdrawal_id PK
+        char student_id
+        bigint amount_cents
+        varchar state
+        datetime decided_at
+    }
     known_user {
         varchar user_id PK
         varchar name
@@ -241,6 +255,8 @@ erDiagram
     hold_decision |o..o| order_charge : order_id
     deal_closure |o..o{ hold_decision : deal_id
     deal_settlement |o..o{ order_charge : deal_id
+    order_charge |o..o{ refund : order_id
+    ledger_account |o..o{ withdrawal : student_id
 ```
 
 ### Platform Tables
@@ -423,6 +439,18 @@ One row per decided refund. A refund waiting for its charge has no row: it is pa
 | `commission_reversed_cents` | BIGINT | Default 0 |
 | `reason` | VARCHAR(30) | COMPLAINT, KITCHEN_FAILURE (Support's) |
 | `outcome` | VARCHAR(30) | POSTED, EXCEEDS_CHARGE, NEVER_CHARGED |
+| `decided_at` | DATETIME(6) | |
+
+### `withdrawal` (V8)
+
+One row per cash-out. Paid out or returned is `UPDATE ... WHERE state = 'RESERVED'`, like a hold (decision 0008), so a cash-out ends once.
+
+| Field | Type | Attributes |
+|---|---|---|
+| `withdrawal_id` | CHAR(36) | PK: a repeated WithdrawalRequested finds it and changes nothing |
+| `student_id` | CHAR(36) | |
+| `amount_cents` | BIGINT | The reserved amount; paying out or returning always uses it |
+| `state` | VARCHAR(20) | RESERVED or REFUSED, then PAID_OUT or RETURNED |
 | `decided_at` | DATETIME(6) | |
 
 ### `known_user` (V2)

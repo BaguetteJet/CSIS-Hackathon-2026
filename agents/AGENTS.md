@@ -5,6 +5,7 @@ The Ledger service for Campus Group-Buy, line A. Read before changing anything:
 | File | For |
 |---|---|
 | [PHASES.md](../PHASES.md) | What's done and what's left |
+| [CHECKLIST.md](../CHECKLIST.md) | The brief's "Done when" for each LED, and what's left before the final |
 | [OWNERS.md](../OWNERS.md), [work-items/](../work-items/README.md) | Who owns what; your item's steps |
 | [docs/NEIGHBOURS.md](../docs/NEIGHBOURS.md) | What we own and don't; what each team sends us and reads from us |
 | [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md), [docs/decisions/](../docs/decisions/README.md) | The design and why |
@@ -72,6 +73,7 @@ Change the file that owns a fact in the same PR as the behaviour; elsewhere, lin
 | Fact | Lives in |
 |---|---|
 | Status of each LED item | PHASES.md |
+| The brief's "Done when" for each LED, with its proof | CHECKLIST.md |
 | Owner and backup | OWNERS.md |
 | An item's steps, and what it dropped and why (its Out of scope table) | work-items/ |
 | Ownership, inputs and outputs, event keys | docs/NEIGHBOURS.md |
@@ -99,5 +101,5 @@ In `.claude/skills/`, read by both Claude Code and OpenCode. What each is for, a
 ## Gotchas
 
 - `Migration checksum mismatch` at start-up: the dev kit's `ledger` database has an old schema. Drop and create it, on a dev kit only.
-- The 200-order settlement test has a 1 s limit and can fail on a busy laptop. Rerun it before blaming the code.
+- The 200-order settlement test has a 3 s limit and can fail on a busy laptop. Rerun it before blaming the code.
 - Other tests with a time limit that a busy laptop can fail: [evidence/flaky-tests-2026-11-14.md](../docs/evidence/flaky-tests-2026-11-14.md).

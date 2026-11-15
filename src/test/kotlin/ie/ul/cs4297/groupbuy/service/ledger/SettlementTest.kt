@@ -146,7 +146,7 @@ class SettlementTest : LedgerFlowTest() {
 
     @Test
     // 200: the biggest deal any test runs (Platform's load test, PLT-14)
-    fun `a deal at its cap settles in one transaction, in under a second`() {
+    fun `a deal at its cap settles in one transaction, in under 3 seconds`() {
         val deal = UUID.randomUUID()
         val orders = List(200) { UUID.randomUUID() to funded(1000) }
         orders.forEach { (order, student) -> assertEquals(HoldResult.PLACED, hold(order, student, 600, deal)) }
