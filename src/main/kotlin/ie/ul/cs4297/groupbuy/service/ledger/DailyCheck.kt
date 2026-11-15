@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.Clock
 import java.time.Instant
@@ -38,7 +39,9 @@ class DailyCheck(
     private val problems = meters.gauge("ledger.daily.check.problems", AtomicLong(0))!!
     private val lastRun = meters.gauge("ledger.daily.check.last.run.seconds", AtomicLong(0))!!
 
+    // Hourly too: a run that fails 10 times (MySQL down over 8 min at 02:00) never schedules the next, and the checks would stop.
     @EventListener(ApplicationReadyEvent::class)
+    @Scheduled(fixedDelay = 3_600_000, initialDelay = 3_600_000)
     fun scheduleNext() {
         val at = next(clock.instant())
         timers.schedule(type, at.toLocalDate().toString(), at.toInstant())
@@ -77,9 +80,11 @@ class DailyCheck(
             "SELECT COUNT(*) FROM ledger_account a WHERE a.owner_type = 'STUDENT' " +
                 "AND a.balance_cents <> (SELECT COALESCE(SUM(p.amount_cents), 0) FROM ledger_posting p WHERE p.account_id = a.id)"
                 to "student balances differ from their postings",
-            "SELECT COUNT(*) FROM ledger_account a WHERE a.owner_type = 'STUDENT' AND a.purpose = 'HELD' AND a.balance_cents <> " +
-                "COALESCE((SELECT SUM(h.amount_cents) FROM hold_decision h WHERE h.student_id = a.owner_id AND h.state = 'OPEN'), 0) + " +
-                "COALESCE((SELECT SUM(w.amount_cents) FROM withdrawal w WHERE w.student_id = a.owner_id AND w.state = 'RESERVED'), 0)"
+            // Summed per student once, then joined: neither table has a student_id index, so a subquery per student grew as students x holds.
+            "SELECT COUNT(*) FROM ledger_account a " +
+                "LEFT JOIN (SELECT student_id, SUM(amount_cents) AS cents FROM hold_decision WHERE state = 'OPEN' GROUP BY student_id) h ON h.student_id = a.owner_id " +
+                "LEFT JOIN (SELECT student_id, SUM(amount_cents) AS cents FROM withdrawal WHERE state = 'RESERVED' GROUP BY student_id) w ON w.student_id = a.owner_id " +
+                "WHERE a.owner_type = 'STUDENT' AND a.purpose = 'HELD' AND a.balance_cents <> COALESCE(h.cents, 0) + COALESCE(w.cents, 0)"
                 to "students' set-aside money differs from their open holds and reserved cash-outs",
             "SELECT COUNT(*) FROM hold_decision h WHERE " +
                 "(SELECT COUNT(*) FROM ledger_movement m WHERE m.reference_type = 'HOLD' AND m.reference_id = h.order_id) <> IF(h.result = 'PLACED', 1, 0) " +

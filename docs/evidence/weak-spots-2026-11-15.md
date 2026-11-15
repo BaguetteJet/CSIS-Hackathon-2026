@@ -51,3 +51,9 @@ Afterwards both instances were UP with no manual step. The log shows Hikari drop
 - MySQL paused 12 s: three holds answered 503 in 2.20, 2.60 and 10.16 s (the last waited on two 5 s socket timeouts). Holds were normal 3 s after it returned.
 - MySQL stopped for 200 s: a top-up sent 8 s in waited 195 s (past the platform's 155 s), was credited 16 s after MySQL returned, and `ledger_dead_letters` stayed at 2 with no `Dead letter:` line. Both instances were UP after.
 - The books on the dev kit: I1 to I6 hold over 420 movements and 186 holds.
+
+**Follow-up, 06:10–06:50 UTC, branch `item-4/outage-hardening`** (Q18 to Q21 found and Q18 to Q20 fixed; Q21 from the drills):
+- LED-21 drills rerun on `e00940f`: all four pass ([follow-up](led-21-outages.md)). After a 5 min Kafka pause, a top-up waited 44 s for the consumers to rejoin (Q21).
+- The daily check's I3 query on a scratch database in the dev kit's MySQL, 5,000 students, 100,000 holds and 5,000 reserved cash-outs: the subquery per student took 217.7 s; summing each table once and joining took 0.06 s, with the same count (Q19).
+- Flyway on its own connection (Q18): the first try set only `spring.flyway.url`, and all 91 container tests failed with `Access denied` for the laptop's own user name, no password (with a url, Flyway doesn't take the datasource's user). With `user` and `password` set too: 26 unit, 13 contract and 105 container tests pass; `./check` Ready (330 and 341 MiB). The instances' log: `Successfully validated 9 migrations`.
+- k6 on the new image, 200 funded students, both instances: 100/s for 20 s, 2,001 holds, 100%, max 742 ms, p95 117 ms; 200/s, 3,986 holds, 100%, max 394 ms, p95 92 ms.

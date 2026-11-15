@@ -261,7 +261,7 @@ SELECT withdrawal_id, student_id, amount_cents, decided_at FROM withdrawal WHERE
 
 | Failure | Symptom | Confirm | Fix |
 |---|---|---|---|
-| **K1** Kafka down | Holds still answer; events stop appearing on ledger.v1; top-ups and settlements wait | `SELECT COUNT(*) FROM outbox_event WHERE published_at IS NULL;` grows | Nothing: when Kafka returns, the outbox sends them in order and consumers catch up. Check the count falls to 0 |
+| **K1** Kafka down | Holds still answer; events stop appearing on ledger.v1; top-ups and settlements wait | `SELECT COUNT(*) FROM outbox_event WHERE published_at IS NULL;` grows | Nothing: when Kafka returns, the outbox sends them in order and consumers catch up, after up to about 45 s while they rejoin. Check the count falls to 0 |
 | **K2** One instance dies | Calls to it fail for a moment | `docker compose ps` shows one instance down | Nothing: the gateway and Orders' retry use the other; Kafka moves its partitions; repeats are absorbed. Restart: `docker compose up -d` |
 | **K2** Killed mid-settlement | That deal's settlement didn't finish | `deal_settlement` has no row for the deal | Nothing: the transaction rolled back; redelivery settles the whole deal once. Then check §8 "One deal's settlement" |
 | **K3** Ledger down 10 min | New orders stay pending and are abandoned after 2 min; top-ups and settlement wait | Both health checks fail | `docker compose up -d`. Holds answer again; queued events are applied once each; abandoned orders are released |
@@ -295,6 +295,7 @@ SELECT withdrawal_id, student_id, amount_cents, decided_at FROM withdrawal WHERE
 - MySQL down over 15 min: events that arrived meanwhile go to `ledger.dlt` and need a replay (K4) ([EDGE-CASES Q12](EDGE-CASES.md#cases-that-cause-issues)).
 - No API for the Ledger's own totals (Union cash, commission, payables): use §8.
 - The daily check's metric is kept by the instance that ran it, and starts at 0 after a restart; the log line is the record.
+- MySQL down over about 8.5 min at 02:00: that day's daily check fails (timer `FAILED`, `last_error` says why) and is skipped; the next day's runs as usual ([EDGE-CASES Q20](EDGE-CASES.md#cases-that-cause-issues)).
 
 ## 11 Stop and reset
 

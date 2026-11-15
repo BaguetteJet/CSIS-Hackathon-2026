@@ -16,3 +16,5 @@ python3 -I scripts/drills/led21_drills.py <dev-kit dir> .
 | Books after all four | Every posting sums to 0 | `SUM(amount_cents)` = 0 | Pass |
 
 Not covered here: Orders' side (keeping the order pending while the hold call answers 503) is Orders' behaviour.
+
+**Follow-up, Sun 15 Nov 06:10–06:30 UTC, `e00940f` (Q11, Q12, Q13 fixed; [EDGE-CASES](../EDGE-CASES.md#cases-that-cause-issues)).** All four drills passed again. Kafka paused 5 min: 40 holds PLACED, slowest 0.20 s, outbox drained 2 s after unpause; a top-up sent next took 44 s to credit (the consumers rejoining, Q21). MySQL stopped 2 min 13 s: 30 calls all 503 UNAVAILABLE, slowest 1.42 s; normal 8 s after; the top-up sent meanwhile credited at once (was 51 s: retried every 10 s now, not with growing waits). `ledger-1` killed: 37 holds PLACED on `ledger-2`, slowest 0.18 s; 600 = 600. Both stopped 10 min 7 s: healthy 24 s after start, 5000 / 0 within 7 s, each event once. Postings sum to 0.

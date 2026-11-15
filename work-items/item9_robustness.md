@@ -42,7 +42,7 @@ Checked after every container test (step 1), and by SQL on a live deployment.
 
 **If short of time:** steps 1 and 2; they defend the marked properties directly.
 
-**After the steps** (not required by the spec; [EDGE-CASES](../docs/EDGE-CASES.md#cases-that-cause-issues)): Q1, a repeat orderId for another student, is the one 🔴 left (items 1 and 5). Q11 to Q17 (Sun 15 Nov) are outage, deployment and check gaps: Q11, Q12, Q13 and Q15 fixed, the rest with their fix noted. X11, a deadlock test, and X16, a log line for unknown events, are still open.
+**After the steps** (not required by the spec; [EDGE-CASES](../docs/EDGE-CASES.md#cases-that-cause-issues)): Q1, a repeat orderId for another student, is the one 🔴 left (items 1 and 5). Q11 to Q21 (Sun 15 Nov) are outage, deployment and check gaps: Q11, Q12, Q13, Q15, Q18, Q19 and Q20 fixed, the rest with their fix noted. What's left: [PHASES](../PHASES.md#whats-left). X11, a deadlock test, and X16, a log line for unknown events, are still open.
 
 ### Out of scope
 

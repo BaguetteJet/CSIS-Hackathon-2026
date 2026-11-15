@@ -15,6 +15,8 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.scheduling.config.FixedDelayTask
+import org.springframework.scheduling.config.ScheduledTaskHolder
 import java.sql.Timestamp
 import java.time.Duration
 import java.util.UUID
@@ -27,6 +29,7 @@ class LedgerMetricsTest : LedgerFlowTest() {
 
     @Autowired lateinit var meters: MeterRegistry
     @Autowired lateinit var timers: Timers
+    @Autowired lateinit var scheduled: ScheduledTaskHolder
 
     private fun gauge(name: String): Double = meters.get(name).gauge().value()
 
@@ -98,6 +101,13 @@ class LedgerMetricsTest : LedgerFlowTest() {
             "1 deal settlements whose totals differ from their charges",
         ), found)
         assertBooksBalance()
+    }
+
+    @Test
+    fun `a failed day's check doesn't end the checks - the next day is scheduled every hour as well as at start-up`() {
+        val hourly = scheduled.scheduledTasks.map { it.task }.filterIsInstance<FixedDelayTask>()
+            .filter { it.runnable.toString().endsWith("DailyCheck.scheduleNext") }
+        assertEquals(listOf(Duration.ofHours(1)), hourly.map { it.intervalDuration })
     }
 
     @Test

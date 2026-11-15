@@ -6,6 +6,7 @@ import ie.ul.cs4297.groupbuy.contracts.api.HoldResult
 import ie.ul.cs4297.groupbuy.contracts.events.Role
 import ie.ul.cs4297.groupbuy.service.support.ContainersTest
 import ie.ul.cs4297.groupbuy.service.support.TestTokens
+import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -25,6 +26,7 @@ import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import javax.sql.DataSource
 
 /** Item 2 review: migration, business-key dedupe, rollback, /me rules. Holds are in HoldsTest. */
 class LedgerCoreTest : ContainersTest() {
@@ -37,6 +39,8 @@ class LedgerCoreTest : ContainersTest() {
     @Autowired lateinit var tx: TransactionTemplate
     @Autowired lateinit var mapper: ObjectMapper
     @Autowired lateinit var transactions: PlatformTransactionManager
+    @Autowired lateinit var dataSource: DataSource
+    @Autowired lateinit var flyway: Flyway
 
     private val http = HttpClient.newHttpClient()
 
@@ -59,6 +63,13 @@ class LedgerCoreTest : ContainersTest() {
         assertTrue(versions.containsAll(listOf("1", "2", "3", "4", "5", "6")), versions.toString())
         assertEquals(2, count("SELECT COUNT(*) FROM ledger_account WHERE owner_type = 'UNION'"))
         assertEquals(0L, accounts.sumOfAllAccounts())
+    }
+
+    @Test
+    fun `migrations get their own connection with no socket timeout, the pool's give up after 5 s`() {
+        // EDGE-CASES Q11 and Q18: a frozen MySQL fails a call in 5 s, but a long ALTER at start-up is left to finish.
+        dataSource.connection.use { assertEquals(5_000, it.networkTimeout) }
+        flyway.configuration.dataSource.connection.use { assertEquals(0, it.networkTimeout) }
     }
 
     @Test

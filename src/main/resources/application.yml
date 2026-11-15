@@ -39,6 +39,9 @@ spring:
 
   flyway:
     enabled: true                     # migrations in src/main/resources/db/migration, V3__ onwards are yours
+    url: ${DB_URL}                    # its own connection, without the pool's 5 s socket timeout: a long ALTER must not fail start-up
+    user: ${DB_USER}                  # with url set, Flyway doesn't fall back to the datasource's user and password
+    password: ${DB_PASSWORD}
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
