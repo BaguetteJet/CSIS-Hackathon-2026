@@ -18,8 +18,10 @@ import ie.ul.cs4297.groupbuy.service.platform.ApiProblem.FieldError
 import ie.ul.cs4297.groupbuy.service.platform.Invalid
 import ie.ul.cs4297.groupbuy.service.platform.Outbox
 import io.micrometer.core.instrument.MeterRegistry
+import jakarta.annotation.PreDestroy
 import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.dao.DataAccessException
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.dao.PessimisticLockingFailureException
@@ -37,7 +39,13 @@ import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 /**
  * [LED-03] - Place a hold
@@ -50,7 +58,7 @@ import java.util.concurrent.TimeUnit
 class HoldController(private val holds: Holds, private val mapper: ObjectMapper) {
 
     @PostMapping(ApiPaths.PLACE_HOLD)
-    fun place(request: HttpServletRequest): HoldResponse = holds.place(read(request))
+    fun place(request: HttpServletRequest): HoldResponse = holds.placeWithinDeadline(read(request))
 
     /** The body as a [HoldRequest], or 413 / 422. */
     private fun read(request: HttpServletRequest): HoldRequest {
@@ -157,6 +165,7 @@ private class HoldFields(private val body: JsonNode) {
  * Decides each order's hold once, on either instance, in one transaction (decision 0003):
  * claim the orderId, refuse if closed or short, otherwise move AVAILABLE to HELD; the answer and its event commit with the money.
  * Orders waits 2 s: 1 s timeout, deadlocks retried, any other DB error is a 503 that Orders retries.
+ * The answer never waits past [deadlineMillis]: a pool wait, the timeout's rounding and a retry could add up to more than 2 s.
  */
 @Service
 class Holds(
@@ -167,10 +176,44 @@ class Holds(
     private val clock: Clock,
     private val meters: MeterRegistry,
     transactions: PlatformTransactionManager,
+    @Value("\${groupbuy.ledger.hold-deadline-ms:1800}") private val deadlineMillis: Long,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
     private val tx = TransactionTemplate(transactions).apply { timeout = 1 }
 
+    // Bounded: with MySQL frozen, calls past the queue answer 503 at once instead of piling up threads.
+    private val deciders = ThreadPoolExecutor(20, 20, 0, TimeUnit.MILLISECONDS, ArrayBlockingQueue(200)) { r ->
+        Thread(r, "hold-decision").apply { isDaemon = true }
+    }
+
+    @PreDestroy
+    fun stop() = deciders.shutdown()
+
+    /**
+     * The HTTP answer: [place] on its own thread, waited for until the deadline. Past it, answer 503 and let the decision
+     * finish: it commits or rolls back whole, and Orders' retry with the same orderId gets the stored answer or decides afresh (decision 0003).
+     */
+    fun placeWithinDeadline(request: HoldRequest): HoldResponse {
+        val started = System.nanoTime()
+        val decision = try {
+            CompletableFuture.supplyAsync({
+                // Queued past the deadline: nobody is waiting for this answer, and Orders will retry.
+                if (System.nanoTime() - started > TimeUnit.MILLISECONDS.toNanos(deadlineMillis)) throw unavailable(TimeoutException("queued past the deadline"))
+                place(request)
+            }, deciders)
+        } catch (e: RejectedExecutionException) {
+            throw unavailable(e)
+        }
+        try {
+            return decision.get(deadlineMillis - TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started), TimeUnit.MILLISECONDS)
+        } catch (e: TimeoutException) {
+            throw unavailable(TimeoutException("no decision within $deadlineMillis ms"))
+        } catch (e: ExecutionException) {
+            throw e.cause ?: e
+        }
+    }
+
+    /** Decides in the caller's thread, joining its transaction if it has one. */
     fun place(request: HoldRequest): HoldResponse {
         val started = System.nanoTime()
         var result = "UNAVAILABLE"
