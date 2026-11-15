@@ -70,7 +70,7 @@ Weak spots still open ([EDGE-CASES](docs/EDGE-CASES.md#cases-that-cause-issues);
 | Q14 | Ask Platform to refuse `;` in paths at the gateway | Hersh (integration) |
 | Q22 | Optional: holds over 200/s just after a restart get some 503s; try a pool of 20 and measure | Shakeeba (item 4) |
 | X11, X16 | A deadlock test; a log line for unknown event types | Cian (item 9) |
-| Open questions | R4, H13, W11, P5, X2, X5 and X6, X9, X15 ([EDGE-CASES](docs/EDGE-CASES.md#open-questions)) | Their owners there |
+| Open questions | R4, H13, W11, P5, X2, X5 and X6, X15 ([EDGE-CASES](docs/EDGE-CASES.md#open-questions)) | Their owners there |
 
 ## How we're marked
 

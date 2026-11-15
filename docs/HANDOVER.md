@@ -288,7 +288,7 @@ SELECT withdrawal_id, student_id, amount_cents, decided_at FROM withdrawal WHERE
 | A hold answers `503` `UNAVAILABLE` | Database trouble (§8, K3). Nothing was saved; retry |
 | `Could not resolve placeholder 'DB_URL'` (or another name) | A setting is missing from `service.env` (§3) |
 | `UnknownHostException: kafka` or `Communications link failure` | `service.env` uses `localhost`: use `kafka:29092` and `mysql:3306` |
-| Container exits with code 137 | It hit 512 MB: `docker compose logs --tail 40 instance-1`; run one instance while debugging |
+| Container exits with code 137 | It hit 512 MB: `docker compose logs --tail 40 instance-1`; run one instance while debugging. On an arm64 machine (a Mac), the CI image is `linux/amd64` and runs under emulation at about 509 MiB at rest: use `./check`, which builds a native image ([INTEGRATION-CHECK](INTEGRATION-CHECK.md)) |
 
 ## 10 Known limitations
 
@@ -297,6 +297,7 @@ SELECT withdrawal_id, student_id, amount_cents, decided_at FROM withdrawal WHERE
 - Both were left out on purpose: [item 9, Out of scope](../work-items/item9_robustness.md#out-of-scope).
 - MySQL down over 15 min: events that arrived meanwhile go to `ledger.dlt` and need a replay (K4) ([EDGE-CASES Q12](EDGE-CASES.md#cases-that-cause-issues)).
 - Holds well over the spec's 100/s in the first minutes after a restart: some answer 503 `UNAVAILABLE` (Orders retries); warm, 300/s all answered ([EDGE-CASES Q22](EDGE-CASES.md#cases-that-cause-issues)).
+- A deal of 2,000 orders settles in about 6 s; holds for its students meanwhile answer 503 (Orders retries) and a few take just over 2 s. 500 orders: 1 s, every hold under 0.3 s ([evidence](evidence/big-deal-2026-11-15.md)). The load test's deals are 200.
 - No API for the Ledger's own totals (Union cash, commission, payables): use §8.
 - The daily check's metric is kept by the instance that ran it, and starts at 0 after a restart; the log line is the record.
 - MySQL down over about 8.5 min at 02:00: that day's daily check fails (timer `FAILED`, `last_error` says why) and is skipped; the next day's runs as usual ([EDGE-CASES Q20](EDGE-CASES.md#cases-that-cause-issues)).
