@@ -2,6 +2,8 @@ package ie.ul.cs4297.groupbuy.service.ledger
 
 import ie.ul.cs4297.groupbuy.contracts.Money
 import ie.ul.cs4297.groupbuy.contracts.api.HoldResult
+import ie.ul.cs4297.groupbuy.contracts.events.CancelReason
+import ie.ul.cs4297.groupbuy.contracts.events.DealCancelled
 import ie.ul.cs4297.groupbuy.contracts.events.DealConfirmed
 import ie.ul.cs4297.groupbuy.contracts.events.DealFailed
 import ie.ul.cs4297.groupbuy.contracts.events.HoldReleasedReason
@@ -69,7 +71,23 @@ class EdgeCasesTest : LedgerFlowTest() {
     }
 
     @Test
-    fun `D7 DealConfirmed after DealFailed charges nothing and reports each listed order`() {
+    fun `D6 a hold left for staff on a confirmed deal stays set aside after a late DealFailed or DealCancelled`() {
+        // Its student differs from the listed one, so settlement leaves its hold for staff (LED-10, Q24); a later failure doesn't release it.
+        val (deal, orders) = heldDeal(2)
+        val (kept, keptStudent) = orders[1]
+        sendAndWait(envelope(confirmed(deal, listOf(orders[0], kept to UUID.randomUUID()))))
+        sendAndWait(envelope(DealFailed(deal, 2)))
+        sendAndWait(envelope(DealCancelled(deal, CancelReason.DECLINED)))
+
+        assertEquals("CHARGED", stateOf(orders[0].first))
+        assertEquals("OPEN", stateOf(kept))
+        assertEquals(400L to 600L, balanceOf(keptStudent))
+        assertTrue(events("HoldReleased", deal).isEmpty())
+        assertBooksBalance()
+    }
+
+    @Test
+    fun `D7 DealConfirmed after DealFailed charges nothing, reports each listed order, and announces no DealSettled`() {
         val (deal, orders) = heldDeal(2)
         sendAndWait(envelope(DealFailed(deal, 2)))
         sendAndWait(envelope(confirmed(deal, orders)))
@@ -80,6 +98,8 @@ class EdgeCasesTest : LedgerFlowTest() {
         }
         assertTrue(events("OrderCharged", deal).isEmpty())
         assertEquals(orders.size, events("SettlementIssue", deal).size)
+        // The deal didn't happen: a DealSettled would tell Payments and the pages it did.
+        assertTrue(events("DealSettled", deal).isEmpty())
         assertBooksBalance()
     }
 

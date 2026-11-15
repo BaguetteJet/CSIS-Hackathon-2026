@@ -1,6 +1,8 @@
 package ie.ul.cs4297.groupbuy.service.ledger
 
 import com.fasterxml.jackson.core.JacksonException
+import com.fasterxml.jackson.core.StreamReadFeature
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import ie.ul.cs4297.groupbuy.contracts.ContractEvent
@@ -55,7 +57,11 @@ import java.util.concurrent.TimeoutException
  * Body read by hand: the contract wants 422 with errors[] (not Spring's 415) and 413 over 64 KB.
  */
 @RestController
-class HoldController(private val holds: Holds, private val mapper: ObjectMapper) {
+class HoldController(private val holds: Holds, mapper: ObjectMapper) {
+    // Exactly one JSON object: Jackson's default reads `{...} garbage` as the object, and a field given twice as its last value.
+    private val reader = mapper.reader()
+        .with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+        .with(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
 
     @PostMapping(ApiPaths.PLACE_HOLD)
     fun place(request: HttpServletRequest): HoldResponse = holds.placeWithinDeadline(read(request))
@@ -71,7 +77,7 @@ class HoldController(private val holds: Holds, private val mapper: ObjectMapper)
         if (bytes.size > MAX_BODY_BYTES) throw tooLarge()
 
         val body: JsonNode? = try {
-            mapper.readTree(bytes)
+            reader.readTree(bytes)
         } catch (e: JacksonException) {
             null
         }

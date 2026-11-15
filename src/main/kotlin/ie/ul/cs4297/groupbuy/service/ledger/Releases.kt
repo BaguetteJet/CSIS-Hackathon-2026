@@ -5,6 +5,7 @@ import ie.ul.cs4297.groupbuy.contracts.api.LedgerEntryKind
 import ie.ul.cs4297.groupbuy.contracts.events.HoldReleased
 import ie.ul.cs4297.groupbuy.contracts.events.HoldReleasedReason
 import ie.ul.cs4297.groupbuy.service.platform.Outbox
+import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Component
 import java.sql.Timestamp
@@ -42,6 +43,7 @@ class Releases(
     private val clock: Clock,
     private val wakeups: RefundWakeups,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     /** OrderWithdrawn or OrderAbandoned: close the order and release its hold if it's still open. */
     fun orderClosed(orderId: UUID, dealId: UUID, reason: HoldReleasedReason, causationId: UUID) {
@@ -54,7 +56,11 @@ class Releases(
     /** DealFailed or DealCancelled: close the deal and release every open hold for it. Never on a timer (D-E5). */
     fun dealClosed(dealId: UUID, reason: HoldReleasedReason, closure: String, causationId: UUID) {
         val open = holdsForDeal(dealId).filter { it.isOpen }
-        closeDeal(dealId, closure)
+        // Confirmed first: settled, and the holds it left for staff stay set aside (LED-10, EDGE-CASES D6).
+        if (closeDeal(dealId, closure) == "CONFIRMED") {
+            log.warn("Deal {} was already confirmed: {} changes nothing", dealId, closure)
+            return
+        }
         val waiting = wakeups.waitingStudents(open.map { it.orderId }, dealId)
         release(open, reason, causationId, accounts.lockStudents(open.map { it.studentId } + waiting))
         wakeups.dealDecided(dealId)
@@ -100,10 +106,14 @@ class Releases(
         orderId.toString(), dealId.toString(), reason, Timestamp.from(clock.instant()),
     )
 
-    fun closeDeal(dealId: UUID, reason: String) = jdbc.update(
-        "INSERT INTO deal_closure (deal_id, reason, closed_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE deal_id = deal_id",
-        dealId.toString(), reason, Timestamp.from(clock.instant()),
-    )
+    /** Returns the closure that stands: ours, or the first one. FOR SHARE: a plain read could miss a closure committed after our snapshot. */
+    fun closeDeal(dealId: UUID, reason: String): String {
+        jdbc.update(
+            "INSERT INTO deal_closure (deal_id, reason, closed_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE deal_id = deal_id",
+            dealId.toString(), reason, Timestamp.from(clock.instant()),
+        )
+        return jdbc.queryForObject("SELECT reason FROM deal_closure WHERE deal_id = ? FOR SHARE", String::class.java, dealId.toString())!!
+    }
 
     private fun holdRow(rs: java.sql.ResultSet, row: Int) = HoldRow(
         UUID.fromString(rs.getString(1)), UUID.fromString(rs.getString(2)), UUID.fromString(rs.getString(3)),

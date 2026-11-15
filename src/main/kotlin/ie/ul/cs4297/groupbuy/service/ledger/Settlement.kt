@@ -52,7 +52,7 @@ class Settlement(
         val listedIds = listed.map { it.orderId }.toSet()
         val holds = dealHolds.associateBy { it.orderId } +
             releases.holdsForOrders(listedIds - dealHolds.map { it.orderId }.toSet()).associateBy { it.orderId }
-        releases.closeDeal(e.dealId, "CONFIRMED")
+        val closedAs = releases.closeDeal(e.dealId, "CONFIRMED")
 
         val charges = mutableListOf<HoldRow>()
         val issues = mutableListOf<Pair<UUID, String>>()
@@ -92,7 +92,8 @@ class Settlement(
             charges.size, chargedTotal, commissionTotal, e.dealId.toString(),
         )
         issues.forEach { (orderId, problem) -> outbox.publish(SettlementIssue(e.dealId, orderId, problem), causationId) }
-        outbox.publish(DealSettled(e.dealId, e.restaurantId, charges.size, chargedTotal, commissionTotal), causationId)
+        // Already failed or cancelled (EDGE-CASES D7): nothing was charged and the issues say why; a DealSettled would say the deal happened.
+        if (closedAs == "CONFIRMED") outbox.publish(DealSettled(e.dealId, e.restaurantId, charges.size, chargedTotal, commissionTotal), causationId)
         // Refunds wake last: one posted mid-settlement would leave [balances] behind its credit, breaking the chain.
         // Issues too: their refunds can't wait for a charge that won't come (EDGE-CASES Q31).
         wakeups.ordersSettled(charges.map { it.orderId } + issues.map { it.first })

@@ -202,6 +202,10 @@ class HoldsTest : ContainersTest() {
         assertEquals(listOf("cutoffAt"), fieldsWrong(body(order, student, 6).replace("12:00:00Z", "12:00:00+01:00")))
         assertEquals(listOf("orderId", "studentId", "dealId", "cutoffAt", "amountCents"), fieldsWrong("{}"))
         assertEquals(emptyList<String>(), fieldsWrong("{"))
+        // Not one JSON object: trailing text, a second object, or a field given twice (which value is meant?).
+        assertEquals(emptyList<String>(), fieldsWrong(body(order, student, 6) + " garbage"))
+        assertEquals(emptyList<String>(), fieldsWrong(body(order, student, 6) + body(order, student, 6)))
+        assertEquals(emptyList<String>(), fieldsWrong(body(order, student, 6).replace("{", "{\"amountCents\":1,")))
         assertEquals(listOf("Content-Type"), fieldsWrong(body(order, student, 6), contentType = null))
         assertEquals(listOf("Content-Type"), fieldsWrong(body(order, student, 6), contentType = "text/plain"))
 
