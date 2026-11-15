@@ -240,7 +240,7 @@ Example: 11 orders at 500 with 10% commission and 600 set aside gives RESTAURANT
 
 ### Is money stuck?
 
-Open holds on a closed deal: money still set aside that nothing will charge. Normally no rows: settlement releases every open hold it doesn't charge, SettlementIssue or not ([EDGE-CASES Q1](EDGE-CASES.md#cases-that-cause-issues)). Any row is a bug. Platform's stuck-hold alert (PLT-11) watches the same thing from our events.
+Open holds on a closed deal: money still set aside that nothing will charge. A CONFIRMED deal keeps the hold of each listed order it couldn't charge, for staff (LED-10, [EDGE-CASES Q24](EDGE-CASES.md#cases-that-cause-issues)): match those to its SettlementIssue events. Any other row is a bug. Platform's stuck-hold alert (PLT-11) watches the same thing from our events.
 
 ```sql
 SELECT h.deal_id, dc.reason, COUNT(*) AS open_holds, SUM(h.amount_cents) AS set_aside_cents, MIN(h.decided_at) AS oldest
@@ -248,7 +248,7 @@ FROM hold_decision h JOIN deal_closure dc ON dc.deal_id = h.deal_id
 WHERE h.state = 'OPEN' GROUP BY h.deal_id, dc.reason ORDER BY oldest;
 ```
 
-Parked refunds: each waits for its order's charge (`order:<id>`) or, with no money set aside, its deal's outcome (`deal:<id>`). One over 6 h means Deals or Orders never sent that outcome: ask them, don't post it by hand.
+Parked refunds: each waits for its order's charge (`order:<id>`) or, with no money set aside, its deal's outcome (`deal:<id>`). One over 6 h: first check whether its order is an open hold in the query above (listed but not charged, [EDGE-CASES Q31](EDGE-CASES.md#cases-that-cause-issues)); otherwise Deals or Orders never sent that outcome: ask them. Don't post it by hand.
 
 ```sql
 SELECT waits_for, event_id, parked_at FROM parked_event WHERE consumer = 'support-v1' ORDER BY parked_at;
@@ -300,6 +300,7 @@ SELECT withdrawal_id, student_id, amount_cents, decided_at FROM withdrawal WHERE
 - A deal of 2,000 orders settles in 3.6 to 6 s; holds for its students meanwhile answer 503 within 1.5 s (Orders retries; EDGE-CASES Q25). 500 orders: 1 s, every hold under 0.3 s ([evidence](evidence/big-deal-2026-11-15.md)). The load test's deals are 200.
 - No API for the Ledger's own totals (Union cash, commission, payables): use §8.
 - A refund parked for a deal, with no hold, whose student is in another settlement at the same moment: MySQL may cancel one settlement as a deadlock; it retries after 5 s and settles once ([EDGE-CASES Q28](EDGE-CASES.md#cases-that-cause-issues)).
+- A refund approved before settlement, for an order the settlement lists but can't charge: it stays parked, never decided; no money moves ([EDGE-CASES Q31](EDGE-CASES.md#cases-that-cause-issues)).
 - The starter's examples are still served: `/api/ledger/hello` and the page at `/app/ledger/`; `known_user` keeps users' names and emails ([EDGE-CASES Q29](EDGE-CASES.md#cases-that-cause-issues)).
 - The daily check's metric is kept by the instance that ran it, and starts at 0 after a restart; the log line is the record.
 - MySQL down over about 8.5 min at 02:00: that day's daily check fails (timer `FAILED`, `last_error` says why) and is skipped; the next day's runs as usual ([EDGE-CASES Q20](EDGE-CASES.md#cases-that-cause-issues)).
