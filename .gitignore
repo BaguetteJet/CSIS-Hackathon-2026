@@ -12,3 +12,6 @@ Thumbs.db
 *.local.env
 .tokens.txt
 bin/
+
+# Python bytecode from the drill scripts
+__pycache__/
