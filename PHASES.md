@@ -33,10 +33,6 @@ Where the Ledger stands against the brief's build order. LED items: per-team spe
 | 23 | Holds, settlement, parked refunds (count, oldest; 6 h alert), dead letters on the dashboard | `LedgerMetricsTest`, alert checked on Grafana 13.0.3 (fired on a test value) |
 | 24 | Flyway with validate; recompute, settlement and crash runbooks; daily check at 02:00 (stretch) | HANDOVER §8, §9; `LedgerMetricsTest` |
 
-## Partly done
-
-None: every LED item, LED-01 to LED-24, is done.
-
 ## Marked properties (20 marks)
 
 | Property | Status |
@@ -48,13 +44,11 @@ None: every LED item, LED-01 to LED-24, is done.
 
 Each LED item has a Forgejo issue (#7 LED-01 to #30 LED-24): closed means done, open means work left. A PR that finishes one says `Closes #NN`.
 
-## Next for the lead
-
-`checkpoint-2` is `13e63ea` (Sat 16:19): the demo's `6e8cce1` ([POC-DEMO.md](docs/POC-DEMO.md)) plus docs-only PRs #48 to #51, tagged after 15:50 with the advisor's agreement. All 24 LED items are merged (#56 to #63). Next: tag `checkpoint-3` and promote it before Sun 14:00; then `release` at 16:00. The deploy gate is rehearsed on the dev kit: [evidence](docs/evidence/deploy-rehearsal-2026-11-15.md). Brief against what's built: [CHECKLIST.md](CHECKLIST.md). Item 9 (edge cases, a stretch) is done: [evidence](docs/evidence/edge-cases-2026-11-15.md).
-
 ## What's left
 
-As of Sun 15 Nov 08:55 UTC. Every LED item is done. First what the marks still need, then the weak spots still open.
+As of Sun 15 Nov 08:55 UTC. All 24 LED items are merged (#56 to #63), and item 9 (edge cases, a stretch) is done ([evidence](docs/evidence/edge-cases-2026-11-15.md)). `checkpoint-2` is `13e63ea` (Sat 16:19): the demo's `6e8cce1` ([POC-DEMO.md](docs/POC-DEMO.md)) plus docs-only PRs #48 to #51, tagged after 15:50 with the advisor's agreement. The brief against what's built: [CHECKLIST.md](CHECKLIST.md).
+
+First what the marks still need, then the weak spots still open.
 
 | # | To do | Who |
 |---|---|---|
@@ -74,7 +68,7 @@ Weak spots still open ([EDGE-CASES](docs/EDGE-CASES.md#cases-that-cause-issues);
 
 ## How we're marked
 
-Handover §20. The project is 40% of the module, out of 100, over four checkpoints. Marks are locked from each checkpoint's tag.
+From the organisers' handover brief, §20 (not our [docs/HANDOVER.md](docs/HANDOVER.md)). The project is 40% of the module, out of 100, over four checkpoints. Marks are locked from each checkpoint's tag.
 
 | Checkpoint | When | Marks | Earned by | Where we are |
 |---|---|---|---|---|

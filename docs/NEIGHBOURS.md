@@ -44,7 +44,7 @@ Every change of money starts from one of these. A field not listed is in the con
 | Release an order's hold | Orders | OrderWithdrawn, OrderAbandoned (orders.v1) | `orderId`, `dealId`; the student and amount come from our hold | `orderId` | Built (LED-08) |
 | Release a deal's holds | Deals | DealFailed, DealCancelled (deals.v1) | `dealId` | `dealId`; `orderId` per release | Built (LED-09) |
 | Settle a deal | Deals | DealConfirmed (deals.v1) | `dealId`, `restaurantId`, `priceCents`, `commissionBasisPoints` (0 to 10000), `orders[]` of `orderId` and `studentId`; the amount set aside comes from our hold | `dealId`; `orderId` per charge | Built (LED-05, 06, 10) |
-| Refund after a charge | Support | RefundApproved (support.v1) | `refundId`, `orderId`, `dealId`, `studentId`, `amountCents` ≥ 1, `reason` | `refundId` | Built (LED-13); waking early ones: item 6 |
+| Refund after a charge | Support | RefundApproved (support.v1) | `refundId`, `orderId`, `dealId`, `studentId`, `amountCents` ≥ 1, `reason` | `refundId` | Built (LED-13, 14) |
 | Reserve a cash-out | Payments | WithdrawalRequested (payments.v1) | `withdrawalId`, `studentId`, `amountCents` ≥ 1 | `withdrawalId` | Built (LED-15) |
 | Pay out or return a cash-out | Payments | WithdrawalCompleted, WithdrawalFailed (payments.v1) | `withdrawalId`; the amount is the one we reserved | `withdrawalId` | Built (LED-16) |
 | Pay a restaurant | Payments | PayoutConfirmed (payments.v1) | `payoutId`, `restaurantId`, `amountCents` ≥ 1 | `payoutId` | Built (LED-17) |
@@ -81,9 +81,3 @@ Events with the same key arrive in the order we committed them (per-key FIFO, AR
 | SettlementIssue | `dealId` |
 
 A student's events therefore chain by balance (LED-20), but a deal's DealSettled can arrive before or after its students' OrderCharged.
-
-## 5 Asking each team
-
-One message per team lead, in the line channel. Tick **Confirmed** when they answer.
-
-> Hi, Ledger here. From your team document, you need these from us: <rows above>. Anything missing, or anything you'd use differently? Of these, <built ones> are on `main` and promoted from <tag>.

@@ -98,3 +98,32 @@ An event the Ledger can't process, sent to `ledger.dlt`: at once if it breaks th
 
 **Envelope**:
 The wrapper around every event: `eventId` (the inbox skips a repeat), `key` and `sequence` (order per key), `causationId` (the event that caused it).
+
+## The project's words
+
+**The brief**:
+The organisers' documents. "handover §N" (lower case) is a section of their handover brief; "HANDOVER §N" is a section of our [docs/HANDOVER.md](docs/HANDOVER.md). "Reference" is their reference document (its appendices and Scenarios K); "team spec" is the per-team spec, where Ledger §5 lists the LED items.
+
+**LED item**:
+One Ledger story from the team spec, LED-01 to LED-24, each with a "Done when". PLT-, ORD- and similar IDs are other teams' items.
+
+**Marked property**:
+One of the four properties the final marks, 5 marks each: movements sum to zero, a deal settles once, no over-refund, late holds refused.
+
+**Dev kit**:
+The organisers' local copy of the line: Kafka, MySQL, the gateway, sign-in, the clock, and a fake of every service.
+
+**Fake line**:
+The dev kit with its fake Ledger switched off (`FAKE_EXCLUDE=ledger`), so the other services' fakes talk to our real Ledger.
+
+**Integration**:
+The organisers' shared line, where each team's promoted image runs against the others'.
+
+**Golden path**:
+The main journey: students join a deal, it tips, and the Ledger settles it.
+
+**Checkpoint**:
+A tag the marks are read from: `checkpoint-1` (design), `checkpoint-2` (proof of concept), `checkpoint-3` (integration), `release` (final).
+
+**Deploy gate**:
+The final's first step: an assessor follows our HANDOVER.md as written, on a fresh Ubuntu machine with no Java.

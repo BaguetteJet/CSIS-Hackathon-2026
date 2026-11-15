@@ -39,8 +39,8 @@ Run before we promote an image: the CI image, on an **x86_64 (amd64)** machine, 
 |---|---|---|
 | §5 Verify | Every step as written | Passed on `sha-7816b08` ([rehearsal](evidence/deploy-rehearsal-2026-11-15.md)) |
 | Step 4 | Last line `all checks passed` | Passed on `e27571f`, before #64–#68: holds max 289 ms, pages p95 under 50 ms ([evidence](evidence/interface-load-2026-11-15.md)). Not yet on today's `main` |
-| Step 5, 500 orders | `charged 500`; rush answers all `(200, 'PLACED')`; `books sum 0; negative 0` | Settled in 1.0 s; slowest hold 0.28 s |
-| Step 5, 2,000 orders | `charged 2000`; every rush hold `PLACED` or `503` and every retry `PLACED`; books 0 | Settled in 6.0 s; 210 holds 503, all placed on retry; 7 took 2.0–2.1 s ([known limitation](HANDOVER.md#10-known-limitations)) |
+| Step 5, 500 orders | `charged 500`; rush answers all `(200, 'PLACED')`; `books sum 0; negative 0` | Settled in 1.0 s; slowest hold 0.28 s ([evidence](evidence/big-deal-2026-11-15.md)) |
+| Step 5, 2,000 orders | `charged 2000`; every rush hold `PLACED` or `503` and every retry `PLACED`; books 0 | Settled in 6.0 s; 210 holds 503, all placed on retry; 7 took 2.0–2.1 s ([evidence](evidence/big-deal-2026-11-15.md), [known limitation](HANDOVER.md#10-known-limitations)) |
 | Step 6 | `restarts=0 oom=false` for both; each under 512 MiB | 0 restarts; 419 and 402 MiB |
 
 A fail is a 500, a hold over 2 s at 500 orders or fewer, a wrong `charged` count, books not 0, a negative balance, or a restart.

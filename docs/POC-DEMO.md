@@ -154,8 +154,8 @@ Show: holds per second by result and by instance (both instances serve), hold la
 ./clock reset
 ```
 
-## If asked what's not done
+## Not done at `checkpoint-2`
 
-LED-14 (waking early refunds), LED-20 (the zero-sum property test), LED-21 (outage drills), the rest of 23 and 24. The status of record is [PHASES.md](../PHASES.md).
+LED-14 (waking early refunds), LED-20 (the zero-sum property test), LED-21 (outage drills), and the rest of 23 and 24. All are done now: [PHASES.md](../PHASES.md).
 
 In zsh, split a two-column `sql` result with `cut -f1` and `cut -f2`; `set --` doesn't split it.

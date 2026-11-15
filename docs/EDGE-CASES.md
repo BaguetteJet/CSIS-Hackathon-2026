@@ -1,6 +1,6 @@
 # Edge cases
 
-Every case the Ledger must handle, and what it does. The spec for [item 9](../work-items/item9_robustness.md); each row becomes a test. Design: [ARCHITECTURE.md](ARCHITECTURE.md). Tables: [schema.md](SCHEMA.md).
+Every case the Ledger must handle, and what it does. The spec for [item 9](../work-items/item9_robustness.md); each row becomes a test. Design: [ARCHITECTURE.md](ARCHITECTURE.md). Tables: [SCHEMA.md](SCHEMA.md).
 
 Every decision is recorded, declines included; the outcome only decides whether money moves.
 
@@ -141,7 +141,6 @@ The Ledger never declines because of time. A wait ends only when another service
 
 | # | Question | Owner |
 |---|---|---|
-| H4, T3 | Conflicting repeat: is a warning log and `ledger.conflicting_repeats` counter enough? Answered: neither, the first answer stands ([item 9, Out of scope](../work-items/item9_robustness.md#out-of-scope)) | Cian (item 9) |
 | R4 | What the student sees while a refund is parked | Hersh (item 6) |
 | H13 | Blocked accounts: confirm Orders or Payments stops their orders | Hersh |
 | W11 | "Completed" before the request: park or dead-letter? | Cian (item 8) |

@@ -1,6 +1,6 @@
 # Ledger handover
 
-For the assessor at the deploy gate and anyone on call. Sections follow the template (reference, Appendix B). Every command is run as written; every expected output is from a real run on the dev kit (Sat 14 Nov 2026) unless marked **Not yet**. Item 4 (Shakeeba) owns this file; other items write their own sections.
+For the assessor at the deploy gate and anyone on call. Sections follow the template (reference, Appendix B). Run every command as written. Each expected output is from a real run on the dev kit (Sat 14 Nov 2026; §4 and §5 rehearsed again on Sun 15 Nov, [evidence](evidence/deploy-rehearsal-2026-11-15.md)) unless marked **Not yet**.
 
 ## 1 About this service
 

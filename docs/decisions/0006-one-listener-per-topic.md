@@ -4,7 +4,7 @@
 
 **Problem.** All our listeners share one consumer group, and Kafka gives each partition of a topic to one member of the group. Two listeners on one topic would split the partitions, and each would never see the other's events (`reading-week6_1.pdf`).
 
-**Decision.** One listener per topic. It reads the event type and calls the right area's code: `PaymentsConsumer` (payments.v1), `ClosuresConsumer` (orders.v1, deals.v1), the starter's `KnownUsersConsumer` (users.v1), and later `SupportConsumer` (support.v1).
+**Decision.** One listener per topic. It reads the event type and calls the right area's code: `PaymentsConsumer` (payments.v1), `ClosuresConsumer` (orders.v1, deals.v1), the starter's `KnownUsersConsumer` (users.v1), and `SupportConsumer` (support.v1).
 
 **Rejected.**
 - A second listener on a topic in the same group: it splits the partitions, as above.

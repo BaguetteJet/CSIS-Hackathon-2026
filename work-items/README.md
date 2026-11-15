@@ -65,7 +65,7 @@ If short of time: drop payouts, then cash-out returns, before refunds.
 | `Refunds.kt`, `SupportConsumer.kt` | 6 |
 | `StatementController.kt`, `DeskController.kt`, `ZeroSumPropertyTest.kt` | 7 |
 | `Withdrawals.kt`, `Payouts.kt` | 8 |
-| `EdgeCasesTest.kt`, `LedgerInvariants.kt`; fixes elsewhere reviewed by that area's owner | 9 |
+| `EdgeCasesTest.kt`, `assertBooksBalance()` in `LedgerFlowTest.kt`; fixes elsewhere reviewed by that area's owner | 9 |
 
 **Rules for every change:**
 - Money moves only through `post`.

@@ -51,11 +51,11 @@ There are only two foreign keys (posting → movement, posting → account). Eve
 | `HOLD` | orderId | Student AVAILABLE −, HELD + |
 | `RELEASE` | orderId | Student HELD −, AVAILABLE + |
 | `ORDER_CHARGE` | orderId | Student HELD −hold; Restaurant PAYABLE +(price − commission); Union COMMISSION +commission; Student AVAILABLE +rest (lines that would be 0 are left out) |
-| `REFUND` | refundId | Student AVAILABLE +amount; Union COMMISSION −reversed; Restaurant PAYABLE −(amount − reversed). Built (LED-13) |
-| `WITHDRAWAL` | withdrawalId | Student AVAILABLE −, HELD +. Built (LED-15, 16) |
-| `WITHDRAWAL_PAYOUT` | withdrawalId | Student HELD −, Union CASH +. Built (LED-15, 16) |
-| `WITHDRAWAL_RETURN` | withdrawalId | Student HELD −, AVAILABLE +. Built (LED-15, 16) |
-| `PAYOUT` | payoutId | Restaurant PAYABLE −, Union CASH +. Built (LED-17) |
+| `REFUND` | refundId | Student AVAILABLE +amount; Union COMMISSION −reversed; Restaurant PAYABLE −(amount − reversed) |
+| `WITHDRAWAL` | withdrawalId | Student AVAILABLE −, HELD + |
+| `WITHDRAWAL_PAYOUT` | withdrawalId | Student HELD −, Union CASH + |
+| `WITHDRAWAL_RETURN` | withdrawalId | Student HELD −, AVAILABLE + |
+| `PAYOUT` | payoutId | Restaurant PAYABLE −, Union CASH + |
 
 ## 4 What each operation writes
 
@@ -120,7 +120,6 @@ SELECT consumer, COUNT(*) FROM processed_event GROUP BY consumer;
 ## 6 Changing it
 
 - A new table or column: a new migration with the next free `V` number when you merge. Never edit an applied one, not even a comment: Flyway's checksum stops the service.
-- Already there for later items: `order_charge.refunded_cents` and `commission_reversed_cents` (refunds, item 6); the statement fields on `ledger_posting` (item 7).
 - `Migration checksum mismatch` on the dev kit: drop and create the `ledger` database (HANDOVER §9).
 
 ## 7 Fit with the contracts

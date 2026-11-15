@@ -10,7 +10,7 @@
 
 **Builds on:** items 1, 2, 3, 5 (built), 6 and 8 (as they land). **Used by:** item 4 (runbooks), item 7 (property test).
 
-**Files:** `test/.../ledger/EdgeCasesTest.kt`, `assertBooksBalance()` in `test/.../ledger/LedgerFlowTest.kt`, which calls item 4's `DailyCheck.check()` (planned as `LedgerInvariants.kt`), this item's section of `docs/HANDOVER.md`. A fix in another area's file goes in a PR reviewed by that area's owner.
+**Files:** `test/.../ledger/EdgeCasesTest.kt`, `assertBooksBalance()` in `test/.../ledger/LedgerFlowTest.kt`, which calls item 4's `DailyCheck.check()` (planned as a separate `LedgerInvariants.kt`, not built), this item's section of `docs/HANDOVER.md`. A fix in another area's file goes in a PR reviewed by that area's owner.
 
 ### Invariants
 

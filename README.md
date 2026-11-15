@@ -13,19 +13,32 @@ flowchart LR
   L --- DB[(MySQL: accounts, movements, postings)]
 ```
 
-## Where things are
+## For assessors
+
+| To check | Start at |
+|---|---|
+| Deploy and verify on a clean machine (the deploy gate) | [HANDOVER §4 Deploy](docs/HANDOVER.md#4-deploy), then [§5 Verify](docs/HANDOVER.md#5-verify) |
+| The four marked properties, and how to show each one live | [HANDOVER §6](docs/HANDOVER.md#6-your-properties) |
+| Each LED item's "Done when" from the brief, and the test that shows it | [CHECKLIST.md](CHECKLIST.md) |
+| The design: requirements, data, flows, failures | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SCHEMA.md](docs/SCHEMA.md) |
+| Each decision and the options we rejected | [docs/decisions/](docs/decisions/README.md) |
+| The work split: areas, owners, backups | [OWNERS.md](OWNERS.md), [decision 0001](docs/decisions/0001-work-split.md) |
+| Every edge case and what the Ledger does | [docs/EDGE-CASES.md](docs/EDGE-CASES.md) |
+| Known limitations | [HANDOVER §10](docs/HANDOVER.md#10-known-limitations) |
+| Results from live runs, dated | [docs/evidence/](docs/evidence/README.md) |
+| What each team needs from us, and how fast | [docs/NEIGHBOURS.md](docs/NEIGHBOURS.md), [docs/INTERFACE-TARGETS.md](docs/INTERFACE-TARGETS.md) |
+
+## Other docs
 
 | You want | Read |
 |---|---|
-| Deploy, verify, operate, recover it | [docs/HANDOVER.md](docs/HANDOVER.md) |
-| How it works and why | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/decisions/](docs/decisions/README.md) |
-| Every table and column | [docs/schema.md](docs/SCHEMA.md) |
-| The words we use | [GLOSSARY.md](GLOSSARY.md) |
-| What we own, what we need from each team, what they need from us | [docs/NEIGHBOURS.md](docs/NEIGHBOURS.md) |
 | What's done and what's left | [PHASES.md](PHASES.md) |
-| Who owns what; each item's steps | [OWNERS.md](OWNERS.md), [work-items/](work-items/README.md) |
-| Proof from live runs | [docs/evidence/](docs/evidence/) |
-| Show the proof of concept | [docs/POC-DEMO.md](docs/POC-DEMO.md) |
+| Each item's steps | [work-items/](work-items/README.md) |
+| The words we use | [GLOSSARY.md](GLOSSARY.md) |
+| Operate and recover it | [HANDOVER §7 to §11](docs/HANDOVER.md#7-dashboard-tour) |
+| The check before a promotion, on x86_64 | [docs/INTEGRATION-CHECK.md](docs/INTEGRATION-CHECK.md) |
+| The proof-of-concept demo script | [docs/POC-DEMO.md](docs/POC-DEMO.md) |
+| Podman instead of Docker | [SETUP.md](SETUP.md) |
 | Rules for changing the code | [agents/AGENTS.md](agents/AGENTS.md) (read by Claude Code and OpenCode too) |
 
 ## Start
@@ -39,7 +52,7 @@ flowchart LR
 3. Start the dev kit (its README). For our real Ledger behind the gateway, set `LEDGER_URL=http://ledger:8080` and `FAKE_EXCLUDE=ledger` in `dev-kit/.env`, then `docker compose --profile lite up -d`.
 4. Use JDK 21: Gradle 8.12 fails on 24. On macOS, `export JAVA_HOME=$(/usr/libexec/java_home -v 21)`.
 
-Podman instead of Docker: [SETUP.md](SETUP.md).
+To run the CI image without Java, as the deploy gate does: [HANDOVER §4](docs/HANDOVER.md#4-deploy).
 
 ## Commands
 

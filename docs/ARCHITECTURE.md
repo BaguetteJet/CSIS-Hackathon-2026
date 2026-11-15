@@ -102,7 +102,7 @@ Union and restaurant accounts have no running balance, so they're never locked (
 **Settlement** (decision 0007): one local transaction, not a saga, because every row is ours (`lecture12a-the-on-sale-1.pdf` pp. 6–11).
 - The inbox catches a repeated envelope; `deal_settlement` catches a new envelope for the same deal.
 - A crash rolls everything back, and redelivery settles once.
-- Measured: 202 orders in 0.79 s during k6, so holds for those students still answer within 2 s ([evidence](evidence/led-22-holds-k6.md)).
+- Measured during 100 holds/s: 200 orders in 0.21 to 0.87 s, so holds for those students still answer within 2 s ([INTERFACE-TARGETS](INTERFACE-TARGETS.md#deals-settlement)).
 
 **Chaining** (LED-20): every balance on an event is read under the student lock. The outbox numbers events per key in commit order: per-key FIFO, not total order (`lecture10c_2.pdf` pp. 3–9).
 

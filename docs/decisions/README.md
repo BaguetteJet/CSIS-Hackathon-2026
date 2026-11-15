@@ -12,7 +12,7 @@ Each record says what it protects, the problem, what we chose, what we rejected 
 | [0006](0006-one-listener-per-topic.md) | One Kafka listener per topic | No event missed | `ConsumerGroupCheckTest` |
 | [0007](0007-settlement-one-transaction.md) | Settle a deal in one local transaction | A deal settles once | `SettlementTest` |
 | [0008](0008-hold-state.md) | A hold ends once | Never released and charged | `ReleasesTest`, `SettlementTest` |
-| [0009](0009-early-refunds-parked.md) | Park early refunds | No over-refund | `RefundsTest`; wake-ups: item 6 |
+| [0009](0009-early-refunds-parked.md) | Park early refunds | No over-refund | `RefundsTest` |
 | [0010](0010-record-closures.md) | Record closures so late holds are refused | Late holds refused | `HoldsTest`, `ReleasesTest` |
 
 ## Marked properties

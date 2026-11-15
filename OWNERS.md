@@ -4,7 +4,7 @@
 
 We split the Ledger **by money flow**: each area owns one way money enters or leaves (the hold call, payments events, settlement, refunds...) with its own listener or API and its own tables. Each LED item then sits with one person instead of crossing three layers. Why, and the option we rejected: [decision 0001](docs/decisions/0001-work-split.md). Steps and dependencies: [work-items/](work-items/README.md). Progress: [PHASES.md](PHASES.md).
 
-**Rules we keep** (handover §16):
+**Rules we keep** (the organisers' handover brief, §16):
 - Every area has one owner and one backup.
 - Everyone owns at least one area and backs up another.
 - Every LED item has one owner, shown as the assignee of its Forgejo issue.
@@ -43,7 +43,7 @@ We split the Ledger **by money flow**: each area owns one way money enters or le
 **Shakeeba**
 - Owns: operations (item 4). Backs up: statement and testing (item 7).
 - Done: the slice-1 demo bench and its evidence; the Grafana dashboard (LED-23); `checkpoint-2`.
-- Next: the handover document, all 11 sections (item 4 step 7), and the `release` tag, by Sun 16:00.
+- Next: a teammate's deploy from the handover document (item 4 step 7), and the `release` tag, by Sun 16:00.
 
 **Cian**
 - Owns: cash-outs and payouts (item 8), edge cases and robustness (item 9). Backs up: settlement (item 5) and refunds (item 6).
@@ -58,11 +58,5 @@ We split the Ledger **by money flow**: each area owns one way money enters or le
 - Done: the statement (LED-11), the desk balance (12), page security (18), the zero-sum property test (20, marked) and the marked-property map. Item 7 complete.
 - Next: deploy from `docs/HANDOVER.md` alone on a clean machine, the check for item 4 step 7; report every question it leaves.
 
-## LED items
-
-| Status | LED |
-|---|---|
-| Done | 01–24 |
-
-**Work items completed:** items 2, 3, 5, 6, 7 and 8 in full. Items 1 (promote, contracts) and 4 (dev kit on every laptop, tags, handover) are partly done: see each item's checkboxes. Item 9 (edge cases, a stretch) is done, awaiting Cian's review.
+Status of each LED item and work item: [PHASES.md](PHASES.md), [CHECKLIST.md](CHECKLIST.md#work-items).
 
