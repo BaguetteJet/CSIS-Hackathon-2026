@@ -20,16 +20,12 @@ extra["testcontainers.version"] = "1.21.4"
 
 repositories {
     mavenCentral()
-    // The contracts library. The hackathon-2026 organisation is private, so Gradle needs your
-    // Forgejo token: put forgejoUser and forgejoToken in ~/.gradle/gradle.properties (README).
+    // The contracts library, vendored in Maven layout under libs/maven: the hackathon's own
+    // registry (cs4297.skynet.ie) is private, and a build that needs a token cannot run on a
+    // GitHub runner. Nothing else changed: same coordinates, same transitive dependencies.
     maven {
-        name = "forgejo"
-        url = uri((findProperty("forgejoMavenUrl") as String?) ?: "https://cs4297.skynet.ie/api/packages/hackathon-2026/maven")
-        isAllowInsecureProtocol = url.scheme == "http"
-        credentials {
-            username = (findProperty("forgejoUser") as String?) ?: System.getenv("FORGEJO_PACKAGES_USER") ?: ""
-            password = (findProperty("forgejoToken") as String?) ?: System.getenv("FORGEJO_PACKAGES_TOKEN") ?: ""
-        }
+        name = "vendored"
+        url = uri("libs/maven")
         content { includeGroup("ie.ul.cs4297.groupbuy") }
     }
 }

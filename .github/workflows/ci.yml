@@ -1,0 +1,96 @@
+# The service's CI, on GitHub. The same pipeline as the hackathon's Forgejo CI
+# (.forgejo/workflows/ci.yml), ported step for step:
+#   1. unit tests, then the contract tests as their own step ("Contract tests"), so a run shows
+#      separately whether the contracts passed (container tests run on a laptop, not here)
+#   2. the jar
+#   3. on a push (not a pull request): the image, pushed to the GitHub Container Registry and
+#      tagged sha-<commit> and, for a Git tag, the tag itself
+#
+# No credentials to set up: the contracts library is vendored under libs/maven, so the build
+# needs nothing but this repository. The image is the only package it publishes. The repository
+# variable REGISTRY overrides the container registry (it defaults to ghcr.io).
+
+name: service
+
+on:
+  push:
+    branches: [main]
+    tags: ['*']
+  pull_request:
+
+# contents: read for the checkout; packages: write to push the image with the workflow's own token.
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: ${{ vars.REGISTRY || 'ghcr.io' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Only when the repository tracks files with Git LFS (README, "Large files"): fetch them, so
+      # the image is built from the files themselves, not from LFS pointers.
+      - name: Git LFS files
+        run: |
+          if grep -qs 'filter=lfs' .gitattributes; then
+            command -v git-lfs >/dev/null || { echo "::error::This repository uses Git LFS but the runner has no git-lfs."; exit 1; }
+            git lfs pull
+          fi
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          # Safe here, unlike on the hackathon's runners: every artifact is public (the contracts
+          # jar ships in this repository), so there is nothing private to keep out of the cache.
+          cache: gradle
+
+      - name: Unit tests
+        run: ./gradlew test -x contractTest --no-daemon
+
+      # Its own step: the platform team read this result through the CI's API. Runs even if a unit
+      # test failed.
+      - name: Contract tests
+        if: '!cancelled()'
+        run: ./gradlew contractTest --no-daemon
+
+      - name: Build the jar
+        run: ./gradlew bootJar --no-daemon
+
+      - name: Upload the test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: build/reports/tests/test/
+          retention-days: 7
+
+      - name: Upload the JUnit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: build/test-results/**
+          retention-days: 7
+
+      # GitHub's runners already ship a working Docker CLI, so the Forgejo job's manual install of
+      # it is not needed; the version is printed for the log all the same.
+      - name: Docker CLI
+        if: github.event_name == 'push'
+        run: docker version --format 'Docker {{.Server.Version}}'
+
+      - name: Build and push the image
+        if: github.event_name == 'push'
+        run: |
+          image="$REGISTRY/$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+          tags="-t $image:sha-${GITHUB_SHA::7}"
+          if [ "$GITHUB_REF_TYPE" = tag ]; then tags="$tags -t $image:$GITHUB_REF_NAME"; fi
+          # The workflow's own token logs in to ghcr.io. Another REGISTRY needs its own credentials.
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login "$REGISTRY" -u "${{ github.actor }}" --password-stdin
+          docker build $tags .
+          for t in $tags; do [ "$t" = -t ] || docker push "$t"; done
+          echo "Pushed: $tags" | sed 's/-t //g'

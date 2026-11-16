@@ -1,3 +1,19 @@
+# CSIS Hackathon 2026 - 🥈 2nd Place
+
+98 participants across 16 teams built one large-scale distributed system in a single weekend.
+
+Our team **Line-A-Ledger** built the "bank" service for the platform. The ledger records how every cent moves using double-entry postings, which sum to zero, ensuring money is never created or lost. Our service covers the whole money lifecycle including: top-ups, holds, charges, releases, refunds, cash-outs and payouts. It runs as multiple instances over one MySQL database, talks to the rest of the platform over Kafka, and exposes a single synchronous hold call for Orders.
+
+All requirements were delivered and measured against load and outage targets, then deployed and handed over.
+
+I was in charge of the core data system. I worked on the schema for accounts, movements and postings.
+
+**Tools:** Kotlin · Spring Boot · Gradle (JDK 21) · MySQL + Flyway · Kafka · Testcontainers, JUnit, MockK · k6 · Prometheus + Grafana · Docker / Podman · Forgejo CI
+
+---
+
+*The original project README, written during the hackathon...*
+
 # Ledger
 
 The bank inside Campus Group-Buy, line A. It decides whether a student's money is available, and records where every cent goes. Every top-up, hold, charge, release, refund, cash-out and payout is a movement whose postings add up to zero. Orders asks us, in one direct call, whether a student's money is available; everything else arrives and leaves as Kafka events.
@@ -15,7 +31,7 @@ flowchart LR
 
 | You want | Read |
 |---|---|
-| Deploy, verify, operate, recover it | [docs/HANDOVER.md](docs/HANDOVER.md) |
+| Deploy, verify, operate, recover it | [HANDOVER.md](docs/HANDOVER.md) |
 | How it works and why | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/decisions/](docs/decisions/) |
 | Every table and key, and what each operation writes | [docs/SCHEMA.md](docs/SCHEMA.md) |
 | What the Ledger does in every case | [docs/EDGE-CASES.md](docs/EDGE-CASES.md) |
